@@ -115,7 +115,9 @@ export default function FragranceCarousel() {
                     src={fragrance.image || "/placeholder.svg"}
                     alt={fragrance.name}
                     fill
+                    sizes="(max-width: 768px) 100vw, 300px"
                     className="object-cover"
+                    priority={fragrance.id === 0}
                   />
                 </div>
                 <div className="p-4">

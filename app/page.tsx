@@ -161,7 +161,14 @@ export default function Home() {
                   transition={{ duration: 0.7, delay: 0.9 }}
                   className="relative aspect-square md:aspect-auto md:h-[550px] md:-mr-8 md:mt-[-50px]"
                 >
-                  <Image src="/images/fragrance-bottles.png" alt="様々な香水ボトル" fill className="object-contain" />
+                  <Image 
+                    src="/images/fragrance-bottles.png" 
+                    alt="様々な香水ボトル" 
+                    fill 
+                    sizes="(max-width: 768px) 100vw, 50vw"
+                    priority
+                    className="object-contain" 
+                  />
                 </motion.div>
               </div>
             </div>

@@ -8,7 +8,7 @@ import Link from "next/link"
 const fragranceShowcases = [
   {
     id: 1,
-    name: "セレクト香水プラン【1個から注文OK】",
+    name: "好きな香りを選ぶ【4980円～】",
     image: "/images/select-fragrance.png",
     link: "/select-fragrance",
   },

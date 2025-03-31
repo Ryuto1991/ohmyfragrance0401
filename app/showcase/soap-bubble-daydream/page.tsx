@@ -299,7 +299,13 @@ export default function SoapBubbleDaydreamPage() {
               >
                 <Link href="/showcase/eternal-smoke">
                   <div className="relative aspect-[3/4] bg-white flex items-center justify-center">
-                    <Image src="/images/eternal-smoke.png" alt="Eternal Smoke" fill className="object-contain p-4" />
+                    <Image 
+                      src="/images/eternal-smoke.png" 
+                      alt="Eternal Smoke" 
+                      fill 
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                      className="object-contain p-4" 
+                    />
                   </div>
                   <div className="p-6">
                     <h3 className="text-lg font-medium mb-2 text-secondary-foreground font-zen">Eternal Smoke</h3>

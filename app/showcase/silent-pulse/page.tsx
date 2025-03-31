@@ -134,6 +134,7 @@ Re:Noirが紡ぐ繊細な旋律と感情を香りで再構成。
                     width={600}
                     height={600}
                     className="rounded-lg shadow-2xl"
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                   />
                 </motion.div>
               </div>
@@ -268,7 +269,13 @@ Re:Noirが紡ぐ繊細な旋律と感情を香りで再構成。
               >
                 <Link href="/showcase/eternal-smoke">
                   <div className="relative aspect-[3/4] bg-white flex items-center justify-center">
-                    <Image src="/images/eternal-smoke.png" alt="Eternal Smoke" fill className="object-contain p-4" />
+                    <Image 
+                      src="/images/eternal-smoke.png" 
+                      alt="Eternal Smoke" 
+                      fill 
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                      className="object-contain p-4" 
+                    />
                   </div>
                   <div className="p-6">
                     <h3 className="text-lg font-medium mb-2 text-secondary-foreground font-zen">Eternal Smoke</h3>
@@ -294,7 +301,7 @@ Re:Noirが紡ぐ繊細な旋律と感情を香りで再構成。
               >
                 <Link href="/showcase/erina-grace">
                   <div className="relative aspect-[3/4] bg-white flex items-center justify-center">
-                    <Image src="/images/erina-grace.png" alt="Erina Grace" fill className="object-contain p-4" />
+                    <Image src="/images/erina-grace.png" alt="Erina Grace" fill sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" className="object-contain p-4" />
                   </div>
                   <div className="p-6">
                     <h3 className="text-lg font-medium mb-2 text-secondary-foreground font-zen">Erina Grace</h3>
@@ -320,7 +327,7 @@ Re:Noirが紡ぐ繊細な旋律と感情を香りで再構成。
               >
                 <Link href="/showcase/bloom-whisper">
                   <div className="relative aspect-[3/4] bg-white flex items-center justify-center">
-                    <Image src="/images/bloom-whisper.png" alt="Bloom Whisper" fill className="object-contain p-4" />
+                    <Image src="/images/bloom-whisper.png" alt="Bloom Whisper" fill sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" className="object-contain p-4" />
                   </div>
                   <div className="p-6">
                     <h3 className="text-lg font-medium mb-2 text-secondary-foreground font-zen">Bloom Whisper</h3>
