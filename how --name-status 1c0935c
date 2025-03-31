@@ -1,0 +1,44 @@
+1c0935c - Ryuto Kawamata, 2025-03-31 19:27:49 : feat: UI improvements and new pages
+A	app/Fragrance-Lab/page.tsx
+M	app/concept/page.tsx
+M	app/layout.tsx
+A	app/oh-my-custom-order/page.tsx
+M	app/page.tsx
+M	app/select-fragrance/page.tsx
+M	app/showcase/[slug]/page.tsx
+M	app/showcase/bloom-whisper/page.tsx
+M	app/showcase/erina-grace/page.tsx
+M	app/showcase/eternal-smoke/page.tsx
+M	app/showcase/page.tsx
+M	app/showcase/silent-pulse/page.tsx
+M	app/showcase/soap-bubble-daydream/page.tsx
+M	app/signup/page.tsx
+M	components/site-footer.tsx
+M	components/site-header.tsx
+M	components/ui/sheet.tsx
+A	contexts/cart-drawer-context.tsx
+
+e1e81c9 - Ryuto Kawamata, 2025-03-31 12:54:57 : fix: resolve checkout errors and simplify payment methods
+A	app/api/checkout/route.ts
+A	app/api/test-checkout/route.ts
+M	app/guest-checkout/page.tsx
+M	app/layout.tsx
+M	app/select-fragrance-order/page.tsx
+M	app/showcase/[slug]/page.tsx
+M	app/showcase/bloom-whisper/page.tsx
+M	app/showcase/erina-grace/page.tsx
+M	app/showcase/eternal-smoke/page.tsx
+M	app/showcase/silent-pulse/page.tsx
+M	app/showcase/soap-bubble-daydream/page.tsx
+A	app/test/page.tsx
+D	components/cart-button.tsx
+M	components/site-header.tsx
+A	components/stripe-cart-button.tsx
+A	components/stripe-cart-drawer.tsx
+A	contexts/cart-context.tsx
+A	contexts/stripe-cart-context.tsx
+A	lib/stripe.ts
+A	package-lock.json
+M	package.json
+M	pnpm-lock.yaml
+M	yarn.lock

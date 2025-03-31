@@ -1,0 +1,70 @@
+.prose h2 {
+  font-size: 1.5rem;
+  font-weight: 500;
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+  color: #333;
+  font-family: "Zen Kaku Gothic New", sans-serif;
+}
+
+.prose h3 {
+  font-size: 1.25rem;
+  font-weight: 500;
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+  color: #333;
+  font-family: "Zen Kaku Gothic New", sans-serif;
+}
+
+.prose p {
+  margin-bottom: 1rem;
+  line-height: 1.7;
+}
+
+.prose ul,
+.prose ol {
+  margin-bottom: 1rem;
+  padding-left: 1.5rem;
+}
+
+.prose li {
+  margin-bottom: 0.5rem;
+}
+
+.prose strong {
+  font-weight: 600;
+  color: #333;
+}
+
+.prose a {
+  color: #99616c;
+  text-decoration: underline;
+}
+
+.prose a:hover {
+  color: #e0a3ad;
+}
+
+.prose blockquote {
+  border-left: 4px solid #e0a3ad;
+  padding-left: 1rem;
+  font-style: italic;
+  margin: 1.5rem 0;
+  color: #666;
+}
+
+.prose img {
+  border-radius: 0.5rem;
+  margin: 1.5rem 0;
+}
+
+@media (max-width: 768px) {
+  .prose h2 {
+    font-size: 1.25rem;
+  }
+
+  .prose h3 {
+    font-size: 1.125rem;
+  }
+}
+
