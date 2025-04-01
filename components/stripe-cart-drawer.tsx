@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter, SheetClose } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Trash2, Minus, Plus, Loader2 } from 'lucide-react';
-import { getStripe } from "@/lib/stripe";
+import { getStripe } from "@/lib/stripe"; // Import getStripe for checkout
 
 interface StripeCartDrawerProps {
   open: boolean;
