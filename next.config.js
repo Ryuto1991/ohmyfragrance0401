@@ -22,7 +22,9 @@ const nextConfig = {
     minimumCacheTTL: 60,
   },
   experimental: {
-    serverActions: true,
+    serverActions: {
+      allowedOrigins: ["localhost:3000"],
+    },
   },
   webpack: (config, { dev, isServer }) => {
     // 開発環境でのみ適用

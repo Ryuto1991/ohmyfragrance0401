@@ -95,25 +95,11 @@ module.exports = {
     },
   },
   plugins: [require("tailwindcss-animate")],
-  // 未使用のクラスを除外
-  purge: {
-    enabled: process.env.NODE_ENV === 'production',
-    content: [
-      './pages/**/*.{ts,tsx}',
-      './components/**/*.{ts,tsx}',
-      './app/**/*.{ts,tsx}',
-      './src/**/*.{ts,tsx}',
-    ],
-    options: {
-      safelist: [
-        /^bg-/,
-        /^text-/,
-        /^border-/,
-        /^hover:/,
-        /^focus:/,
-        /^active:/,
-      ],
+  safelist: [
+    {
+      pattern: /^(bg|text|border)-(primary|secondary|accent|muted|destructive|popover|card)$/,
+      variants: ['hover', 'focus', 'active'],
     },
-  },
+  ],
 }
 
