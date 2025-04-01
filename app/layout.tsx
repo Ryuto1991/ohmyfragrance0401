@@ -35,9 +35,11 @@ const montserrat = Montserrat({
   text: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789",
 });
 
+const inter = Inter({ subsets: ["latin"] });
+
 export const metadata: Metadata = {
-  title: "OMF - Online Fragrance Store",
-  description: "Experience unique AI-generated fragrances",
+  title: "Oh My Fragrance",
+  description: "Create your own custom fragrance",
 };
 
 export default function RootLayout({
@@ -47,7 +49,13 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ja" suppressHydrationWarning>
-      <body className={`${zenKakuGothicNew.variable} ${montserrat.variable} font-sans`} suppressHydrationWarning>
+      <head>
+        <link
+          href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Noto+Serif+JP:wght@400;500;700&family=Roboto:wght@400;500;700&family=Playfair+Display:wght@400;500;700&display=swap"
+          rel="stylesheet"
+        />
+      </head>
+      <body className={`${zenKakuGothicNew.variable} ${montserrat.variable} ${inter.className} font-sans`} suppressHydrationWarning>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

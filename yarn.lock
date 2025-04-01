@@ -2829,12 +2829,12 @@ tui-code-snippet@^2.3.3:
   resolved "https://registry.npmjs.org/tui-code-snippet/-/tui-code-snippet-2.3.3.tgz"
   integrity sha512-5NEHTDFKillDNPy6MCgpXDNBTB7SZkHBFOF6vXfCDIFZcBdFYFXTd2xvAVvIeM3UYFRWu27xUf/Kxl5f9+RooQ==
 
-tui-color-picker@^2.2.6:
+tui-color-picker@^2.2.6, tui-color-picker@^2.2.8:
   version "2.2.8"
   resolved "https://registry.npmjs.org/tui-color-picker/-/tui-color-picker-2.2.8.tgz"
   integrity sha512-q5sE9NQ5NR9lYpilYjcI7Sdv0KCogo+W8fZY+AYTj/HYg+9fscYy3UuJ6UQiV1bF+ARCLwFRWC8UcOt9kuUctQ==
 
-tui-image-editor@^3.15.2:
+tui-image-editor@^3.15.2, tui-image-editor@^3.15.3:
   version "3.15.3"
   resolved "https://registry.npmjs.org/tui-image-editor/-/tui-image-editor-3.15.3.tgz"
   integrity sha512-7B5YUxe2eSSh+8YrlREmjqkgeFFKrVkdy0D/G0dWCJIQ2WLPQ/Bkm02WXQeWJiFPzgvargZjn7eAe80p3qBHPQ==

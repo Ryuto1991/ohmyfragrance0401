@@ -1,0 +1,54 @@
+{
+  "black": {
+    "large": {
+      "width": 340,
+      "height": 400,
+      "x": 0,
+      "y": 100
+    },
+    "medium": {
+      "width": 240,
+      "height": 380,
+      "x": 0,
+      "y": 100
+    },
+    "small": {
+      "width": 250,
+      "height": 220,
+      "x": 0,
+      "y": 100
+    },
+    "square": {
+      "width": 300,
+      "height": 300,
+      "x": 0,
+      "y": 100
+    }
+  },
+  "clear": {
+    "large": {
+      "width": 340,
+      "height": 400,
+      "x": 0,
+      "y": 100
+    },
+    "medium": {
+      "width": 240,
+      "height": 380,
+      "x": 0,
+      "y": 100
+    },
+    "small": {
+      "width": 250,
+      "height": 220,
+      "x": 0,
+      "y": 100
+    },
+    "square": {
+      "width": 300,
+      "height": 300,
+      "x": 0,
+      "y": 100
+    }
+  }
+}
