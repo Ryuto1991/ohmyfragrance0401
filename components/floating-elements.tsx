@@ -35,16 +35,48 @@ export default function FloatingElements() {
     // Generate floating elements
     const newElements: FloatingElement[] = []
 
-    // Generate 6 random elements (reduced from 10)
-    for (let i = 0; i < 6; i++) {
+    // Determine number of elements based on screen width
+    let elementCount = 8; // default for desktop
+    if (window.innerWidth < 640) { // mobile
+      elementCount = 4;
+    } else if (window.innerWidth < 1024) { // tablet
+      elementCount = 6;
+    }
+
+    // Generate random elements with more random positioning
+    for (let i = 0; i < elementCount; i++) {
+      // Create random quadrant for initial position
+      const quadrant = Math.floor(Math.random() * 3) // Changed from 4 to 3 to exclude bottom-right
+      let x, y
+      
+      switch (quadrant) {
+        case 0: // top-left
+          x = 20 + Math.random() * 25 // 20-45%
+          y = 20 + Math.random() * 25 // 20-45%
+          break
+        case 1: // top-right
+          x = 55 + Math.random() * 25 // 55-80%
+          y = 20 + Math.random() * 25 // 20-45%
+          break
+        default: // bottom-left only
+          x = 20 + Math.random() * 25 // 20-45%
+          y = 55 + Math.random() * 25 // 55-80%
+          break
+      }
+
+      // Adjust position if it's too close to the center-right (where the hero image is)
+      if (x > 45 && y > 40) {
+        x = 20 + Math.random() * 25 // Move it to the left side
+      }
+
       newElements.push({
         id: i,
-        x: Math.random() * 100, // percentage of screen width
-        y: Math.random() * 100, // percentage of screen height
-        size: Math.random() * 30 + 15, // size between 15-45px (smaller)
-        rotation: Math.random() * 360, // random initial rotation
-        delay: Math.random() * 2, // random delay for animation
-        duration: Math.random() * 10 + 20, // animation duration between 20-30s (slower)
+        x,
+        y,
+        size: Math.random() * 30 + 20, // slightly smaller size range: 20-50px
+        rotation: Math.random() * 360,
+        delay: Math.random() * 2,
+        duration: Math.random() * 6 + 14, // longer duration: 14-20s
         type: ["circle", "square", "bottle", "flower", "leaf"][Math.floor(Math.random() * 5)] as any,
       })
     }
@@ -57,17 +89,17 @@ export default function FloatingElements() {
   const getElementColor = (type: string) => {
     switch (type) {
       case "circle":
-        return "#FFE8E8" // very light pink
+        return "#FFD6D6" // slightly darker pink
       case "square":
-        return "#E8F0FF" // very light blue
+        return "#D6E4FF" // slightly darker blue
       case "bottle":
-        return "#E8F8E8" // very light green
+        return "#D6FFD6" // slightly darker green
       case "flower":
-        return "#FFF0E8" // very light orange
+        return "#FFE0D6" // slightly darker orange
       case "leaf":
-        return "#E8FFF0" // very light mint
+        return "#D6FFE0" // slightly darker mint
       default:
-        return "#F8F8F8" // very light gray
+        return "#F0F0F0" // slightly darker gray
     }
   }
 
@@ -176,39 +208,46 @@ export default function FloatingElements() {
   }
 
   return (
-    <div className="fixed inset-0 pointer-events-none overflow-hidden opacity-50">
-      {elements.map((element) => (
-        <motion.div
-          key={element.id}
-          className="absolute"
-          style={{
-            left: `${element.x}%`,
-            top: `${element.y}%`,
-            zIndex: 1,
-          }}
-          initial={{
-            x: 0,
-            y: 0,
-            rotate: element.rotation,
-            opacity: 0.4,
-          }}
-          animate={{
-            x: [0, Math.random() * 80 - 40, Math.random() * 80 - 40, 0],
-            y: [0, Math.random() * 80 - 40, Math.random() * 80 - 40, 0],
-            rotate: element.rotation + 360,
-            opacity: [0.4, 0.2, 0.4, 0.2, 0.4],
-          }}
-          transition={{
-            duration: element.duration,
-            delay: element.delay,
-            repeat: Number.POSITIVE_INFINITY,
-            repeatType: "loop",
-            ease: "easeInOut",
-          }}
-        >
-          {getElementShape(element.type, element.size)}
-        </motion.div>
-      ))}
+    <div className="absolute inset-0 pointer-events-none overflow-hidden">
+      <div className="relative w-full h-full opacity-70">
+        {elements.map((element) => (
+          <motion.div
+            key={element.id}
+            className="absolute"
+            style={{
+              left: `${element.x}%`,
+              top: `${element.y}%`,
+              zIndex: 0,
+              transform: 'translate(-50%, -50%)', // Center the element
+            }}
+            initial={{
+              x: 0,
+              y: 0,
+              rotate: element.rotation,
+              opacity: 0.6,
+              scale: 1,
+            }}
+            animate={{
+              x: [0, Math.random() * 100 - 50, Math.random() * 100 - 50, 0], // reduced movement range
+              y: [0, Math.random() * 100 - 50, Math.random() * 100 - 50, 0], // reduced movement range
+              rotate: element.rotation + 360,
+              opacity: [0.6, 0.3, 0.6, 0.3, 0.6],
+              scale: [1, 1.1, 1, 0.9, 1], // add subtle scale animation
+            }}
+            transition={{
+              duration: element.duration,
+              delay: element.delay,
+              repeat: Number.POSITIVE_INFINITY,
+              repeatType: "loop",
+              ease: "easeInOut",
+            }}
+          >
+            <div className="transform-gpu"> {/* GPU acceleration for smoother animations */}
+              {getElementShape(element.type, element.size)}
+            </div>
+          </motion.div>
+        ))}
+      </div>
     </div>
   )
 }

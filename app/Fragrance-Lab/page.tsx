@@ -9,13 +9,12 @@ import SiteFooter from "@/components/site-footer"
 import SiteHeader from "@/components/site-header"
 import { FragranceAIChat } from "@/components/chat/fragrance-ai-chat"
 
-export default function FragranceAIPage() {
+export default function FragranceLabPage() {
   const searchParams = useSearchParams()
   const pathname = usePathname()
   const [initialQuery, setInitialQuery] = useState<string | undefined>(undefined)
   const [isFirstRender, setIsFirstRender] = useState(true)
 
-  // URLからクエリパラメータを取得
   useEffect(() => {
     const query = searchParams.get("query")
     if (query) {
@@ -23,17 +22,14 @@ export default function FragranceAIPage() {
     }
   }, [searchParams])
 
-  // パスが変わった時とコンポーネントの初回レンダリング時にスクロール処理を実行
   useEffect(() => {
     if (typeof window !== "undefined") {
-      // 強制的にスクロールを最上部に設定
       window.scrollTo({
         top: 0,
         left: 0,
-        behavior: "auto", // 'smooth'ではなく'auto'を使用して即時スクロール
+        behavior: "auto",
       })
 
-      // 確実にスクロールが適用されるように少し遅延させて再度スクロール
       const timeoutId = setTimeout(() => {
         window.scrollTo({
           top: 0,
@@ -46,14 +42,12 @@ export default function FragranceAIPage() {
     }
   }, [pathname, isFirstRender])
 
-  // 初回レンダリング後にフラグを更新
   useEffect(() => {
     setIsFirstRender(false)
   }, [])
 
   return (
     <div className="min-h-screen bg-secondary flex flex-col">
-      {/* 標準ヘッダーを使用 */}
       <SiteHeader />
 
       <main className="pt-28 pb-20 flex-grow flex flex-col">
@@ -84,5 +78,4 @@ export default function FragranceAIPage() {
       <SiteFooter />
     </div>
   )
-}
-
+} 

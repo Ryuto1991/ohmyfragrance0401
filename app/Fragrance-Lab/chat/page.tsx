@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 
-export default function FragranceAIChatPage() {
+export default function FragranceLabChatPage() {
   return (
     <main className="container mx-auto px-4 py-12 max-w-4xl">
       <div className="text-center mb-8">
@@ -11,12 +11,10 @@ export default function FragranceAIChatPage() {
         </p>
       </div>
 
-      {/* Chat container for Mastra chat integration */}
       <div
         id="chat-container"
         className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-8 min-h-[400px] border border-gray-200 dark:border-gray-700"
       >
-        {/* Mastra chat will be embedded here via JavaScript */}
         <div className="flex items-center justify-center h-full text-gray-500 dark:text-gray-400">
           <p>チャットインターフェースがここに表示されます...</p>
         </div>
@@ -24,7 +22,7 @@ export default function FragranceAIChatPage() {
 
       <div className="flex justify-center">
         <Button asChild>
-          <Link href="/Fragrance-AI/customize">
+          <Link href="/Fragrance-Lab/customize">
             <Button size="lg" className="px-8 py-6 text-lg">
               この香りでつくる
             </Button>
@@ -33,5 +31,4 @@ export default function FragranceAIChatPage() {
       </div>
     </main>
   )
-}
-
+} 

@@ -6,6 +6,9 @@ import Link from "next/link"
 import { ArrowRight, MessageSquare, Package, Gift, ChevronDown, ChevronUp } from "lucide-react"
 import { motion, useInView, LazyMotion, domAnimation } from "framer-motion"
 import dynamic from 'next/dynamic'
+import { useRouter } from "next/navigation"
+import { useAuth } from "@/contexts/auth-context"
+import { useToast } from "@/components/ui/use-toast"
 
 import { Button } from "@/components/ui/button"
 import FloatingElements from "@/components/floating-elements"
@@ -92,6 +95,9 @@ export default function Home() {
   const [scrollY, setScrollY] = useState(0)
   const [openFaq, setOpenFaq] = useState<number | null>(null)
   const [isMounted, setIsMounted] = useState(false)
+  const router = useRouter()
+  const { user } = useAuth()
+  const { toast } = useToast()
 
   // 料金プランセクションの参照を作成
   const pricingRef = useRef(null)
@@ -106,6 +112,17 @@ export default function Home() {
     window.addEventListener("scroll", handleScroll)
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
+
+  useEffect(() => {
+    if (user?.email_confirmed_at) {
+      toast({
+        title: "メール認証が完了しました",
+        description: "ご利用ありがとうございます。",
+        duration: 3000,
+      })
+      router.push('/mypage')
+    }
+  }, [user, router, toast])
 
   const toggleFaq = (index: number) => {
     setOpenFaq(openFaq === index ? null : index)
@@ -144,11 +161,12 @@ export default function Home() {
         <SiteHeader />
 
         <main className="pt-28 pb-20 relative">
-          <FloatingElements />
-
           {/* Hero Section */}
           <section className="relative bg-secondary mb-4">
-            <div className="container mx-auto px-4 md:px-8">
+            <div className="absolute inset-0 overflow-hidden">
+              <FloatingElements />
+            </div>
+            <div className="container mx-auto px-4 md:px-8 relative z-10">
               <div className="grid md:grid-cols-2 gap-4 items-center">
                 <div>
                   <h1 className="text-4xl md:text-5xl font-medium mb-6 leading-tight text-secondary-foreground font-zen">
@@ -369,14 +387,14 @@ export default function Home() {
           </section>
 
           {/* 料金プランセクション */}
-          <section className="py-16" ref={pricingRef}>
+          <section ref={pricingRef} className="py-24 bg-secondary">
             <div className="container mx-auto px-4 md:px-8">
               <div className="text-center mb-12">
                 <h2 className="text-2xl font-medium mb-2 text-secondary-foreground font-zen">料金プラン</h2>
                 <div className="w-24 h-1 bg-primary mx-auto mb-6"></div>
               </div>
 
-              <div className="grid md:grid-cols-3 gap-8 mb-12">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
                 {/* Custom Plan */}
                 <motion.div
                   className="bg-white p-8 rounded-lg shadow-sm hover:-translate-y-2 hover:scale-[1.02] hover:shadow-lg transition-all duration-500"
@@ -395,70 +413,42 @@ export default function Home() {
                     <h3 className="text-xl font-medium text-center font-zen">Oh my custom</h3>
                   </div>
                   <div className="mb-6">
-                    <div className="flex items-baseline mb-2">
-                      <span className="text-sm font-zen">価格：</span>
-                      <span className="text-2xl font-bold ml-2 font-zen">4,980円</span>
-                      <span className="text-sm ml-1 font-zen">（税込・送料無料）</span>
+                    <div className="flex flex-col items-center mb-4">
+                      <span className="text-sm font-zen">価格</span>
+                      <div className="flex items-baseline">
+                        <span className="text-3xl font-bold font-zen">4,980</span>
+                        <span className="text-lg ml-1 font-zen">円</span>
+                      </div>
+                      <span className="text-sm text-secondary-foreground/70 font-zen">（税込・送料無料）</span>
                     </div>
+                    <div className="h-px bg-gray-200 my-6"></div>
+                    <ul className="space-y-4">
+                      <li className="flex items-start">
+                        <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5 mr-3">
+                          <span className="text-primary text-xs">✓</span>
+                        </div>
+                        <span className="text-sm font-zen">内容量：30ml</span>
+                      </li>
+                      <li className="flex items-start">
+                        <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5 mr-3">
+                          <span className="text-primary text-xs">✓</span>
+                        </div>
+                        <span className="text-sm font-zen">人気の香り10種類から選べる</span>
+                      </li>
+                      <li className="flex items-start">
+                        <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5 mr-3">
+                          <span className="text-primary text-xs">✓</span>
+                        </div>
+                        <span className="text-sm font-zen">お好きな画像をラベルに印刷（写真・イラスト・ロゴなど）</span>
+                      </li>
+                    </ul>
                   </div>
-                  <ul className="space-y-3 mb-6">
-                    <li className="flex items-start">
-                      <div className="h-5 w-5 rounded-full bg-accent-light/10 flex items-center justify-center flex-shrink-0 mt-0.5 mr-3">
-                        <span className="text-accent-light text-xs">✓</span>
-                      </div>
-                      <span className="text-sm font-zen">内容量：30ml</span>
-                    </li>
-                    <li className="flex items-start">
-                      <div className="h-5 w-5 rounded-full bg-accent-light/10 flex items-center justify-center flex-shrink-0 mt-0.5 mr-3">
-                        <span className="text-accent-light text-xs">✓</span>
-                      </div>
-                      <span className="text-sm font-zen">人気の香り10種から1つを選択</span>
-                    </li>
-                    <li className="flex items-start">
-                      <div className="h-5 w-5 rounded-full bg-accent-light/10 flex items-center justify-center flex-shrink-0 mt-0.5 mr-3">
-                        <span className="text-accent-light text-xs">✓</span>
-                      </div>
-                      <span className="text-sm font-zen">お好きな画像をラベルに印刷（写真・イラスト・ロゴなどOK）</span>
-                    </li>
-                    <li className="flex items-start">
-                      <div className="h-5 w-5 rounded-full bg-accent-light/10 flex items-center justify-center flex-shrink-0 mt-0.5 mr-3">
-                        <span className="text-accent-light text-xs">✓</span>
-                      </div>
-                      <span className="text-sm font-zen">納期目安：ご注文から約2週間前後</span>
-                    </li>
-                    <li className="flex items-start">
-                      <div className="h-5 w-5 rounded-full bg-accent-light/10 flex items-center justify-center flex-shrink-0 mt-0.5 mr-3">
-                        <span className="text-accent-light text-xs">✓</span>
-                      </div>
-                      <span className="text-sm font-zen">配送方法：ゆうパケット（追跡可能）</span>
-                    </li>
-                    <li className="flex items-start">
-                      <div className="h-5 w-5 rounded-full bg-accent-light/10 flex items-center justify-center flex-shrink-0 mt-0.5 mr-3">
-                        <span className="text-accent-light text-xs">✓</span>
-                      </div>
-                      <span className="text-sm font-zen">
-                        決済方法：クレジットカード / Apple Pay / Google Pay / コンビニ支払い
-                      </span>
-                    </li>
-                  </ul>
-                  <div className="flex justify-center">
-                    <motion.div
-                      whileHover={{ scale: 1.03 }}
-                      whileTap={{ scale: 0.98 }}
-                      transition={{ 
-                        type: "spring",
-                        stiffness: 300,
-                        damping: 20
-                      }}
-                    >
-                      <Link href="/oh-my-custom" replace>
-                        <Button className="bg-primary hover:bg-primary/90 text-white rounded-full px-6 py-2 font-montserrat relative overflow-hidden group">
-                          <span className="absolute w-0 h-0 transition-all duration-300 ease-out bg-white rounded-full group-hover:w-32 group-hover:h-32 opacity-10"></span>
-                          <span className="relative">好きな香りを見つける</span>
-                        </Button>
-                      </Link>
-                    </motion.div>
-                  </div>
+                  <Button
+                    asChild
+                    className="w-full bg-primary hover:bg-primary/90 text-white rounded-full"
+                  >
+                    <Link href="/oh-my-custom-order">詳しく見る</Link>
+                  </Button>
                 </motion.div>
 
                 {/* Fragrance Lab */}
@@ -479,76 +469,42 @@ export default function Home() {
                     <h3 className="text-xl font-medium text-center font-zen">Fragrance Lab</h3>
                   </div>
                   <div className="mb-6">
-                    <div className="flex items-baseline mb-2">
-                      <span className="text-sm font-zen">価格：</span>
-                      <span className="text-2xl font-bold ml-2 font-zen">5,980円</span>
-                      <span className="text-sm ml-1 font-zen">（税込・送料無料）</span>
+                    <div className="flex flex-col items-center mb-4">
+                      <span className="text-sm font-zen">価格</span>
+                      <div className="flex items-baseline">
+                        <span className="text-3xl font-bold font-zen">5,980</span>
+                        <span className="text-lg ml-1 font-zen">円</span>
+                      </div>
+                      <span className="text-sm text-secondary-foreground/70 font-zen">（税込・送料無料）</span>
                     </div>
+                    <div className="h-px bg-gray-200 my-6"></div>
+                    <ul className="space-y-4">
+                      <li className="flex items-start">
+                        <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5 mr-3">
+                          <span className="text-primary text-xs">✓</span>
+                        </div>
+                        <span className="text-sm font-zen">内容量：30ml</span>
+                      </li>
+                      <li className="flex items-start">
+                        <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5 mr-3">
+                          <span className="text-primary text-xs">✓</span>
+                        </div>
+                        <span className="text-sm font-zen">AIとあなたのイメージに合わせて香りをブレンド</span>
+                      </li>
+                      <li className="flex items-start">
+                        <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5 mr-3">
+                          <span className="text-primary text-xs">✓</span>
+                        </div>
+                        <span className="text-sm font-zen">お好きな画像をラベルに印刷（写真・イラスト・ロゴなど）</span>
+                      </li>
+                    </ul>
                   </div>
-                  <ul className="space-y-3 mb-6">
-                    <li className="flex items-start">
-                      <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5 mr-3">
-                        <span className="text-primary text-xs">✓</span>
-                      </div>
-                      <span className="text-sm font-zen">内容量：30ml</span>
-                    </li>
-                    <li className="flex items-start">
-                      <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5 mr-3">
-                        <span className="text-primary text-xs">✓</span>
-                      </div>
-                      <span className="text-sm font-zen">AIがあなたのイメージに合わせて香りをブレンド</span>
-                    </li>
-                    <li className="flex items-start">
-                      <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5 mr-3">
-                        <span className="text-primary text-xs">✓</span>
-                      </div>
-                      <span className="text-sm font-zen">香水の名前もAIがご提案</span>
-                    </li>
-                    <li className="flex items-start">
-                      <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5 mr-3">
-                        <span className="text-primary text-xs">✓</span>
-                      </div>
-                      <span className="text-sm font-zen">お好きな画像をラベルに印刷（写真・イラスト・ロゴなどOK）</span>
-                    </li>
-                    <li className="flex items-start">
-                      <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5 mr-3">
-                        <span className="text-primary text-xs">✓</span>
-                      </div>
-                      <span className="text-sm font-zen">納期目安：ご注文から約2週間前後</span>
-                    </li>
-                    <li className="flex items-start">
-                      <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5 mr-3">
-                        <span className="text-primary text-xs">✓</span>
-                      </div>
-                      <span className="text-sm font-zen">配送方法：ゆうパケット（追跡可能）</span>
-                    </li>
-                    <li className="flex items-start">
-                      <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5 mr-3">
-                        <span className="text-primary text-xs">✓</span>
-                      </div>
-                      <span className="text-sm font-zen">
-                        決済方法：クレジットカード / Apple Pay / Google Pay / コンビニ支払い
-                      </span>
-                    </li>
-                  </ul>
-                  <div className="flex justify-center">
-                    <motion.div
-                      whileHover={{ scale: 1.03 }}
-                      whileTap={{ scale: 0.98 }}
-                      transition={{ 
-                        type: "spring",
-                        stiffness: 300,
-                        damping: 20
-                      }}
-                    >
-                      <Link href="/Fragrance-Lab" replace>
-                        <Button className="bg-accent-light hover:bg-accent-light/90 text-white rounded-full px-6 py-2 font-montserrat relative overflow-hidden group">
-                          <span className="absolute w-0 h-0 transition-all duration-300 ease-out bg-white rounded-full group-hover:w-32 group-hover:h-32 opacity-10"></span>
-                          <span className="relative">AIと一緒に香りをつくる</span>
-                        </Button>
-                      </Link>
-                    </motion.div>
-                  </div>
+                  <Button
+                    asChild
+                    className="w-full bg-accent-light hover:bg-accent-light/90 text-white rounded-full"
+                  >
+                    <Link href="/fragrance-lab">AIと香りをつくる</Link>
+                  </Button>
                 </motion.div>
 
                 {/* Fragrance Pro */}
@@ -569,68 +525,41 @@ export default function Home() {
                     <h3 className="text-xl font-medium text-center font-zen">Fragrance Pro</h3>
                   </div>
                   <div className="mb-6">
-                    <div className="flex items-baseline mb-2">
-                      <span className="text-sm font-zen">価格：</span>
-                      <span className="text-xl font-bold ml-2 font-zen">応相談</span>
-                      <span className="text-sm ml-1 font-zen">（内容によりお見積もり）</span>
+                    <div className="flex flex-col items-center mb-4">
+                      <span className="text-sm font-zen">価格</span>
+                      <div className="flex items-baseline">
+                        <span className="text-3xl font-bold font-zen">応相談</span>
+                      </div>
+                      <span className="text-sm text-secondary-foreground/70 font-zen">（内容により見積もり）</span>
                     </div>
+                    <div className="h-px bg-gray-200 my-6"></div>
+                    <ul className="space-y-4">
+                      <li className="flex items-start">
+                        <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5 mr-3">
+                          <span className="text-primary text-xs">✓</span>
+                        </div>
+                        <span className="text-sm font-zen">同レシピ・複数つくり</span>
+                      </li>
+                      <li className="flex items-start">
+                        <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5 mr-3">
+                          <span className="text-primary text-xs">✓</span>
+                        </div>
+                        <span className="text-sm font-zen">ギフト・ノベルティとしてもおすすめ</span>
+                      </li>
+                      <li className="flex items-start">
+                        <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5 mr-3">
+                          <span className="text-primary text-xs">✓</span>
+                        </div>
+                        <span className="text-sm font-zen">配送方法・納品可能数など柔軟に対応いたします</span>
+                      </li>
+                    </ul>
                   </div>
-                  <ul className="space-y-3 mb-6">
-                    <li className="flex items-start">
-                      <div className="h-5 w-5 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0 mt-0.5 mr-3">
-                        <span className="text-gray-600 text-xs">✓</span>
-                      </div>
-                      <span className="text-sm font-zen">同レシピ・複数ラベルで10本以上の注文に対応</span>
-                    </li>
-                    <li className="flex items-start">
-                      <div className="h-5 w-5 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0 mt-0.5 mr-3">
-                        <span className="text-gray-600 text-xs">✓</span>
-                      </div>
-                      <span className="text-sm font-zen">ギフト・ノベルティ・法人利用にもおすすめ</span>
-                    </li>
-                    <li className="flex items-start">
-                      <div className="h-5 w-5 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0 mt-0.5 mr-3">
-                        <span className="text-gray-600 text-xs">✓</span>
-                      </div>
-                      <span className="text-sm font-zen">本数により単価調整・納期のご相談可能</span>
-                    </li>
-                    <li className="flex items-start">
-                      <div className="h-5 w-5 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0 mt-0.5 mr-3">
-                        <span className="text-gray-600 text-xs">✓</span>
-                      </div>
-                      <span className="text-sm font-zen">配送方法・納品形態など柔軟に対応いたします</span>
-                    </li>
-                    <li className="flex items-start">
-                      <div className="h-5 w-5 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0 mt-0.5 mr-3">
-                        <span className="text-gray-600 text-xs">✓</span>
-                      </div>
-                      <span className="text-sm font-zen">画像ラベル対応（テンプレ・カスタムいずれも可）</span>
-                    </li>
-                    <li className="flex items-start">
-                      <div className="h-5 w-5 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0 mt-0.5 mr-3">
-                        <span className="text-gray-600 text-xs">✓</span>
-                      </div>
-                      <span className="text-sm font-zen">決済方法：ご相談に応じます</span>
-                    </li>
-                  </ul>
-                  <div className="flex justify-center">
-                    <motion.div
-                      whileHover={{ scale: 1.03 }}
-                      whileTap={{ scale: 0.98 }}
-                      transition={{ 
-                        type: "spring",
-                        stiffness: 300,
-                        damping: 20
-                      }}
-                    >
-                      <Link href="/contact" replace>
-                        <Button className="bg-gray-800 hover:bg-gray-700 text-white rounded-full px-6 py-2 font-montserrat relative overflow-hidden group">
-                          <span className="absolute w-0 h-0 transition-all duration-300 ease-out bg-white rounded-full group-hover:w-32 group-hover:h-32 opacity-10"></span>
-                          <span className="relative">プロに相談する</span>
-                        </Button>
-                      </Link>
-                    </motion.div>
-                  </div>
+                  <Button
+                    asChild
+                    className="w-full bg-gray-800 hover:bg-gray-900 text-white rounded-full"
+                  >
+                    <Link href="/contact">お問い合わせ</Link>
+                  </Button>
                 </motion.div>
               </div>
             </div>
