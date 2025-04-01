@@ -89,7 +89,7 @@ export default function PrivacyPolicyPage() {
                   <li>ウェブサイトの各種フォームからの情報入力</li>
                   <li>メール、電話、FAXなどによるお問い合わせ</li>
                   <li>商品・サービスの取引過程において書面・口頭でいただく情報</li>
-                  <li>クッキー（Cookie）などの技術による情���収集</li>
+                  <li>クッキー（Cookie）などの技術による情報収集</li>
                 </ul>
                 <p className="mt-4 text-secondary-foreground/70 font-zen">
                   ※当ウェブサイトでは、ユーザー体験の向上およびサービス改善のためにCookie等の技術を使用しています。Cookieの使用はブラウザ設定で無効化できますが、その場合は一部機能がご利用いただけない可能性があります。
@@ -118,7 +118,7 @@ export default function PrivacyPolicyPage() {
                 </p>
                 <ul className="list-disc pl-6 mt-2 text-secondary-foreground/70 font-zen">
                   <li>法令に基づく場合</li>
-                  <li>��の生命、身体または財産の保護のために必要がある場合</li>
+                  <li>人の生命、身体または財産の保護のために必要がある場合</li>
                   <li>公衆衛生の向上または児童の健全育成の推進のために必要がある場合</li>
                   <li>
                     国の機関、地方公共団体、または委託を受けた者が法令の定める事務を遂行することに対して協力する必要がある場合

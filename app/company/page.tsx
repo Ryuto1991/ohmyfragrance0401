@@ -119,15 +119,7 @@ export default function CompanyPage() {
               <div>
                 <h3 className="text-base font-medium mb-2 text-secondary-foreground font-zen">支払方法</h3>
                 <p className="text-secondary-foreground/70 font-zen">
-                  ・クレジットカード決済（VISA、Mastercard、JCB、American Express、Diners Club）
-                  <br />
-                  ・コンビニ決済
-                  <br />
-                  ・銀行振込
-                  <br />
-                  ・PayPay
-                  <br />
-                  ・Amazon Pay
+                  クレジットカード / Apple Pay / Google Pay / コンビニ支払い
                 </p>
               </div>
 

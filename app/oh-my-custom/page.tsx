@@ -10,6 +10,19 @@ import SiteHeader from "@/components/site-header"
 import SiteFooter from "@/components/site-footer"
 import { Button } from "@/components/ui/button"
 
+type Fragrance = {
+  id: string
+  name: string
+  category: string
+  description: string
+  emoji: string
+  notes: {
+    top: string[]
+    middle: string[]
+    last: string[]
+  }
+}
+
 export default function OhMyCustomPage() {
   // ページトップへのスクロール処理
   useEffect(() => {
@@ -22,13 +35,18 @@ export default function OhMyCustomPage() {
   }, [])
 
   // 香りのデータ
-  const fragrances = [
+  const fragrances: Fragrance[] = [
     {
       id: "rose-blossom",
       name: "ローズブロッサム",
       category: "フローラル系",
       description: "華やかで濃厚なフローラルに、甘さと温もりを添えて。ギフトにおすすめ。",
       emoji: "🌹",
+      notes: {
+        top: ["ローズ", "ジャスミン"],
+        middle: ["イランイラン", "バニラ"],
+        last: ["サンダルウッド"]
+      }
     },
     {
       id: "citrus-shower",
@@ -36,6 +54,11 @@ export default function OhMyCustomPage() {
       category: "シトラス系",
       description: "朝のシャワーのように清涼感あふれるフレッシュな香り。",
       emoji: "🍋",
+      notes: {
+        top: ["レモン", "ベルガモット"],
+        middle: ["タンジェリン", "ペパーミント"],
+        last: ["シダーウッド"]
+      }
     },
     {
       id: "sweet-dream",
@@ -43,6 +66,11 @@ export default function OhMyCustomPage() {
       category: "スイート系",
       description: "甘く優しい眠りを誘う、穏やかで包容力のある香り。",
       emoji: "🍯",
+      notes: {
+        top: ["ベルガモット", "ジャスミン"],
+        middle: ["バニラ", "イランイラン"],
+        last: ["サンダルウッド", "パチュリ"]
+      }
     },
     {
       id: "myrrh-night",
@@ -50,6 +78,11 @@ export default function OhMyCustomPage() {
       category: "オリエンタル系",
       description: "神秘的な香煙のように、奥深く官能的な香り。",
       emoji: "🌙",
+      notes: {
+        top: ["フランキンセンス"],
+        middle: ["ミルラ", "カモミール"],
+        last: ["バニラ", "パチュリ"]
+      }
     },
     {
       id: "deep-forest",
@@ -57,6 +90,11 @@ export default function OhMyCustomPage() {
       category: "ウッディ系",
       description: "静かな森の奥で深呼吸するような、心落ち着く香り。",
       emoji: "🌲",
+      notes: {
+        top: ["ジュニパー"],
+        middle: ["ローズマリー", "カンファー"],
+        last: ["ベチバー", "シダーウッド"]
+      }
     },
     {
       id: "blue-wave",
@@ -64,6 +102,11 @@ export default function OhMyCustomPage() {
       category: "マリン系",
       description: "海辺の風とハーブの清涼感が広がる、爽快マリン系。",
       emoji: "🌊",
+      notes: {
+        top: ["ペパーミント", "シトロネラ"],
+        middle: ["ジュニパー", "ローズマリー"],
+        last: ["ベルガモット"]
+      }
     },
     {
       id: "hot-spice",
@@ -71,6 +114,11 @@ export default function OhMyCustomPage() {
       category: "スパイシー系",
       description: "心と身体を温める、エネルギッシュなスパイシー系。",
       emoji: "🔥",
+      notes: {
+        top: ["シナモン", "クローブ"],
+        middle: ["ジンジャー", "バニラ"],
+        last: ["サンダルウッド"]
+      }
     },
     {
       id: "herbal-green",
@@ -78,6 +126,11 @@ export default function OhMyCustomPage() {
       category: "ハーバル系",
       description: "ハーブと木の力強さが調和した、爽やかで芯のある香り。",
       emoji: "🌿",
+      notes: {
+        top: ["ジンジャー", "ペパーミント"],
+        middle: ["ローズマリー", "クラリセージ"],
+        last: ["シダーウッド", "ベチバー"]
+      }
     },
     {
       id: "vanilla-comfort",
@@ -85,6 +138,11 @@ export default function OhMyCustomPage() {
       category: "バニラ系",
       description: "優しく包み込むような、心地よいバニラの甘い香り。",
       emoji: "🍦",
+      notes: {
+        top: ["バニラ", "キャラメル"],
+        middle: ["ココナッツ", "トンカビーン"],
+        last: ["ムスク", "アンバー"]
+      }
     },
     {
       id: "musk-elegance",
@@ -92,7 +150,36 @@ export default function OhMyCustomPage() {
       category: "ムスク系",
       description: "洗練された大人の魅力を引き立てる、上品で官能的な香り。",
       emoji: "✨",
+      notes: {
+        top: ["ベルガモット", "ピンクペッパー"],
+        middle: ["ジャスミン", "ローズ"],
+        last: ["ムスク", "アンバー"]
+      }
     },
+    {
+      id: "eternal-smoke",
+      name: "エターナルスモーク",
+      category: "スモーキー系",
+      description: "神聖でスモーキーな香りが長く残る、静謐なブレンド。",
+      emoji: "🪵",
+      notes: {
+        top: ["ミルラ"],
+        middle: ["フランキンセンス", "ベチバー"],
+        last: ["パチュリ", "サンダルウッド"]
+      }
+    },
+    {
+      id: "fruity-blossom",
+      name: "フルーティブロッサム",
+      category: "フルーティフローラル系",
+      description: "花と果実のハーモニーが弾ける、明るく軽やかな香り。",
+      emoji: "💐",
+      notes: {
+        top: ["レモン", "タンジェリン"],
+        middle: ["ジャスミン", "イランイラン"],
+        last: ["ローズ"]
+      }
+    }
   ]
 
   // 制作事例データ
@@ -245,7 +332,7 @@ export default function OhMyCustomPage() {
             </div>
 
             <div className="flex justify-center mb-8">
-              <div className="w-full max-w-4xl">
+              <div className="w-full max-w-2xl">
                 <Image
                   src="/images/fragrance-order-flow.png"
                   alt="セレクト香水の注文の流れ"
@@ -259,32 +346,74 @@ export default function OhMyCustomPage() {
         </section>
 
         {/* 香り紹介セクション */}
-        <section className="py-16 bg-gray-50">
+        <section className="py-20 bg-gradient-to-b from-white to-gray-50/50">
           <div className="container mx-auto px-4 md:px-8">
-            <div className="text-center mb-12">
-              <h2 className="text-3xl font-medium mb-4 text-gray-800 font-zen">10種類の香りから選べる</h2>
-              <p className="text-gray-600 font-zen max-w-2xl mx-auto">
-                あなたの好みや気分に合わせて、10種類の厳選された香りからお選びいただけます。
-                それぞれの香りには個性があり、あなたらしさを表現します。
-              </p>
+            <div className="text-center mb-16">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5 }}
+              >
+                <h2 className="text-4xl font-medium mb-6 text-gray-800 font-zen">10種類の香りから選べる</h2>
+                <div className="w-24 h-1 bg-primary mx-auto mb-6"></div>
+                <p className="text-gray-600 font-zen max-w-2xl mx-auto text-lg leading-relaxed">
+                  あなたの好みや気分に合わせて、10種類の厳選された香りからお選びいただけます。
+                  <br />
+                  それぞれの香りには個性があり、あなたらしさを表現します。
+                </p>
+              </motion.div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 max-w-7xl mx-auto">
               {fragrances.map((fragrance, index) => (
                 <motion.div
                   key={fragrance.id}
-                  className="bg-white rounded-lg p-6 hover:shadow-md transition-all"
+                  className="relative group"
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.5, delay: index * 0.1 }}
                 >
-                  <div className="flex items-center mb-3">
-                    <span className="text-3xl mr-3">{fragrance.emoji}</span>
-                    <h3 className="text-xl font-medium text-gray-800 font-zen">{fragrance.name}</h3>
+                  <div className="bg-white rounded-xl p-6 shadow-sm hover:shadow-md transition-all duration-300 h-full border border-gray-100">
+                    <div className="flex items-center gap-4 mb-4">
+                      <div className="flex-shrink-0 w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center">
+                        <span className="text-2xl">{fragrance.emoji}</span>
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-medium text-gray-800 font-zen mb-1">{fragrance.name}</h3>
+                        <p className="text-sm text-primary font-zen">{fragrance.category}</p>
+                      </div>
+                    </div>
+                    <p className="text-gray-600 font-zen text-sm leading-relaxed mb-4">{fragrance.description}</p>
+                    
+                    {/* ホバー時に表示されるノート情報 */}
+                    <div className="absolute inset-0 bg-white/98 backdrop-blur-sm rounded-xl p-6 opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center">
+                      <div className="space-y-6 w-full">
+                        <div>
+                          <h4 className="font-medium text-sm text-primary mb-2 flex items-center gap-2">
+                            <span className="w-2 h-2 bg-primary rounded-full"></span>
+                            トップノート
+                          </h4>
+                          <p className="text-gray-800 font-zen">{fragrance.notes.top.join("・")}</p>
+                        </div>
+                        <div>
+                          <h4 className="font-medium text-sm text-primary mb-2 flex items-center gap-2">
+                            <span className="w-2 h-2 bg-primary rounded-full"></span>
+                            ミドルノート
+                          </h4>
+                          <p className="text-gray-800 font-zen">{fragrance.notes.middle.join("・")}</p>
+                        </div>
+                        <div>
+                          <h4 className="font-medium text-sm text-primary mb-2 flex items-center gap-2">
+                            <span className="w-2 h-2 bg-primary rounded-full"></span>
+                            ラストノート
+                          </h4>
+                          <p className="text-gray-800 font-zen">{fragrance.notes.last.join("・")}</p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <p className="text-sm text-gray-500 font-zen mb-2">{fragrance.category}</p>
-                  <p className="text-gray-700 font-zen">{fragrance.description}</p>
                 </motion.div>
               ))}
             </div>
@@ -307,14 +436,14 @@ export default function OhMyCustomPage() {
                 <div>
                   <h3 className="text-2xl font-medium mb-4 text-gray-800 font-zen">ギフトボックス</h3>
                   <p className="text-gray-600 font-zen mb-6">
-                    高級感のあるギフトボックスと4色から選べるリボンで、特別な贈り物に。 メッセージカードも追加できます。
+                    高級感のあるギフトボックスと4色から選べるリボンで、特別な贈り物に。
                   </p>
                   <ul className="space-y-3 mb-8">
                     <li className="flex items-center">
                       <div className="bg-blue-100 rounded-full p-1 mr-3">
                         <Check className="h-4 w-4 text-blue-600" />
                       </div>
-                      <span className="text-gray-700 font-zen">ギフトボックス（+500円）</span>
+                      <span className="text-gray-700 font-zen">ギフトボックス（+550円）</span>
                     </li>
                     <li className="flex items-center">
                       <div className="bg-blue-100 rounded-full p-1 mr-3">
