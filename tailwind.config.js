@@ -2,11 +2,10 @@
 module.exports = {
   darkMode: ["class"],
   content: [
-    "./pages/**/*.{ts,tsx}",
-    "./components/**/*.{ts,tsx}",
-    "./app/**/*.{ts,tsx}",
-    "./src/**/*.{ts,tsx}",
-    "*.{js,ts,jsx,tsx,mdx}",
+    './pages/**/*.{ts,tsx}',
+    './components/**/*.{ts,tsx}',
+    './app/**/*.{ts,tsx}',
+    './src/**/*.{ts,tsx}',
   ],
   theme: {
     container: {
@@ -18,8 +17,8 @@ module.exports = {
     },
     extend: {
       fontFamily: {
-        zen: ['"Zen Kaku Gothic New"', "sans-serif"],
-        montserrat: ["Montserrat", "sans-serif"],
+        zen: ['var(--font-zen)'],
+        montserrat: ['var(--font-montserrat)'],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -37,10 +36,6 @@ module.exports = {
           DEFAULT: "#fffcf8", // bg-100 - メイン背景色
           foreground: "#333333", // text-100 - メインテキスト色
         },
-        destructive: {
-          DEFAULT: "hsl(var(--destructive))",
-          foreground: "hsl(var(--destructive-foreground))",
-        },
         muted: {
           DEFAULT: "#ccc9c5", // bg-300 - 非アクティブ要素や区切り線に
           foreground: "#5c5c5c", // text-200 - セカンダリーテキスト色
@@ -50,13 +45,17 @@ module.exports = {
           light: "#ff69b4", // accent-100 - 特別な強調やアクセントに
           foreground: "#ffffff",
         },
+        destructive: {
+          DEFAULT: "hsl(var(--destructive))",
+          foreground: "hsl(var(--destructive-foreground))",
+        },
         popover: {
           DEFAULT: "hsl(var(--popover))",
           foreground: "hsl(var(--popover-foreground))",
         },
         card: {
-          DEFAULT: "#f5f2ee", // bg-200 - カード背景に
-          foreground: "#333333", // text-100 - カード内テキストに
+          DEFAULT: "hsl(var(--card))",
+          foreground: "hsl(var(--card-foreground))",
         },
         // 追加のユーティリティカラー
         text: {
@@ -76,12 +75,12 @@ module.exports = {
       },
       keyframes: {
         "accordion-down": {
-          from: { height: 0 },
+          from: { height: "0" },
           to: { height: "var(--radix-accordion-content-height)" },
         },
         "accordion-up": {
           from: { height: "var(--radix-accordion-content-height)" },
-          to: { height: 0 },
+          to: { height: "0" },
         },
         fadeIn: {
           "0%": { opacity: 0, transform: "translateY(10px)" },
@@ -96,5 +95,25 @@ module.exports = {
     },
   },
   plugins: [require("tailwindcss-animate")],
+  // 未使用のクラスを除外
+  purge: {
+    enabled: process.env.NODE_ENV === 'production',
+    content: [
+      './pages/**/*.{ts,tsx}',
+      './components/**/*.{ts,tsx}',
+      './app/**/*.{ts,tsx}',
+      './src/**/*.{ts,tsx}',
+    ],
+    options: {
+      safelist: [
+        /^bg-/,
+        /^text-/,
+        /^border-/,
+        /^hover:/,
+        /^focus:/,
+        /^active:/,
+      ],
+    },
+  },
 }
 

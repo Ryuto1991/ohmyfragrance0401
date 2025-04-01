@@ -103,6 +103,9 @@ export default function FragranceSlideshow() {
                       fill
                       className="object-cover"
                       priority={index === 0}
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 75vw, 50vw"
+                      quality={85}
+                      loading={index === 0 ? "eager" : "lazy"}
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                     <div className="absolute bottom-0 left-0 p-4 md:p-8 text-white">

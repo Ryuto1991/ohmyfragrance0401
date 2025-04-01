@@ -194,7 +194,15 @@ export default function BlogPage() {
                   >
                     <Link href={`/blog/${post.slug}`}>
                       <div className="relative aspect-[16/9]">
-                        <Image src={post.image || "/placeholder.svg"} alt={post.title} fill className="object-cover" />
+                        <Image 
+                          src={post.image || "/placeholder.svg"} 
+                          alt={post.title} 
+                          fill 
+                          className="object-cover"
+                          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                          quality={85}
+                          loading="lazy"
+                        />
                         <div className="absolute top-4 left-4 bg-primary text-white text-xs px-3 py-1 rounded-full font-montserrat">
                           {post.category}
                         </div>

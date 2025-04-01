@@ -57,10 +57,12 @@ export default function ConceptPage() {
               >
                 <Image
                   src="/images/concept_main.png"
-                  alt="エレガントな香水ボトル - Oh my fragranceのコンセプト"
+                  alt="Oh My Fragranceのコンセプト"
                   fill
-                  className="object-cover rounded-lg"
+                  className="object-cover"
                   priority
+                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 100vw, 100vw"
+                  quality={100}
                 />
               </motion.div>
             </div>

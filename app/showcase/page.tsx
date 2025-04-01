@@ -168,6 +168,9 @@ export default function ShowcasePage() {
                         alt={item.title}
                         fill
                         className="object-contain p-4"
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                        quality={85}
+                        loading="lazy"
                       />
                       <div className="absolute top-4 right-4 bg-primary text-white text-xs px-3 py-1 rounded-full font-montserrat">
                         {item.category}
