@@ -312,3 +312,7 @@
  TAB ...................................... Complete filename & cycle.
  SHIFT-TAB ...................... ESC-TAB   Complete filename & reverse cycle.
  ctrl-L ................................... Complete filename, list all.
+[33m1e3914d[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmaster[m[33m, [m[1;33mtag: [m[1;33mv1.1[m[33m, [m[1;33mtag: [m[1;33mv1.0.0-stable[m[33m)[m revert: restore original Stripe implementation from initial commit
+[33m2ee55d2[m revert: Stripe checkout changes and restore original implementation
+[33mab32a9a[m feat: セレクト香水をOh My Customに変更し、不要なコンポーネントを削除
+[33maaafbbf[m[33m ([m[1;31morigin/master[m[33m)[m Initial commit

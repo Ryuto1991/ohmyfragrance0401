@@ -189,7 +189,7 @@ export default function OhMyCustomPage() {
                   transition={{ duration: 0.6, delay: 0.3 }}
                   className="mb-6"
                 >
-                  <Link href="/select-fragrance">
+                  <Link href="/oh-my-custom-order">
                     <Button className="bg-primary hover:bg-primary/90 text-white rounded-full px-8 py-6 font-zen text-lg shadow-md hover:shadow-lg transition-all">
                       今すぐ香水を選ぶ
                       <ArrowRight className="ml-2 h-5 w-5" />
@@ -351,7 +351,7 @@ export default function OhMyCustomPage() {
                 4,980円～ギフトや推し香水がつくれます！
               </p>
               <div className="flex justify-center">
-                <Link href="/select-fragrance-order">
+                <Link href="/oh-my-custom-order">
                   <Button className="bg-primary hover:bg-primary/90 text-white rounded-full px-8 py-4 text-lg font-zen">
                     今すぐ香りを選ぶ
                     <ArrowRight className="ml-2 h-5 w-5" />

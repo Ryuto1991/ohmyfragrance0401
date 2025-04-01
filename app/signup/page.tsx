@@ -5,7 +5,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
-import { Mail, Lock, User } from "lucide-react"
+import { Mail, Lock, User, ArrowLeft } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -52,20 +52,43 @@ export default function SignUp() {
     <div className="min-h-screen grid md:grid-cols-2">
       {/* 左側：ログインフォーム */}
       <motion.div
-        initial={{ opacity: 0, x: -20 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.5 }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.8 }}
         className="flex items-center justify-center bg-white px-8 py-12"
       >
         <div className="w-full max-w-[360px]">
-          <div className="bg-white rounded-xl shadow-sm p-8 space-y-6">
-            <div className="text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.4 }}
+            className="relative bg-white rounded-xl shadow-sm p-8 space-y-6"
+          >
+            <Link
+              href="/"
+              className="absolute left-8 top-8 md:hidden flex items-center text-gray-600 hover:text-primary transition-colors"
+            >
+              <ArrowLeft className="h-5 w-5 mr-1" />
+              <span className="text-sm">トップへ</span>
+            </Link>
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5, delay: 0.6 }}
+              className="text-center"
+            >
               <h1 className="text-2xl font-medium text-gray-900">
                 新規登録
               </h1>
-            </div>
+            </motion.div>
 
-            <form onSubmit={handleSubmit} className="space-y-5">
+            <motion.form
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5, delay: 0.8 }}
+              onSubmit={handleSubmit}
+              className="space-y-5"
+            >
               <div className="space-y-4">
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -117,10 +140,15 @@ export default function SignUp() {
               >
                 {loading ? "登録中..." : "アカウントを作成"}
               </Button>
-            </form>
-          </div>
+            </motion.form>
+          </motion.div>
 
-          <div className="mt-6 space-y-4">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 1 }}
+            className="mt-6 space-y-4"
+          >
             <div className="text-center">
               <p className="text-sm text-gray-600">
                 すでにアカウントをお持ちの方は
@@ -138,7 +166,7 @@ export default function SignUp() {
                 Copyright © 2024 Oh my fragrance. All rights reserved.
               </p>
             </div>
-          </div>
+          </motion.div>
         </div>
       </motion.div>
 
