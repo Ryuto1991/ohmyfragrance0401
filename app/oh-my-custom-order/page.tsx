@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { Check, Upload, ChevronDown, ChevronUp, Image, Info, X, Move, RotateCcw, ChevronLeft, RotateCw } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -15,9 +15,12 @@ import { useCartDrawer } from '@/contexts/cart-drawer-context'
 import StripeCartButton from '@/components/stripe-cart-button'
 import StripeCartDrawer from '@/components/stripe-cart-drawer'
 import { loadStripe } from '@stripe/stripe-js'
-import { uploadImage } from './actions'
+import { uploadImage, moveAndProcessImages, cleanupTempImages, appendOrderToSpreadsheet } from './actions'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { toast } from "@/components/ui/use-toast"
+import { v4 as uuidv4 } from 'uuid'
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 
 const ImageEditorComponent = dynamic(() => import("../components/image-editor"), {
   ssr: false,
@@ -85,6 +88,7 @@ export default function PerfumeOrderingPage() {
   const [isLoading, setIsLoading] = useState(false)
   const supabase = createClientComponentClient()
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [memo, setMemo] = useState<string>('')
 
   // Handle window resize
   useEffect(() => {
@@ -574,6 +578,22 @@ export default function PerfumeOrderingPage() {
       // カスタム商品のIDを生成
       const customProductId = generateCustomProductId(selectedFragrance, selectedBottle);
 
+      // Google Spreadsheetに注文情報を記録
+      const orderData = {
+        fragranceName: selectedFragranceData.name,
+        bottleType: selectedBottleData.name,
+        originalImageUrl: uploadedImage || '',
+        labelImageUrl: uploadedImage || '',
+        labelSize: selectedLabelSize || '中',
+        stripeSessionId: customProductId,
+      };
+
+      const spreadsheetResult = await appendOrderToSpreadsheet(orderData);
+      if (!spreadsheetResult) {
+        console.error('Failed to append order to spreadsheet');
+        // Spreadsheetへの記録に失敗しても、注文処理は続行
+      }
+
       // カートに商品を追加
       const cartItem = {
         priceId: 'price_1R9QuLE0t3PGpOQ5VMQyu3po',  // 更新されたStripe価格ID
@@ -594,7 +614,8 @@ export default function PerfumeOrderingPage() {
             y: imageTransform.y,
             scale: imageTransform.scale,
             rotation: imageTransform.rotation
-          }
+          },
+          memo: memo,
         }
       };
 
@@ -945,6 +966,43 @@ export default function PerfumeOrderingPage() {
                     >
                       テンプレートを選択
                     </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Memo Input Section */}
+            <div className="mb-4 bg-white rounded-lg shadow-sm">
+              <button
+                className={cn(
+                  "w-full p-3 flex justify-between items-center border-b",
+                  expandedSection === 5 ? "bg-gray-50" : "bg-white",
+                )}
+                onClick={() => toggleSection(5)}
+              >
+                <div className="flex items-center">
+                  <div className={cn(
+                    "w-6 h-6 rounded-full flex items-center justify-center mr-2 text-xs",
+                    memo ? "bg-green-500 text-white" : "bg-[#FF6B6B] text-white"
+                  )}>
+                    {memo ? <Check className="h-4 w-4" /> : "5"}
+                  </div>
+                  <h3 className="font-medium">メモを入力</h3>
+                </div>
+                {expandedSection === 5 ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+              </button>
+
+              {expandedSection === 5 && (
+                <div className="p-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="memo">メモ（オプション）</Label>
+                    <Textarea
+                      id="memo"
+                      placeholder="特別な要望やメッセージがありましたらご記入ください"
+                      value={memo}
+                      onChange={(e) => setMemo(e.target.value)}
+                      className="min-h-[100px]"
+                    />
                   </div>
                 </div>
               )}

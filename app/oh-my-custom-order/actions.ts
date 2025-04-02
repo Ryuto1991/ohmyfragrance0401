@@ -2,16 +2,25 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { v4 as uuidv4 } from 'uuid';
+import Stripe from 'stripe';
+import { google } from 'googleapis';
+import { JWT } from 'google-auth-library';
+import * as path from 'path';
+import * as fs from 'fs';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 
-if (!supabaseUrl || !supabaseServiceKey) {
-  console.error('Missing Supabase environment variables');
-  throw new Error('Missing Supabase environment variables');
+if (!supabaseUrl || !supabaseServiceKey || !stripeSecretKey) {
+  console.error('Missing Supabase or Stripe environment variables');
+  throw new Error('Missing Supabase or Stripe environment variables');
 }
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
+const stripe = new Stripe(stripeSecretKey, {
+  apiVersion: '2022-11-15',
+});
 
 export type UploadResult = {
   success: boolean;
@@ -410,5 +419,184 @@ export async function cleanupTempImages(): Promise<{ success: boolean; error?: s
         ? `Unexpected error: ${error.message}` 
         : 'An unexpected error occurred while cleaning up temporary images'
     };
+  }
+}
+
+interface OrderData {
+  fragranceName: string;
+  bottleType: string;
+  originalImageUrl: string;
+  labelImageUrl: string;
+  labelSize: string;
+  stripeSessionId: string;
+  customerName?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  labelType?: string;
+  amount?: string;
+}
+
+export async function appendOrderToSpreadsheet(orderData: OrderData): Promise<boolean> {
+  try {
+    // スプレッドシートの設定
+    const SPREADSHEET_ID = process.env.GOOGLE_SHEET_ID;
+    const SHEET_NAME = 'OrderDetails';
+
+    if (!SPREADSHEET_ID) {
+      throw new Error('GOOGLE_SHEET_IDが設定されていません。');
+    }
+
+    // サービスアカウントの認証情報を読み込む
+    const CREDENTIALS_PATH = path.join(process.cwd(), 'secrets', 'service-account.json');
+    const credentials = JSON.parse(fs.readFileSync(CREDENTIALS_PATH, 'utf-8'));
+
+    // JWTクライアントの作成
+    const auth = new JWT({
+      email: credentials.client_email,
+      key: credentials.private_key,
+      scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+    });
+
+    // Google Sheets APIクライアントの作成
+    const sheets = google.sheets({ version: 'v4', auth });
+
+    // スプレッドシートに追加するデータを準備
+    const values = [
+      [
+        '', // 発送チェック
+        orderData.stripeSessionId,
+        new Date().toLocaleString('ja-JP'),
+        orderData.customerName || '',
+        orderData.address || '',
+        orderData.email || '',
+        orderData.phone || '',
+        orderData.fragranceName,
+        orderData.bottleType,
+        orderData.labelSize,
+        orderData.labelType || 'オリジナル',
+        orderData.amount || '',
+        '支払い待ち',
+        '新規注文',
+        orderData.originalImageUrl,
+        orderData.labelImageUrl,
+      ],
+    ];
+
+    // スプレッドシートにデータを追加
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: SPREADSHEET_ID,
+      range: `${SHEET_NAME}!A:Q`,
+      valueInputOption: 'USER_ENTERED',
+      insertDataOption: 'INSERT_ROWS',
+      requestBody: {
+        values,
+      },
+    });
+
+    return true;
+  } catch (error) {
+    console.error('Error appending to spreadsheet:', error);
+    return false;
+  }
+}
+
+export async function handleOrder(
+  fragranceName: string,
+  bottleType: string,
+  originalUrl: string,
+  labelUrl: string,
+  labelSize: string,
+  sessionId: string
+) {
+  try {
+    // Stripeセッションの取得
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
+    if (!session?.customer_details) {
+      throw new Error('Customer details not found in session');
+    }
+
+    // 顧客情報の取得
+    const customerName = session.customer_details.name || '';
+    const email = session.customer_details.email || '';
+    const phone = session.customer_details.phone || '';
+    const address = [
+      session.customer_details.address?.line1,
+      session.customer_details.address?.line2,
+      session.customer_details.address?.city,
+      session.customer_details.address?.state,
+      session.customer_details.address?.postal_code
+    ].filter(Boolean).join(' ');
+
+    // 支払い金額の取得（円に変換）
+    const amount = session.amount_total ? `${session.amount_total / 100}` : '0';
+
+    // スプレッドシートの設定
+    const SPREADSHEET_ID = process.env.GOOGLE_SHEET_ID;
+    const SHEET_NAME = 'OrderDetails';
+
+    if (!SPREADSHEET_ID) {
+      throw new Error('GOOGLE_SHEET_IDが設定されていません。');
+    }
+
+    // サービスアカウントの認証情報を読み込む
+    const CREDENTIALS_PATH = path.join(process.cwd(), 'secrets', 'service-account.json');
+    const credentials = JSON.parse(fs.readFileSync(CREDENTIALS_PATH, 'utf-8'));
+
+    // JWTクライアントの作成
+    const auth = new JWT({
+      email: credentials.client_email,
+      key: credentials.private_key,
+      scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+    });
+
+    // Google Sheets APIクライアントの作成
+    const sheets = google.sheets({ version: 'v4', auth });
+
+    // スプレッドシートに追加するデータを準備
+    const values = [
+      [
+        '', // 発送チェック
+        sessionId,
+        new Date().toLocaleString('ja-JP'),
+        customerName,
+        address,
+        email,
+        phone,
+        fragranceName,
+        bottleType,
+        labelSize,
+        'オリジナル',
+        amount,
+        '支払い待ち',
+        '新規注文',
+        originalUrl,
+        labelUrl,
+      ],
+    ];
+
+    // スプレッドシートの最終行を取得
+    const currentData = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: `${SHEET_NAME}!A:A`,
+    });
+
+    const lastRow = (currentData.data.values?.length || 0) + 1;
+
+    // スプレッドシートにデータを追加
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: SPREADSHEET_ID,
+      range: `${SHEET_NAME}!A:Q`,
+      valueInputOption: 'USER_ENTERED',
+      insertDataOption: 'INSERT_ROWS',
+      requestBody: {
+        values,
+      },
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error('Order handling error:', error);
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
   }
 } 
