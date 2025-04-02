@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
@@ -21,6 +21,14 @@ export default function SignUp() {
   const router = useRouter()
   const { signUp, updateProfile } = useAuth()
   const { toast } = useToast()
+
+  // フォームの入力値をリセット
+  useEffect(() => {
+    setName("")
+    setEmail("")
+    setPassword("")
+    setError(null)
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -64,9 +72,10 @@ export default function SignUp() {
             transition={{ duration: 0.5, delay: 0.4 }}
             className="relative bg-white rounded-xl shadow-sm p-8 space-y-6"
           >
+            {/* トップへ戻るボタン - 常に表示 */}
             <Link
               href="/"
-              className="absolute left-8 top-8 md:hidden flex items-center text-gray-600 hover:text-primary transition-colors"
+              className="absolute left-8 top-8 flex items-center text-gray-600 hover:text-primary transition-colors"
             >
               <ArrowLeft className="h-5 w-5 mr-1" />
               <span className="text-sm">トップへ</span>

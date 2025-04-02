@@ -3,13 +3,12 @@
 import { useEffect } from "react"
 import Image from "next/image"
 import Link from "next/link"
-import { ArrowRight, Check, ChevronLeft } from "lucide-react"
+import { ArrowRight, Check } from "lucide-react"
 import { motion } from "framer-motion"
-import { Button, buttonVariants } from "@/components/ui/button"
-import { cn } from "@/lib/utils"
 
 import SiteHeader from "@/components/site-header"
 import SiteFooter from "@/components/site-footer"
+import { Button } from "@/components/ui/button"
 
 type Fragrance = {
   id: string
@@ -23,9 +22,6 @@ type Fragrance = {
     last: string[]
   }
 }
-
-type ButtonVariant = "default" | "destructive" | "outline" | "secondary" | "ghost" | "link"
-type ButtonSize = "default" | "sm" | "lg" | "icon"
 
 export default function OhMyCustomPage() {
   // ページトップへのスクロール処理
@@ -315,7 +311,7 @@ export default function OhMyCustomPage() {
           {/* 装飾要素のスタイル */}
           <style>
             {`
-            @keyframes float {
+              @keyframes float {
                 0%, 100% { transform: translateY(0); }
                 50% { transform: translateY(-20px); }
               }
@@ -360,10 +356,10 @@ export default function OhMyCustomPage() {
                 <h2 className="text-4xl font-medium mb-6 text-gray-800 font-zen">10種類の香りから選べる</h2>
                 <div className="w-24 h-1 bg-primary mx-auto mb-6"></div>
                 <p className="text-gray-600 font-zen max-w-2xl mx-auto text-lg leading-relaxed">
-                あなたの好みや気分に合わせて、10種類の厳選された香りからお選びいただけます。
+                  あなたの好みや気分に合わせて、10種類の厳選された香りからお選びいただけます。
                   <br />
-                それぞれの香りには個性があり、あなたらしさを表現します。
-              </p>
+                  それぞれの香りには個性があり、あなたらしさを表現します。
+                </p>
               </motion.div>
             </div>
 

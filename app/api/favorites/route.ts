@@ -4,41 +4,49 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import prisma from "@/lib/prisma";
 
 // お気に入り一覧の取得
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const session = await getServerSession(authOptions);
-
-    if (!session?.user?.email) {
-      return NextResponse.json(
-        { error: "認証されていません" },
-        { status: 401 }
-      );
+    if (!session?.user?.id) {
+      return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-      include: {
-        favorites: {
-          include: {
-            fragrance: true,
-          },
-        },
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "6");
+    const skip = (page - 1) * limit;
+
+    // 総件数を取得
+    const total = await prisma.favorite.count({
+      where: {
+        userId: session.user.id,
       },
     });
 
+    // ページネーションを適用してお気に入りを取得
+    const favorites = await prisma.favorite.findMany({
+      where: {
+        userId: session.user.id,
+      },
+      include: {
+        fragrance: true,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+      skip,
+      take: limit,
+    });
+
     return NextResponse.json({
-      favorites: user?.favorites.map(f => ({
-        id: f.id,
-        fragrance: f.fragrance,
-        createdAt: f.createdAt,
-      })) || [],
+      favorites,
+      total,
+      currentPage: page,
+      totalPages: Math.ceil(total / limit),
     });
   } catch (error) {
     console.error("お気に入り取得エラー:", error);
-    return NextResponse.json(
-      { error: "お気に入りの取得中にエラーが発生しました" },
-      { status: 500 }
-    );
+    return new NextResponse("Internal Server Error", { status: 500 });
   }
 }
 

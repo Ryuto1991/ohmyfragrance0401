@@ -78,7 +78,7 @@ const getLocationFromIP = async (ip: string): Promise<string> => {
 
 // ログイン履歴を記録する関数
 const recordLoginHistory = async (
-  status: "success" | "failure",
+  status: "success" | "failure" | "session_refresh",
   ipAddress?: string,
   userAgent?: string
 ) => {
@@ -90,21 +90,24 @@ const recordLoginHistory = async (
 
     const device = userAgent ? parseUserAgent(userAgent) : "不明";
 
-    await fetch("/api/auth/login-history", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        status,
-        ipAddress,
-        userAgent,
-        location,
-        device,
-      }),
-    });
+    const { error } = await supabase
+      .from('login_history')
+      .insert([
+        {
+          user_id: ipAddress,
+          email: ipAddress,
+          status,
+          device,
+          ip_address: ipAddress,
+          location,
+        }
+      ])
+
+    if (error) {
+      console.error('ログイン履歴の記録に失敗:', error)
+    }
   } catch (error) {
-    console.error("ログイン履歴の記録エラー:", error);
+    console.error('ログイン履歴の記録エラー:', error)
   }
 };
 
@@ -113,18 +116,55 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [loginAttempts, setLoginAttempts] = useState<{ [key: string]: { count: number; lastAttempt: number } }>({})
+  const [sessionChecked, setSessionChecked] = useState(false)
 
   useEffect(() => {
+    // 初期セッションチェック
+    const checkInitialSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        setUser(session?.user ?? null)
+      } catch (error) {
+        console.error('セッションチェックエラー:', error)
+      } finally {
+        setSessionChecked(true)
+        setLoading(false)
+      }
+    }
+
+    checkInitialSession()
+
     // 認証状態の監視
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setUser(session?.user ?? null)
       setLoading(false)
+
+      // セッション変更時にログイン履歴を記録
+      if (session?.user) {
+        await recordLoginHistory('session_refresh')
+      }
     })
 
     return () => {
       subscription.unsubscribe()
     }
   }, [])
+
+  // セッションの自動更新
+  useEffect(() => {
+    const refreshSession = async () => {
+      if (user) {
+        const { error } = await supabase.auth.refreshSession()
+        if (error) {
+          console.error('セッション更新エラー:', error)
+        }
+      }
+    }
+
+    const interval = setInterval(refreshSession, 1000 * 60 * 30) // 30分ごとに更新
+
+    return () => clearInterval(interval)
+  }, [user])
 
   // レート制限のチェック
   const checkRateLimit = (email: string): boolean => {

@@ -317,3 +317,30 @@
 [33mab32a9a[m feat: セレクト香水をOh My Customに変更し、不要なコンポーネントを削除
 [33maaafbbf[m[33m ([m[1;31morigin/master[m[33m)[m Initial commit
 * [32mmaster[m
+[33mcommit 8be2e37ff6b158421ad3fffe2b100b480f86261a[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmaster[m[33m)[m
+Author: Ryuto Kawamata <kawamata@pxcell.co.jp>
+Date:   Wed Apr 2 10:27:58 2025 +0900
+
+    feat: お気に入り機能の実装と型エラーの修正 - お気に入りボタンコンポーネントの追加 - お気に入りAPIエンドポイントの実装 - マイページのお気に入り一覧表示 - TypeScriptの型エラー修正
+
+ app/api/auth/check/route.ts                   |   30 [32m+[m
+ app/api/auth/login-history/route.ts           |   78 [32m+[m
+ app/api/cart/route.ts                         |  143 [32m+[m
+ app/api/favorites/route.ts                    |  145 [32m+[m
+ app/api/user/profile/route.ts                 |   47 [32m+[m
+ app/mypage/components/favorite-list.tsx       |  173 [32m++[m
+ app/mypage/components/profile-edit-dialog.tsx |  100 [32m+[m
+ app/mypage/page.tsx                           |  199 [32m++[m
+ app/oh-my-custom-order/page.tsx               |   72 [32m+[m[31m-[m
+ app/oh-my-custom/page.tsx                     |   30 [32m+[m[31m-[m
+ components/favorite-button.tsx                |  100 [32m+[m
+ contexts/auth-context.tsx                     |  154 [32m+[m[31m-[m
+ hooks/use-cart.ts                             |  156 [32m++[m
+ next.config.js                                |    4 [32m+[m
+ oh my fragrance.code-workspace                |    8 [32m+[m
+ package-lock.json                             | 2717 [32m++++++[m[31m------------[m
+ package.json                                  |   12 [32m+[m[31m-[m
+ pnpm-lock.yaml                                | 3683 [32m++++++++++++++++[m[31m---------[m
+ prisma/schema.prisma                          |   81 [32m+[m
+ yarn.lock                                     |  921 [32m++[m[31m-----[m
+ 20 files changed, 4829 insertions(+), 4024 deletions(-)

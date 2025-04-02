@@ -1,25 +1,29 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useSearchParams, usePathname } from "next/navigation"
+import { useSearchParams, usePathname, useRouter } from "next/navigation"
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import SiteFooter from "@/components/site-footer"
 import SiteHeader from "@/components/site-header"
 import { FragranceAIChat } from "@/components/chat/fragrance-ai-chat"
+import { SplashLoading } from '@/components/SplashLoading'
 
 export default function FragranceLabPage() {
   const searchParams = useSearchParams()
   const pathname = usePathname()
+  const router = useRouter()
   const [initialQuery, setInitialQuery] = useState<string | undefined>(undefined)
   const [isFirstRender, setIsFirstRender] = useState(true)
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    const query = searchParams.get("query")
+    const query = searchParams.get('q')
     if (query) {
       setInitialQuery(query)
     }
+    setIsFirstRender(false)
   }, [searchParams])
 
   useEffect(() => {
@@ -43,39 +47,44 @@ export default function FragranceLabPage() {
   }, [pathname, isFirstRender])
 
   useEffect(() => {
-    setIsFirstRender(false)
-  }, [])
+    // ページ遷移時の処理
+    const handleRouteChange = () => {
+      setIsLoading(true)
+    }
+
+    router.events?.on('routeChangeStart', handleRouteChange)
+    return () => {
+      router.events?.off('routeChangeStart', handleRouteChange)
+    }
+  }, [router])
+
+  const handleLoadingComplete = () => {
+    setIsLoading(false)
+  }
 
   return (
-    <div className="min-h-screen bg-secondary flex flex-col">
-      <SiteHeader />
-
-      <main className="pt-28 pb-20 flex-grow flex flex-col">
-        <div className="container mx-auto px-4 md:px-8 py-6 flex-grow flex flex-col">
-          <div className="flex items-center justify-between mb-6">
-            <h1 className="text-2xl md:text-3xl font-medium text-secondary-foreground font-zen">
-              あなただけの香りをつくる
-            </h1>
-            <Link href="/">
-              <Button
-                variant="outline"
-                className="rounded-full border-secondary-foreground hover:bg-secondary-foreground hover:text-white font-zen"
-              >
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                戻る
-              </Button>
-            </Link>
-          </div>
-
-          <div className="flex-grow bg-white rounded-lg shadow-sm overflow-hidden flex flex-col">
-            <div className="mt-8 w-full max-w-4xl mx-auto">
+    <>
+      {isLoading && <SplashLoading onLoadingComplete={handleLoadingComplete} />}
+      <div className="min-h-screen bg-secondary flex flex-col">
+        <SiteHeader />
+        <main className="flex-1">
+          <div className="container mx-auto px-4 py-8">
+            <div className="mb-8">
+              <Link href="/">
+                <Button variant="ghost" className="gap-2">
+                  <ArrowLeft className="h-4 w-4" />
+                  戻る
+                </Button>
+              </Link>
+            </div>
+            <div className="bg-background rounded-lg shadow-lg p-6">
+              <h1 className="text-3xl font-bold mb-6">Fragrance Lab</h1>
               <FragranceAIChat initialQuery={initialQuery} />
             </div>
           </div>
-        </div>
-      </main>
-
-      <SiteFooter />
-    </div>
+        </main>
+        <SiteFooter />
+      </div>
+    </>
   )
 } 
