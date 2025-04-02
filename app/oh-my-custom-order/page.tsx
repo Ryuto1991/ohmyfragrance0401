@@ -544,7 +544,7 @@ export default function PerfumeOrderingPage() {
 
       // カートに商品を追加
       const cartItem = {
-        priceId: selectedBottle,
+        priceId: 'price_1R9QuLE0t3PGpOQ5VMQyu3po',  // 更新されたStripe価格ID
         customProductId,
         name: `${selectedFragranceData.name} - ${selectedBottleData.name}`,
         price: selectedBottleData.price,
@@ -597,7 +597,7 @@ export default function PerfumeOrderingPage() {
           <Button
             variant="ghost"
             className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
-            onClick={() => window.history.back()}
+            onClick={() => window.location.href = '/'}
           >
             <ChevronLeft className="h-5 w-5" />
             前の画面に戻る
