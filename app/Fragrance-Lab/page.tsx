@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button"
 import SiteFooter from "@/components/site-footer"
 import SiteHeader from "@/components/site-header"
 import { FragranceAIChat } from "@/components/chat/fragrance-ai-chat"
-import { SplashLoading } from '@/components/SplashLoading'
 
 export default function FragranceLabPage() {
   const searchParams = useSearchParams()
@@ -64,7 +63,6 @@ export default function FragranceLabPage() {
 
   return (
     <>
-      {isLoading && <SplashLoading onLoadingComplete={handleLoadingComplete} />}
       <div className="min-h-screen bg-secondary flex flex-col">
         <SiteHeader />
         <main className="flex-1">

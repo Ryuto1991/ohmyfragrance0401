@@ -1,3 +1,6 @@
+const withBundleAnalyzer = require('@next/bundle-analyzer')({
+  enabled: process.env.ANALYZE === 'true',
+})
 const TerserPlugin = require('terser-webpack-plugin')
 
 /** @type {import('next').NextConfig} */
@@ -5,9 +8,10 @@ const nextConfig = {
   reactStrictMode: true,
   images: {
     domains: [
+      'images.unsplash.com',
       'hebbkx1anhila5yf.public.blob.vercel-storage.com',
       'localhost',
-      '127.0.0.1',
+      '127.0.0.1'
     ],
     remotePatterns: [
       {
@@ -16,15 +20,21 @@ const nextConfig = {
         pathname: '/**',
       },
     ],
+    formats: ['image/avif', 'image/webp'],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
-    unoptimized: process.env.NODE_ENV === 'development',
+    minimumCacheTTL: 60,
   },
   experimental: {
     optimizeCss: true,
     optimizePackageImports: ['@radix-ui/react-icons', '@radix-ui/react-slot'],
     serverActions: {
       allowedOrigins: ['localhost:3000'],
+    },
+    turbo: {
+      loaders: {
+        '.svg': ['@svgr/webpack'],
+      },
     },
   },
   webpack: (config, { dev, isServer }) => {
@@ -85,10 +95,9 @@ const nextConfig = {
   poweredByHeader: false,
   compress: true,
   generateEtags: true,
-  swcMinify: true,
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production',
   },
 }
 
-module.exports = nextConfig 
+module.exports = withBundleAnalyzer(nextConfig) 
