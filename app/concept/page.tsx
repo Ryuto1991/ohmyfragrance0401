@@ -69,83 +69,49 @@ export default function ConceptPage() {
           </div>
         </section>
 
-        {/* 香水作りのプロセスセクション */}
+        {/* 香水作りのプロセス */}
         <section className="py-16">
-          <div className="container mx-auto px-4 md:px-8">
+          <div className="container px-4">
             <div className="text-center mb-12">
-              <h2 className="text-2xl font-medium mb-2 text-secondary-foreground font-zen">香水作りのプロセス</h2>
-              <div className="w-24 h-1 bg-primary mx-auto mb-6"></div>
-              <p className="text-secondary-foreground/70 font-zen max-w-2xl mx-auto">
-                あなただけの香りを届けるまでの3つのステップ
+              <h2 className="text-3xl font-bold mb-4 font-zen text-secondary-foreground">香水作りのプロセス</h2>
+              <p className="text-muted-foreground max-w-2xl mx-auto font-zen text-base leading-relaxed">
+                あなたの思いを形にする、3つのステップ
               </p>
             </div>
 
             <div className="grid md:grid-cols-3 gap-8">
-              <motion.div
-                className="bg-white p-8 rounded-lg shadow-sm"
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.3 }}
-                whileHover={{
-                  y: -10,
-                  scale: 1.02,
-                  boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
-                }}
-              >
+              {/* Step 1 */}
+              <div className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow">
                 <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4">
-                  <MessageSquare className="h-6 w-6 text-primary" />
+                  <span className="text-primary font-bold text-xl font-zen">1</span>
                 </div>
-                <h3 className="text-lg font-medium mb-2 text-secondary-foreground font-zen">ステップ 1</h3>
-                <h4 className="text-primary font-medium mb-3 font-montserrat">AIと香りを決める</h4>
-                <p className="text-sm text-secondary-foreground/70 font-zen">
-                  AIがあなたとの会話を通じて香りの好みや気分を読み取り、あなただけの香りのレシピを一緒に作ります。
+                <h3 className="text-xl font-bold mb-3 font-zen text-secondary-foreground">デザイン</h3>
+                <p className="text-muted-foreground font-zen text-base leading-relaxed">
+                  ラベルデザインをアップロードまたは、テンプレートから選択して、あなただけのオリジナルラベルを作成します。
                 </p>
-              </motion.div>
+              </div>
 
-              <motion.div
-                className="bg-white p-8 rounded-lg shadow-sm"
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.3, delay: 0.1 }}
-                whileHover={{
-                  y: -10,
-                  scale: 1.02,
-                  boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
-                }}
-              >
+              {/* Step 2 */}
+              <div className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow">
                 <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4">
-                  <Package className="h-6 w-6 text-primary" />
+                  <span className="text-primary font-bold text-xl font-zen">2</span>
                 </div>
-                <h3 className="text-lg font-medium mb-2 text-secondary-foreground font-zen">ステップ 2</h3>
-                <h4 className="text-primary font-medium mb-3 font-montserrat">パッケージの選択</h4>
-                <p className="text-sm text-secondary-foreground/70 font-zen">
-                  お好みのボトルデザインとパッケージを選択いただけます。あなただけの特別な一本をつくりましょう。
+                <h3 className="text-xl font-bold mb-3 font-zen text-secondary-foreground">香り選び</h3>
+                <p className="text-muted-foreground font-zen text-base leading-relaxed">
+                  トップノート、ミドルノート、ベースノートから好みの香りを選び、あなただけのオリジナルフレグランスを作成します。
                 </p>
-              </motion.div>
+              </div>
 
-              <motion.div
-                className="bg-white p-8 rounded-lg shadow-sm"
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.3, delay: 0.2 }}
-                whileHover={{
-                  y: -10,
-                  scale: 1.02,
-                  boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
-                }}
-              >
+              {/* Step 3 */}
+              <div className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow">
                 <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4">
-                  <Gift className="h-6 w-6 text-primary" />
+                  <span className="text-primary font-bold text-xl font-zen">3</span>
                 </div>
-                <h3 className="text-lg font-medium mb-2 text-secondary-foreground font-zen">ステップ 3</h3>
-                <h4 className="text-primary font-medium mb-3 font-montserrat">お手元にお届け</h4>
-                <p className="text-sm text-secondary-foreground/70 font-zen">
-                  丁寧に調合されたフレグランスを美しいパッケージに入れて、大切にお届けいたします。
+                <h3 className="text-xl font-bold mb-3 font-zen text-secondary-foreground">完成</h3>
+                <p className="text-muted-foreground font-zen text-base leading-relaxed">
+                  選んだ香りとデザインを組み合わせて、あなただけのオリジナルフレグランスが完成します。
                 </p>
-              </motion.div>
+              </div>
             </div>
           </div>
         </section>
@@ -272,7 +238,6 @@ export default function ConceptPage() {
                 </ul>
                 <div className="space-y-2 mb-6">
                   <p className="text-sm text-gray-500 font-zen">※＋550円でギフト包装（ギフトボックス＋宅急便コンパクト配送）をご利用いただけます。</p>
-                  <p className="text-sm text-gray-500 font-zen">※画像はご注文後に送っていただくことも可能です。</p>
                 </div>
                 <div className="flex justify-center">
                   <motion.div
@@ -358,7 +323,6 @@ export default function ConceptPage() {
                 </ul>
                 <div className="space-y-2 mb-6">
                   <p className="text-sm text-gray-500 font-zen">※＋550円でギフト包装（ギフトボックス＋宅急便コンパクト配送）をご利用いただけます。</p>
-                  <p className="text-sm text-gray-500 font-zen">※画像はご注文後に送っていただくことも可能です。</p>
                 </div>
                 <div className="flex justify-center">
                   <motion.div
@@ -435,8 +399,6 @@ export default function ConceptPage() {
                   </li>
                 </ul>
                 <div className="space-y-2 mb-6">
-                  <p className="text-sm text-gray-500 font-zen">※＋550円でギフト包装（ギフトボックス＋宅急便コンパクト配送）をご利用いただけます。</p>
-                  <p className="text-sm text-gray-500 font-zen">※画像はご注文後に送っていただくことも可能です。</p>
                 </div>
                 <div className="flex justify-center">
                   <motion.div
@@ -468,7 +430,7 @@ export default function ConceptPage() {
                 AIとの対話を通じて、あなたの個性や好みを反映したオリジナルフレグランスを作成できます。
                 今すぐ体験して、世界にひとつだけの香りを見つけましょう。
               </p>
-              <p className="text-lg font-medium text-primary mb-6 font-zen">5,980円（税込）〜</p>
+              <p className="text-lg font-medium text-primary mb-6 font-zen">Fragrance Lab　5,980円（税込）〜</p>
 
               <div className="max-w-xl mx-auto">
                 <FragranceSearch />

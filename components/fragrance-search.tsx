@@ -105,7 +105,7 @@ export default function FragranceSearch({ placeholder }: FragranceSearchProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     // ナビゲーションパスを修正
-    router.push(`/Fragrance-AI${searchQuery ? `?query=${encodeURIComponent(searchQuery)}` : ""}`)
+    router.push(`/Fragrance-Lab${searchQuery ? `?query=${encodeURIComponent(searchQuery)}` : ""}`)
   }
 
   // placeholderを決定

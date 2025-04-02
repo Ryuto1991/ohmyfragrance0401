@@ -57,7 +57,10 @@ export default function SiteHeader() {
           >
             <div className="flex flex-col">
               <span className="text-2xl">Oh my</span>
-              <span className="text-2xl -mt-1">fragrance</span>
+              <div className="flex items-center gap-2">
+                <span className="text-2xl -mt-1">fragrance</span>
+                <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded font-montserrat">β版</span>
+              </div>
             </div>
           </div>
         </motion.div>
@@ -182,7 +185,10 @@ export default function SiteHeader() {
                   >
                     <div className="flex flex-col">
                       <span className="text-2xl">Oh my</span>
-                      <span className="text-2xl -mt-1">fragrance</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-2xl -mt-1">fragrance</span>
+                        <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded font-montserrat">β版</span>
+                      </div>
                     </div>
                   </div>
                 </SheetTitle>

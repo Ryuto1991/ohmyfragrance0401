@@ -629,7 +629,7 @@ export default function BlogPostPage() {
                   AIとの対話を通じて、あなたの個性や好みを反映したオリジナルフレグランスを作成できます。
                 </p>
                 <Button asChild className="mt-8 bg-primary hover:bg-primary/90 text-primary-foreground">
-                  <Link href="/Fragrance-AI">
+                  <Link href="/Fragrance-Lab">
                     <span className="relative">Fragrance AIを体験する</span>
                   </Link>
                 </Button>

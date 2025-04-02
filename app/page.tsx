@@ -113,7 +113,7 @@ export default function Home() {
     {
       question: "AIはどのように香りを選んでくれますか？",
       answer:
-        "AIは、お客様との対話を通じて好みや気分、使用シーンなどを分析し、最適な香りの組み合わせを提案します。過去の調香データや香りの相性なども考慮して、お客様だけのオリジナルレシピを作成します.",
+        "Fragrance LabのAIは、お客様との対話を通じて好みや気分、使用シーンなどを分析し、最適な香りの組み合わせを提案します。過去の調香データや香りの相性なども考慮して、お客様だけのオリジナルレシピを作成します.",
     },
     {
       question: "肌につけても大丈夫ですか？",
@@ -416,7 +416,6 @@ export default function Home() {
                         </ul>
                         <div className="space-y-2 pt-3 border-t border-gray-100">
                           <p className="text-sm text-gray-500 font-zen">※＋550円でギフト包装（ギフトボックス＋宅急便コンパクト配送）をご利用いただけます。</p>
-                          <p className="text-sm text-gray-500 font-zen">※画像はご注文後に送っていただくことも可能です。</p>
                         </div>
                       </motion.div>
                     )}
@@ -530,7 +529,6 @@ export default function Home() {
                         </ul>
                         <div className="space-y-2 pt-3 border-t border-gray-100">
                           <p className="text-sm text-gray-500 font-zen">※＋550円でギフト包装（ギフトボックス＋宅急便コンパクト配送）をご利用いただけます。</p>
-                          <p className="text-sm text-gray-500 font-zen">※画像はご注文後に送っていただくことも可能です。</p>
                         </div>
                       </motion.div>
                     )}
@@ -647,8 +645,6 @@ export default function Home() {
                           </li>
                         </ul>
                         <div className="space-y-2 pt-3 border-t border-gray-100">
-                          <p className="text-sm text-gray-500 font-zen">※＋550円でギフト包装（ギフトボックス＋宅急便コンパクト配送）をご利用いただけます。</p>
-                          <p className="text-sm text-gray-500 font-zen">※画像はご注文後に送っていただくことも可能です。</p>
                         </div>
                       </motion.div>
                     )}
@@ -840,7 +836,7 @@ export default function Home() {
                           }`}
                           onClick={() => toggleFaq(index)}
                         >
-                          <h3 className="font-medium text-secondary-foreground font-zen">Q. {faq.question}</h3>
+                          <h3 className="font-medium text-secondary-foreground font-zen">Q.　{faq.question}</h3>
                           <div className="flex-shrink-0 ml-2">
                             {openFaq === index ? (
                               <ChevronUp className="h-5 w-5 text-primary" />
@@ -857,7 +853,7 @@ export default function Home() {
                             transition={{ duration: 0.3 }}
                             className="px-4 pb-4"
                           >
-                            <p className="text-secondary-foreground/70 text-sm font-zen">A. {faq.answer}</p>
+                            <p className="text-secondary-foreground/70 text-sm font-zen mt-4">A.　{faq.answer}</p>
                           </motion.div>
                         )}
                       </motion.div>

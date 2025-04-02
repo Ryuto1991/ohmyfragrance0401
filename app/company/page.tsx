@@ -126,9 +126,7 @@ export default function CompanyPage() {
               <div>
                 <h3 className="text-base font-medium mb-2 text-secondary-foreground font-zen">商品の引渡し時期</h3>
                 <p className="text-secondary-foreground/70 font-zen">
-                  ・クレジットカード決済、PayPay、Amazon Pay：ご注文確認後、2週間以内に発送
-                  <br />
-                  ・コンビニ決済、銀行振込：ご入金確認後、2週間以内に発送
+                  ご注文確認後、3週間以内に発送
                   <br />
                   ※在庫状況や繁忙期により、発送が遅れる場合があります。その場合は別途ご連絡いたします。
                 </p>
@@ -147,8 +145,7 @@ export default function CompanyPage() {
                   <br />
                   ・注文確定後のキャンセルは、商品発送前に限り承ります。
                   <br />
-                  ・カスタマイズ商品（Fragrance
-                  AIで作成したオリジナルフレグランス）については、商品の性質上、返品・交換・キャンセルをお受けできません。
+                  ・カスタマイズ商品（Fragrance Labで作成したオリジナルフレグランス）については、商品の性質上、返品・交換・キャンセルをお受けできません。
                 </p>
               </div>
 

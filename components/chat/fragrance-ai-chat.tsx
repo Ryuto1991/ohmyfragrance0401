@@ -231,7 +231,7 @@ export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
       }
 
       const data = await response.json()
-      router.push(`/Fragrance-AI/customize?id=${data.id}`)
+      router.push(`/Fragrance-Lab/customize?id=${data.id}`)
     } catch (error) {
       console.error('Error saving fragrance:', error)
       setFinalizationError('香りの保存中にエラーが発生しました。もう一度お試しください。')

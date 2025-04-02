@@ -436,26 +436,14 @@ export default function OhMyCustomPage() {
                 <div>
                   <h3 className="text-2xl font-medium mb-4 text-gray-800 font-zen">ギフトボックス</h3>
                   <p className="text-gray-600 font-zen mb-6">
-                    高級感のあるギフトボックスと4色から選べるリボンで、特別な贈り物に。
+                    高級感のあるギフトボックスとメッセージカードで、特別な贈り物に。
                   </p>
-                  <ul className="space-y-3 mb-8">
+                  <ul className="space-y-3">
                     <li className="flex items-center">
                       <div className="bg-blue-100 rounded-full p-1 mr-3">
                         <Check className="h-4 w-4 text-blue-600" />
                       </div>
                       <span className="text-gray-700 font-zen">ギフトボックス（+550円）</span>
-                    </li>
-                    <li className="flex items-center">
-                      <div className="bg-blue-100 rounded-full p-1 mr-3">
-                        <Check className="h-4 w-4 text-blue-600" />
-                      </div>
-                      <span className="text-gray-700 font-zen">4色から選べるリボン</span>
-                    </li>
-                    <li className="flex items-center">
-                      <div className="bg-blue-100 rounded-full p-1 mr-3">
-                        <Check className="h-4 w-4 text-blue-600" />
-                      </div>
-                      <span className="text-gray-700 font-zen">メッセージカード（+200円）</span>
                     </li>
                   </ul>
                 </div>

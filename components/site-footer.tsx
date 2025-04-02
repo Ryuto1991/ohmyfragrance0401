@@ -29,7 +29,10 @@ export default function SiteFooter() {
               className="text-lg font-medium mb-4 text-secondary-foreground font-zen hover:text-primary transition-colors cursor-pointer"
               onClick={goToHomePage}
             >
-              Oh my fragrance
+              <div className="flex items-center gap-2">
+                <span>Oh my fragrance</span>
+                <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded font-montserrat">β版</span>
+              </div>
             </h3>
             <p className="text-sm text-secondary-foreground/70 mb-4 font-zen">
               AIを活用したオリジナルフレグランス作成サービス

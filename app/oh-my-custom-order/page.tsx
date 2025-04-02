@@ -2,13 +2,14 @@
 
 import type React from "react"
 import { useState, useEffect, useRef } from "react"
-import { Check, Upload, ChevronDown, ChevronUp, Image, Info, X, Type, Move, Trash, Edit2, RotateCcw, ChevronLeft } from "lucide-react"
+import { Check, Upload, ChevronDown, ChevronUp, Image, Info, X, Move, RotateCcw, ChevronLeft, RotateCw } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import dynamic from "next/dynamic"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { LabelSize, TextElement, ImageTransform } from '../types'
+import { LabelSize } from '../types'
 import { LABEL_SIZES } from '../utils/size-utils'
+import WelcomePopup from '@/components/welcome-popup'
 
 const ImageEditorComponent = dynamic(() => import("../components/image-editor"), {
   ssr: false,
@@ -36,6 +37,9 @@ interface Bottle {
 }
 
 export default function PerfumeOrderingPage() {
+  // デフォルトのラベル画像をテンプレートラベルに変更
+  const defaultLabelImage = "/labels/Template_label.png"
+
   // State for selections
   const [expandedSection, setExpandedSection] = useState(1)
   const [selectedFragrance, setSelectedFragrance] = useState<string | null>(null)
@@ -43,23 +47,24 @@ export default function PerfumeOrderingPage() {
   const [selectedLabelSize, setSelectedLabelSize] = useState<LabelSize>('medium')
   const [useTemplate, setUseTemplate] = useState(true)
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null)
-  const [uploadedImage, setUploadedImage] = useState<string | null>(null)
+  const [uploadedImage, setUploadedImage] = useState<string | null>(defaultLabelImage)
   const [selectLater, setSelectLater] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
   const [activeInfoId, setActiveInfoId] = useState<string | null>(null)
   const [infoPosition, setInfoPosition] = useState<{ top: number; left: number } | null>(null)
-  const [imageTransform, setImageTransform] = useState<ImageTransform>({
+  const [imageTransform, setImageTransform] = useState({
     x: 0,
     y: 0,
     scale: 1,
-    rotation: 0,
+    rotation: 0
   })
   const [screenWidth, setScreenWidth] = useState(0)
-  const [textElements, setTextElements] = useState<TextElement[]>([])
-  const [selectedElement, setSelectedElement] = useState<string | null>(null)
   const [isEditorOpen, setIsEditorOpen] = useState(false)
   const [editingImage, setEditingImage] = useState<string | null>(null)
   const [showEditor, setShowEditor] = useState(false)
+  const [isMoving, setIsMoving] = useState(false)
+  const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(null)
+  const [initialImageSize, setInitialImageSize] = useState<{ width: number; height: number } | null>(null)
 
   // Handle window resize
   useEffect(() => {
@@ -237,9 +242,6 @@ export default function PerfumeOrderingPage() {
     }
   ]
 
-  // デフォルトのラベル画像をテンプレートラベルに変更
-  const defaultLabelImage = "/labels/Template_label.png"
-
   // Toggle section expansion
   const toggleSection = (sectionNumber: number) => {
     setExpandedSection(expandedSection === sectionNumber ? 0 : sectionNumber)
@@ -372,7 +374,7 @@ export default function PerfumeOrderingPage() {
   // Handle template selection
   const handleTemplateSelect = () => {
     setUseTemplate(true)
-    setUploadedImage(null)
+    setUploadedImage(defaultLabelImage)
     setImageTransform({
       x: 0,
       y: 0,
@@ -381,8 +383,108 @@ export default function PerfumeOrderingPage() {
     })
   }
 
+  // 画像の最小スケールを計算
+  const calculateMinScale = (imgWidth: number, imgHeight: number, labelWidth: number, labelHeight: number) => {
+    const widthScale = labelWidth / imgWidth
+    const heightScale = labelHeight / imgHeight
+    return Math.max(widthScale, heightScale)
+  }
+
+  // 画像読み込み時のサイズ設定
+  const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const img = e.target as HTMLImageElement
+    setInitialImageSize({ width: img.naturalWidth, height: img.naturalHeight })
+    
+    const currentLabel = labelSizes.find(s => s.id === selectedLabelSize)
+    if (currentLabel) {
+      // ラベルサイズに合わせて画像を自動調整（ピクセル換算）
+      const labelWidth = currentLabel.width * 37.795275591 // cmをピクセルに変換
+      const labelHeight = currentLabel.height * 37.795275591
+      
+      // 画像のアスペクト比を維持しながら、ラベルに収まるように調整
+      const widthRatio = labelWidth / img.naturalWidth
+      const heightRatio = labelHeight / img.naturalHeight
+      const scale = Math.min(2, Math.max(1, Math.max(widthRatio, heightRatio) * 1.2)) // 最小1倍、最大2倍、20%大きめに
+      
+      setImageTransform(prev => ({
+        ...prev,
+        scale: scale,
+        x: 0,
+        y: 0
+      }))
+    }
+  }
+
+  // 画像の移動とリサイズの処理
+  const handleImageMouseDown = (e: React.MouseEvent) => {
+    if (!isMoving) return
+    e.preventDefault()
+    const rect = e.currentTarget.getBoundingClientRect()
+    setDragStart({
+      x: e.clientX - imageTransform.x,
+      y: e.clientY - imageTransform.y
+    })
+  }
+
+  const handleImageMouseMove = (e: React.MouseEvent) => {
+    if (!isMoving || !dragStart) return
+    e.preventDefault()
+
+    const newX = e.clientX - dragStart.x
+    const newY = e.clientY - dragStart.y
+
+    // 移動範囲の制限
+    const currentLabel = labelSizes.find(s => s.id === selectedLabelSize)
+    if (!currentLabel || !initialImageSize) return
+
+    const labelWidth = currentLabel.width * 37.795275591
+    const labelHeight = currentLabel.height * 37.795275591
+    const scaledImageWidth = initialImageSize.width * imageTransform.scale
+    const scaledImageHeight = initialImageSize.height * imageTransform.scale
+    
+    // 移動可能な最大範囲を計算
+    const maxX = Math.max(0, (scaledImageWidth - labelWidth) / 2)
+    const maxY = Math.max(0, (scaledImageHeight - labelHeight) / 2)
+
+    setImageTransform(prev => ({
+      ...prev,
+      x: Math.max(-maxX, Math.min(maxX, newX)),
+      y: Math.max(-maxY, Math.min(maxY, newY))
+    }))
+  }
+
+  const handleImageMouseUp = () => {
+    setDragStart(null)
+  }
+
+  const handleImageMouseLeave = () => {
+    setDragStart(null)
+  }
+
+  const handleRotateLeft = () => {
+    setImageTransform(prev => ({
+      ...prev,
+      rotation: (prev.rotation - 90) % 360
+    }))
+  }
+
+  const handleRotateRight = () => {
+    setImageTransform(prev => ({
+      ...prev,
+      rotation: (prev.rotation + 90) % 360
+    }))
+  }
+
+  const handleScale = (value: number) => {
+    setImageTransform(prev => ({
+      ...prev,
+      scale: value
+    }))
+  }
+
   return (
     <div className="min-h-screen bg-[#F5F5F5]">
+      <WelcomePopup />
       <main className="container mx-auto px-4 py-4 sm:py-8">
         {/* 戻るボタン */}
         <div className="mb-6">
@@ -408,7 +510,12 @@ export default function PerfumeOrderingPage() {
                 onClick={() => toggleSection(1)}
               >
                 <div className="flex items-center">
-                  <div className="w-6 h-6 rounded-full bg-[#FF6B6B] text-white flex items-center justify-center mr-2 text-xs">1</div>
+                  <div className={cn(
+                    "w-6 h-6 rounded-full flex items-center justify-center mr-2 text-xs",
+                    selectedFragrance ? "bg-green-500 text-white" : "bg-[#FF6B6B] text-white"
+                  )}>
+                    {selectedFragrance ? <Check className="h-4 w-4" /> : "1"}
+                  </div>
                   <h3 className="font-medium">香りを選ぶ</h3>
                 </div>
                 {selectedFragrance && (
@@ -492,7 +599,12 @@ export default function PerfumeOrderingPage() {
                 onClick={() => toggleSection(2)}
               >
                 <div className="flex items-center">
-                  <div className="w-6 h-6 rounded-full bg-[#FF6B6B] text-white flex items-center justify-center mr-2 text-xs">2</div>
+                  <div className={cn(
+                    "w-6 h-6 rounded-full flex items-center justify-center mr-2 text-xs",
+                    selectedBottle ? "bg-green-500 text-white" : "bg-[#FF6B6B] text-white"
+                  )}>
+                    {selectedBottle ? <Check className="h-4 w-4" /> : "2"}
+                  </div>
                   <h3 className="font-medium">ボトルを選ぶ</h3>
                 </div>
                 {selectedBottle && (
@@ -545,7 +657,12 @@ export default function PerfumeOrderingPage() {
                 onClick={() => toggleSection(3)}
               >
                 <div className="flex items-center">
-                  <div className="w-6 h-6 rounded-full bg-[#FF6B6B] text-white flex items-center justify-center mr-2 text-xs">3</div>
+                  <div className={cn(
+                    "w-6 h-6 rounded-full flex items-center justify-center mr-2 text-xs",
+                    selectedLabelSize ? "bg-green-500 text-white" : "bg-[#FF6B6B] text-white"
+                  )}>
+                    {selectedLabelSize ? <Check className="h-4 w-4" /> : "3"}
+                  </div>
                   <h3 className="font-medium">ラベルサイズを選ぶ</h3>
                 </div>
                 {selectedLabelSize && (
@@ -593,12 +710,22 @@ export default function PerfumeOrderingPage() {
                 onClick={() => toggleSection(4)}
               >
                 <div className="flex items-center">
-                  <div className="w-6 h-6 rounded-full bg-[#FF6B6B] text-white flex items-center justify-center mr-2 text-xs">4</div>
+                  <div className={cn(
+                    "w-6 h-6 rounded-full flex items-center justify-center mr-2 text-xs",
+                    uploadedImage ? "bg-green-500 text-white" : "bg-[#FF6B6B] text-white"
+                  )}>
+                    {uploadedImage ? <Check className="h-4 w-4" /> : "4"}
+                  </div>
                   <h3 className="font-medium">ラベル画像をアップロード</h3>
                 </div>
-                {uploadedImage && (
+                {uploadedImage && !useTemplate && (
                   <div className="text-sm text-gray-600 mr-2">
                     画像がアップロードされています
+                  </div>
+                )}
+                {uploadedImage && useTemplate && (
+                  <div className="text-sm text-gray-600 mr-2">
+                    テンプレートが選択されています
                   </div>
                 )}
                 {expandedSection === 4 ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
@@ -622,11 +749,15 @@ export default function PerfumeOrderingPage() {
                           <Upload className="h-6 w-6 text-gray-400" />
                         </div>
                       </div>
-                      <p className="text-sm text-gray-600 mb-4">
-                        ここにファイルをドラッグ＆ドロップ
-                        <br />
-                        または
-                      </p>
+                      <div className="text-sm text-gray-600 mb-4">
+                        <p className="font-medium mb-2">推奨サイズ: 600 × 480 px以上</p>
+                        <p className="text-xs mb-2">対応フォーマット: PNG, JPG（300dpi）</p>
+                        <p className="text-xs text-gray-500">
+                          ここにファイルをドラッグ＆ドロップ
+                          <br />
+                          または
+                        </p>
+                      </div>
                       <Button
                         variant="outline"
                         size="sm"
@@ -654,17 +785,28 @@ export default function PerfumeOrderingPage() {
                       テンプレートを選択
                     </Button>
                   </div>
-
-                  <div className="text-center">
-                    <Button
-                      className="w-full sm:w-64 py-4 sm:py-6 text-lg rounded-full bg-[#FF6B6B] hover:bg-[#FF6B6B]/90 text-white"
-                      disabled={!selectedFragrance || !selectedBottle || !selectedLabelSize}
-                    >
-                      注文する
-                    </Button>
-                  </div>
                 </div>
               )}
+            </div>
+
+            {/* Order Button */}
+            <div className="text-center mt-6">
+              <Button
+                className={cn(
+                  "w-full py-4 sm:py-6 text-lg rounded-full text-white",
+                  !selectedFragrance 
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "bg-[#FF6B6B] hover:bg-[#FF6B6B]/90"
+                )}
+                disabled={!selectedFragrance}
+                onClick={() => {
+                  if (!selectedFragrance) {
+                    toggleSection(1);
+                  }
+                }}
+              >
+                {!selectedFragrance ? "香りを選んでください" : "注文する"}
+              </Button>
             </div>
           </div>
 
@@ -672,47 +814,41 @@ export default function PerfumeOrderingPage() {
             <div className="bg-white rounded-lg p-2 sm:p-6 shadow-sm">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
                 <h2 className="text-lg font-medium">プレビュー</h2>
-                {(uploadedImage || defaultLabelImage) && (
-                  <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleEditImage}
-                      className="flex items-center gap-2 flex-1 sm:flex-none justify-center"
-                    >
-                      <Edit2 className="h-4 w-4" />
-                      <span className="hidden sm:inline">画像を編集</span>
-                      <span className="sm:hidden">編集</span>
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleReset}
-                      className="flex items-center gap-2 flex-1 sm:flex-none justify-center"
-                    >
-                      <RotateCcw className="h-4 w-4" />
-                      <span className="hidden sm:inline">デフォルトに戻す</span>
-                      <span className="sm:hidden">リセット</span>
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setUploadedImage(null)}
-                      className="flex items-center gap-2 flex-1 sm:flex-none justify-center"
-                    >
-                      <Trash className="h-4 w-4" />
-                      <span className="hidden sm:inline">削除</span>
-                      <span className="sm:hidden">削除</span>
-                    </Button>
-                  </div>
-                )}
+                <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsMoving(!isMoving)}
+                    className={`flex items-center gap-2 flex-1 sm:flex-none justify-center ${isMoving ? 'bg-gray-100' : ''}`}
+                  >
+                    <Move className="h-4 w-4" />
+                    <span className="hidden sm:inline">移動</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleRotateLeft}
+                    className="flex items-center gap-2 flex-1 sm:flex-none justify-center"
+                  >
+                    <RotateCcw className="h-4 w-4" />
+                    <span className="hidden sm:inline">左回転</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleRotateRight}
+                    className="flex items-center gap-2 flex-1 sm:flex-none justify-center"
+                  >
+                    <RotateCw className="h-4 w-4" />
+                    <span className="hidden sm:inline">右回転</span>
+                  </Button>
+                </div>
               </div>
 
               <div 
                 ref={previewRef}
                 className="aspect-[4/3] bg-gray-50 rounded-lg relative overflow-hidden preview-container"
               >
-                {/* ボトル背景 */}
                 {selectedBottle && (
                   <div className="absolute inset-0 p-2 sm:p-8">
                     <img
@@ -723,7 +859,6 @@ export default function PerfumeOrderingPage() {
                   </div>
                 )}
 
-                {/* ラベル枠とラベル画像 */}
                 {selectedLabelSize && (
                   <div 
                     className="absolute"
@@ -732,29 +867,61 @@ export default function PerfumeOrderingPage() {
                       height: `${labelSizes.find((s) => s.id === selectedLabelSize)?.height}cm`,
                       left: '50%',
                       top: '60%',
-                      transform: `translate(-50%, -50%) scale(${getLabelScale()})`
+                      transform: 'translate(-50%, -50%)',
+                      position: 'absolute',
+                      backgroundColor: 'white',
+                      borderRadius: '4px'
                     }}
                   >
-                    {/* ラベル枠 */}
-                    <div className="absolute inset-0 border-2 border-gray-300 rounded"></div>
-
-                    {/* ラベル画像 */}
-                    {(uploadedImage || (useTemplate && defaultLabelImage)) && (
-                      <div
-                        className="absolute inset-0 overflow-hidden"
-                        style={{
-                          transform: `translate(${imageTransform.x}px, ${imageTransform.y}px) scale(${imageTransform.scale}) rotate(${imageTransform.rotation}deg)`,
-                        }}
-                      >
-                        <img
-                          src={uploadedImage || defaultLabelImage}
-                          alt="ラベル画像"
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                    )}
+                    <div className="absolute inset-0 border-2 border-gray-300 rounded overflow-hidden">
+                      {uploadedImage && (
+                        <div
+                          className={`absolute inset-0 ${isMoving ? 'cursor-move' : ''}`}
+                          style={{
+                            transform: `translate(${imageTransform.x}px, ${imageTransform.y}px) scale(${imageTransform.scale}) rotate(${imageTransform.rotation}deg)`,
+                            transformOrigin: 'center center',
+                            width: '100%',
+                            height: '100%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}
+                          onMouseDown={handleImageMouseDown}
+                          onMouseMove={handleImageMouseMove}
+                          onMouseUp={handleImageMouseUp}
+                          onMouseLeave={handleImageMouseUp}
+                        >
+                          <img
+                            src={uploadedImage}
+                            alt="ラベル画像"
+                            className="max-w-full max-h-full object-contain"
+                            draggable={false}
+                            onLoad={handleImageLoad}
+                          />
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
+              </div>
+
+              <div className="mt-4">
+                <label className="block text-sm font-medium mb-1">拡大・縮小</label>
+                <input
+                  type="range"
+                  min="0.5"
+                  max="3"
+                  step="0.1"
+                  value={imageTransform.scale}
+                  onChange={(e) => {
+                    const newScale = parseFloat(e.target.value);
+                    setImageTransform(prev => ({
+                      ...prev,
+                      scale: newScale
+                    }));
+                  }}
+                  className="w-full"
+                />
               </div>
             </div>
           </div>
@@ -762,7 +929,7 @@ export default function PerfumeOrderingPage() {
       </main>
 
       {/* Image Editor Modal */}
-      {isEditorOpen && uploadedImage && (
+      {isEditorOpen && (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] overflow-hidden">
             <div className="p-4 border-b flex justify-between items-center">
@@ -778,9 +945,9 @@ export default function PerfumeOrderingPage() {
                 <X className="h-5 w-5" />
               </Button>
             </div>
-            <div className="p-4 overflow-auto">
+            <div className="p-4">
               <ImageEditorComponent
-                imageUrl={editingImage || uploadedImage}
+                imageUrl={uploadedImage || ''}
                 onSave={handleSaveEdit}
                 onClose={() => {
                   setEditingImage(null)
