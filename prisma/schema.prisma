@@ -1,0 +1,81 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Favorite {
+  id        String   @id @default(cuid())
+  userId    String
+  fragranceId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id])
+  fragrance Fragrance @relation(fields: [fragranceId], references: [id])
+
+  @@unique([userId, fragranceId])
+  @@index([userId])
+  @@index([fragranceId])
+}
+
+model Fragrance {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  imageUrl    String?
+  price       Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  favorites   Favorite[]
+  cartItems   CartItem[]
+}
+
+model User {
+  id            String         @id @default(cuid())
+  email         String         @unique
+  name          String?
+  avatar_url    String?
+  favorites     Favorite[]
+  loginHistory  LoginHistory[]
+  carts         Cart[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model Cart {
+  id        String      @id @default(cuid())
+  userId    String
+  user      User        @relation(fields: [userId], references: [id])
+  items     CartItem[]
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+}
+
+model CartItem {
+  id          String   @id @default(cuid())
+  cartId      String
+  cart        Cart     @relation(fields: [cartId], references: [id])
+  fragranceId String
+  fragrance   Fragrance @relation(fields: [fragranceId], references: [id])
+  quantity    Int      @default(1)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model LoginHistory {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  ipAddress String?
+  userAgent String?
+  status    String   // "success" or "failure"
+  createdAt DateTime @default(now())
+  location  String?  // ログイン場所（IPアドレスから取得可能な場合）
+  device    String?  // デバイス情報（User-Agentから解析可能な場合）
+} 

@@ -4,6 +4,23 @@ import { createContext, useContext, useEffect, useState } from 'react'
 import { User, AuthError } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 
+// パスワードポリシーのバリデーション
+const validatePassword = (password: string): { isValid: boolean; error?: string } => {
+  if (password.length < 8) {
+    return { isValid: false, error: "パスワードは8文字以上である必要があります" }
+  }
+  if (!/[A-Z]/.test(password)) {
+    return { isValid: false, error: "パスワードには少なくとも1つの大文字が必要です" }
+  }
+  if (!/[a-z]/.test(password)) {
+    return { isValid: false, error: "パスワードには少なくとも1つの小文字が必要です" }
+  }
+  if (!/[0-9]/.test(password)) {
+    return { isValid: false, error: "パスワードには少なくとも1つの数字が必要です" }
+  }
+  return { isValid: true }
+}
+
 interface AuthContextType {
   user: User | null
   loading: boolean
@@ -28,10 +45,74 @@ const AuthContext = createContext<AuthContextType>({
   clearError: () => {},
 })
 
+// デバイス情報を解析する関数
+const parseUserAgent = (userAgent: string): string => {
+  if (!userAgent) return "不明";
+  
+  if (/iPhone|iPad|iPod/i.test(userAgent)) {
+    return "iOS";
+  }
+  if (/Android/i.test(userAgent)) {
+    return "Android";
+  }
+  if (/Windows/i.test(userAgent)) {
+    return "Windows";
+  }
+  if (/Macintosh|Mac OS X/i.test(userAgent)) {
+    return "Mac";
+  }
+  return "その他";
+};
+
+// IPアドレスから位置情報を取得する関数
+const getLocationFromIP = async (ip: string): Promise<string> => {
+  try {
+    const response = await fetch(`https://ipapi.co/${ip}/json/`);
+    const data = await response.json();
+    return `${data.city}, ${data.country_name}`;
+  } catch (error) {
+    console.error("位置情報の取得エラー:", error);
+    return "不明";
+  }
+};
+
+// ログイン履歴を記録する関数
+const recordLoginHistory = async (
+  status: "success" | "failure",
+  ipAddress?: string,
+  userAgent?: string
+) => {
+  try {
+    let location = "不明";
+    if (ipAddress) {
+      location = await getLocationFromIP(ipAddress);
+    }
+
+    const device = userAgent ? parseUserAgent(userAgent) : "不明";
+
+    await fetch("/api/auth/login-history", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        status,
+        ipAddress,
+        userAgent,
+        location,
+        device,
+      }),
+    });
+  } catch (error) {
+    console.error("ログイン履歴の記録エラー:", error);
+  }
+};
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [loginAttempts, setLoginAttempts] = useState<{ [key: string]: { count: number; lastAttempt: number } }>({})
 
   useEffect(() => {
     // 認証状態の監視
@@ -45,18 +126,63 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
+  // レート制限のチェック
+  const checkRateLimit = (email: string): boolean => {
+    const now = Date.now()
+    const attempts = loginAttempts[email] || { count: 0, lastAttempt: 0 }
+    
+    // 5分以内に5回以上の失敗でブロック
+    if (attempts.count >= 5 && now - attempts.lastAttempt < 5 * 60 * 1000) {
+      return false
+    }
+    
+    // 1時間以内に10回以上の失敗でブロック
+    if (attempts.count >= 10 && now - attempts.lastAttempt < 60 * 60 * 1000) {
+      return false
+    }
+    
+    return true
+  }
+
   const signIn = async (email: string, password: string) => {
     try {
       setError(null)
+      
+      if (!checkRateLimit(email)) {
+        setError("ログイン試行回数が多すぎます。しばらく時間をおいて再度お試しください。")
+        await recordLoginHistory("failure")
+        return { success: false, error: "ログイン試行回数が多すぎます。しばらく時間をおいて再度お試しください。" }
+      }
+
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
 
       if (error) {
+        // ログイン失敗時のレート制限更新
+        setLoginAttempts(prev => ({
+          ...prev,
+          [email]: {
+            count: (prev[email]?.count || 0) + 1,
+            lastAttempt: Date.now()
+          }
+        }))
+        
         setError(error.message)
+        await recordLoginHistory("failure")
         return { success: false, error: error.message }
       }
+
+      // ログイン成功時にレート制限をリセット
+      setLoginAttempts(prev => {
+        const newAttempts = { ...prev }
+        delete newAttempts[email]
+        return newAttempts
+      })
+
+      // ログイン履歴を記録
+      await recordLoginHistory("success")
 
       return {
         success: true,
@@ -65,6 +191,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       console.error('ログインエラー:', error)
       setError('ログインに失敗しました。')
+      await recordLoginHistory("failure")
       return { success: false, error: 'ログインに失敗しました。' }
     }
   }
@@ -74,11 +201,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(true)
       setError(null)
 
+      // パスワードのバリデーション
+      const passwordValidation = validatePassword(password)
+      if (!passwordValidation.isValid) {
+        setError(passwordValidation.error)
+        return { success: false, error: passwordValidation.error }
+      }
+
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           emailRedirectTo: `${window.location.origin}/auth/callback`,
+          data: {
+            created_at: new Date().toISOString(),
+          }
         },
       })
 
@@ -114,6 +251,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { success: false, error: error.message }
       }
 
+      // セッション関連のデータをクリア
+      setUser(null)
+      setLoginAttempts({})
+
       return { success: true }
     } catch (error) {
       console.error('ログアウトエラー:', error)
@@ -125,7 +266,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const resetPassword = async (email: string) => {
     try {
       setError(null)
-      const { error } = await supabase.auth.resetPasswordForEmail(email)
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/reset-password`,
+      })
 
       if (error) {
         setError(error.message)
@@ -135,8 +278,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { success: true }
     } catch (error) {
       console.error('パスワードリセットエラー:', error)
-      setError('パスワードリセットメールの送信に失敗しました。')
-      return { success: false, error: 'パスワードリセットメールの送信に失敗しました。' }
+      setError('パスワードリセットに失敗しました。')
+      return { success: false, error: 'パスワードリセットに失敗しました。' }
     }
   }
 
@@ -144,7 +287,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       setError(null)
       const { error } = await supabase.auth.updateUser({
-        data,
+        data: {
+          ...data,
+          updated_at: new Date().toISOString(),
+        }
       })
 
       if (error) {

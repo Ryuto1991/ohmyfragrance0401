@@ -4,7 +4,7 @@ import type React from "react"
 import { useState, useEffect, useRef } from "react"
 import { Check, Upload, ChevronDown, ChevronUp, Image, Info, X, Move, RotateCcw, ChevronLeft, RotateCw } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
+import { Button, type ButtonProps } from "@/components/ui/button"
 import dynamic from "next/dynamic"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { LabelSize } from '../types'
@@ -14,6 +14,9 @@ import WelcomePopup from '@/components/welcome-popup'
 const ImageEditorComponent = dynamic(() => import("../components/image-editor"), {
   ssr: false,
 })
+
+type ButtonVariant = "default" | "destructive" | "outline" | "secondary" | "ghost" | "link"
+type ButtonSize = "default" | "sm" | "lg" | "icon"
 
 interface FragranceNote {
   top: string[]
@@ -490,6 +493,7 @@ export default function PerfumeOrderingPage() {
         <div className="mb-6">
           <Button
             variant="ghost"
+            size="default"
             className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
             onClick={() => window.history.back()}
           >
@@ -550,7 +554,7 @@ export default function PerfumeOrderingPage() {
                           </div>
                           <div className="flex-1">
                             <div className="flex items-center gap-2">
-                              <h4 className="font-medium text-sm">{fragrance.name}</h4>
+                            <h4 className="font-medium text-sm">{fragrance.name}</h4>
                               <span className="text-xs text-gray-500">({fragrance.category})</span>
                             </div>
                             <p className="text-xs text-gray-600">{fragrance.description}</p>
@@ -753,10 +757,10 @@ export default function PerfumeOrderingPage() {
                         <p className="font-medium mb-2">推奨サイズ: 600 × 480 px以上</p>
                         <p className="text-xs mb-2">対応フォーマット: PNG, JPG（300dpi）</p>
                         <p className="text-xs text-gray-500">
-                          ここにファイルをドラッグ＆ドロップ
-                          <br />
-                          または
-                        </p>
+                        ここにファイルをドラッグ＆ドロップ
+                        <br />
+                        または
+                      </p>
                       </div>
                       <Button
                         variant="outline"
@@ -814,35 +818,35 @@ export default function PerfumeOrderingPage() {
             <div className="bg-white rounded-lg p-2 sm:p-6 shadow-sm">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
                 <h2 className="text-lg font-medium">プレビュー</h2>
-                <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-                  <Button
-                    variant="outline"
-                    size="sm"
+                  <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+                    <Button
+                      variant="outline"
+                      size="sm"
                     onClick={() => setIsMoving(!isMoving)}
                     className={`flex items-center gap-2 flex-1 sm:flex-none justify-center ${isMoving ? 'bg-gray-100' : ''}`}
-                  >
+                    >
                     <Move className="h-4 w-4" />
                     <span className="hidden sm:inline">移動</span>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
                     onClick={handleRotateLeft}
-                    className="flex items-center gap-2 flex-1 sm:flex-none justify-center"
-                  >
-                    <RotateCcw className="h-4 w-4" />
+                      className="flex items-center gap-2 flex-1 sm:flex-none justify-center"
+                    >
+                      <RotateCcw className="h-4 w-4" />
                     <span className="hidden sm:inline">左回転</span>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
                     onClick={handleRotateRight}
-                    className="flex items-center gap-2 flex-1 sm:flex-none justify-center"
-                  >
+                      className="flex items-center gap-2 flex-1 sm:flex-none justify-center"
+                    >
                     <RotateCw className="h-4 w-4" />
                     <span className="hidden sm:inline">右回転</span>
-                  </Button>
-                </div>
+                    </Button>
+                  </div>
               </div>
 
               <div 
@@ -877,8 +881,8 @@ export default function PerfumeOrderingPage() {
                       {uploadedImage && (
                         <div
                           className={`absolute inset-0 ${isMoving ? 'cursor-move' : ''}`}
-                          style={{
-                            transform: `translate(${imageTransform.x}px, ${imageTransform.y}px) scale(${imageTransform.scale}) rotate(${imageTransform.rotation}deg)`,
+                        style={{
+                          transform: `translate(${imageTransform.x}px, ${imageTransform.y}px) scale(${imageTransform.scale}) rotate(${imageTransform.rotation}deg)`,
                             transformOrigin: 'center center',
                             width: '100%',
                             height: '100%',
@@ -890,16 +894,16 @@ export default function PerfumeOrderingPage() {
                           onMouseMove={handleImageMouseMove}
                           onMouseUp={handleImageMouseUp}
                           onMouseLeave={handleImageMouseUp}
-                        >
-                          <img
+                      >
+                        <img
                             src={uploadedImage}
-                            alt="ラベル画像"
+                          alt="ラベル画像"
                             className="max-w-full max-h-full object-contain"
                             draggable={false}
                             onLoad={handleImageLoad}
-                          />
-                        </div>
-                      )}
+                        />
+                      </div>
+                    )}
                     </div>
                   </div>
                 )}
