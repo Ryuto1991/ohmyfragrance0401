@@ -117,24 +117,7 @@ export default function SiteHeader() {
                   ログアウト
                 </Button>
               </>
-            ) : (
-              <>
-                {/* ボタンの順序を入れ替え: 新規登録が左、ログインが右 */}
-                <Link href="/signup">
-                  <Button
-                    variant="outline"
-                    className="rounded-full border-secondary-foreground hover:bg-secondary-foreground hover:text-white font-montserrat"
-                  >
-                    新規登録
-                  </Button>
-                </Link>
-                <Link href="/login">
-                  <Button className="bg-primary hover:bg-primary/90 text-white rounded-full font-montserrat">
-                    ログイン
-                  </Button>
-                </Link>
-              </>
-            ))}
+            ) : null)}
           <Link href="/instagram" className="text-secondary-foreground hover:opacity-70 transition-opacity">
             <Instagram className="h-5 w-5" />
           </Link>
@@ -243,27 +226,7 @@ export default function SiteHeader() {
                         </Button>
                       </SheetClose>
                     </>
-                  ) : (
-                    <>
-                      <SheetClose asChild>
-                        <Link href="/signup">
-                          <Button
-                            variant="outline"
-                            className="w-full rounded-full border-secondary-foreground hover:bg-secondary-foreground hover:text-white font-montserrat"
-                          >
-                            新規登録
-                          </Button>
-                        </Link>
-                      </SheetClose>
-                      <SheetClose asChild>
-                        <Link href="/login">
-                          <Button className="w-full bg-primary hover:bg-primary/90 text-white rounded-full font-montserrat">
-                            ログイン
-                          </Button>
-                        </Link>
-                      </SheetClose>
-                    </>
-                  ))}
+                  ) : null)}
                 <div className="flex justify-center space-x-4 mt-4">
                   <Link href="/instagram" className="text-secondary-foreground hover:opacity-70 transition-opacity">
                     <Instagram className="h-5 w-5" />

@@ -1,0 +1,5 @@
+[33m20a39ee[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mfeature/optimize-concept-images[m[33m)[m feat: 画像の最適化とUIの改善 - 画像をWebP形式に変換 - ポップアップ画面のクリックで閉じる機能を追加 - 香水つくりのプロセスセクションのUIを統一
+[33m40f7b8f[m[33m ([m[1;32mmaster[m[33m)[m chore: optimize next.config.js and dependencies
+[33m7b10ca4[m[33m ([m[1;31morigin/master[m[33m)[m fix: optimize site header and fix client component issues
+[33m8be2e37[m feat: お気に入り機能の実装と型エラーの修正 - お気に入りボタンコンポーネントの追加 - お気に入りAPIエンドポイントの実装 - マイページのお気に入り一覧表示 - TypeScriptの型エラー修正
+[33m3635b43[m feat: Update multiple components and add new features - Update FAQ section design and content - Add contact form functionality - Add welcome popup component - Add test email scripts

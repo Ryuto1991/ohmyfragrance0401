@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
+import { supabase } from '@/lib/supabase';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2023-10-16', // Use the latest API version
@@ -9,7 +10,7 @@ export async function POST(req: NextRequest) {
   try {
     // Expect either a single priceId/quantity OR an array of line_items
     const body = await req.json();
-    const { line_items } = body;
+    const { line_items, orderDetails } = body;
     let lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [];
 
     // Check if the request body contains an array of line items (from cart)
@@ -47,8 +48,8 @@ export async function POST(req: NextRequest) {
       payment_method_types: ['card'],
       line_items: lineItems, // Use the prepared lineItems array
       mode: 'payment',
-      success_url: `${req.headers.get('origin')}/checkout-success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${req.headers.get('origin')}/?canceled=true`,
+      success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/cancel`,
       shipping_address_collection: {
         allowed_countries: ['JP'],
       },
@@ -104,6 +105,7 @@ export async function POST(req: NextRequest) {
       },
       metadata: {
         source: "omf_website", // 注文ソースの識別用
+        orderDetails: JSON.stringify(orderDetails),
       },
       /* 一時的に無効化
       payment_method_options: {

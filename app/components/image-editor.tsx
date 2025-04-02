@@ -93,6 +93,7 @@ export default function ImageEditorComponent({ imageUrl, onSave, onClose, labelS
     canvas.height = 600
 
     const img = new Image()
+    img.crossOrigin = "anonymous"
     img.onload = () => {
       // 画像のアスペクト比を維持しながら、キャンバスに合わせてスケーリング
       const imgAspectRatio = img.width / img.height

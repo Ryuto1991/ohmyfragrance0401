@@ -9,15 +9,32 @@ interface CartItem {
   // Add other product details if needed for display in the cart drawer
   name?: string;
   price?: number; // Unit price
-  image?: string;
+  image?: string | null;
+  customProductId?: string; // カスタム商品ID
+  // カスタム香水の詳細情報
+  customDetails?: {
+    fragranceId: string;
+    fragranceName: string;
+    bottleId: string;
+    bottleName: string;
+    labelSize: string | null;
+    labelType: 'template' | 'original';
+    labelImageUrl?: string | null;
+    imageTransform?: {
+      x: number;
+      y: number;
+      scale: number;
+      rotation: number;
+    };
+  };
 }
 
 // Define the shape of the context
 interface StripeCartContextType {
   cartItems: CartItem[];
   addToCart: (item: Omit<CartItem, 'quantity'> & { quantity?: number }) => void;
-  removeFromCart: (priceId: string) => void;
-  updateQuantity: (priceId: string, quantity: number) => void;
+  removeFromCart: (priceId: string, customProductId?: string) => void;
+  updateQuantity: (priceId: string, quantity: number, customProductId?: string) => void;
   clearCart: () => void;
   cartCount: number;
   totalPrice: number;
@@ -62,12 +79,18 @@ export const StripeCartProvider: React.FC<StripeCartProviderProps> = ({ children
 
   const addToCart = (itemToAdd: Omit<CartItem, 'quantity'> & { quantity?: number }) => {
     setCartItems(prevItems => {
-      const existingItem = prevItems.find(item => item.priceId === itemToAdd.priceId);
+      const existingItem = prevItems.find(item => 
+        itemToAdd.customProductId 
+          ? item.customProductId === itemToAdd.customProductId 
+          : item.priceId === itemToAdd.priceId
+      );
       const addQuantity = itemToAdd.quantity ?? 1;
       if (existingItem) {
         // Increase quantity if item already exists
         return prevItems.map(item =>
-          item.priceId === itemToAdd.priceId
+          (itemToAdd.customProductId 
+            ? item.customProductId === itemToAdd.customProductId 
+            : item.priceId === itemToAdd.priceId)
             ? { ...item, quantity: item.quantity + addQuantity }
             : item
         );
@@ -78,14 +101,22 @@ export const StripeCartProvider: React.FC<StripeCartProviderProps> = ({ children
     });
   };
 
-  const removeFromCart = (priceId: string) => {
-    setCartItems(prevItems => prevItems.filter(item => item.priceId !== priceId));
+  const removeFromCart = (priceId: string, customProductId?: string) => {
+    setCartItems(prevItems => prevItems.filter(item => 
+      customProductId 
+        ? item.customProductId !== customProductId
+        : item.priceId !== priceId
+    ));
   };
 
-  const updateQuantity = (priceId: string, quantity: number) => {
+  const updateQuantity = (priceId: string, quantity: number, customProductId?: string) => {
     setCartItems(prevItems =>
       prevItems.map(item =>
-        item.priceId === priceId ? { ...item, quantity: Math.max(0, quantity) } : item
+        (customProductId 
+          ? item.customProductId === customProductId
+          : item.priceId === priceId)
+          ? { ...item, quantity: Math.max(0, quantity) }
+          : item
       ).filter(item => item.quantity > 0) // Remove item if quantity becomes 0
     );
   };

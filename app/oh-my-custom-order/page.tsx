@@ -10,9 +10,18 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { LabelSize } from '../types'
 import { LABEL_SIZES } from '../utils/size-utils'
 import WelcomePopup from '@/components/welcome-popup'
+import { useStripeCart } from '@/contexts/stripe-cart-context'
+import { useCartDrawer } from '@/contexts/cart-drawer-context'
+import StripeCartButton from '@/components/stripe-cart-button'
+import StripeCartDrawer from '@/components/stripe-cart-drawer'
+import { loadStripe } from '@stripe/stripe-js'
+import { uploadImage } from './actions'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { toast } from "@/components/ui/use-toast"
 
 const ImageEditorComponent = dynamic(() => import("../components/image-editor"), {
   ssr: false,
+  loading: () => <div>Loading...</div>
 })
 
 interface FragranceNote {
@@ -34,17 +43,23 @@ interface Bottle {
   id: string
   name: string
   image: string
+  price: number
 }
 
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
+
 export default function PerfumeOrderingPage() {
+  const { addToCart } = useStripeCart()
+  const { openCart } = useCartDrawer()
+  const [isCartOpen, setIsCartOpen] = useState(false)
   // デフォルトのラベル画像をテンプレートラベルに変更
   const defaultLabelImage = "/labels/Template_label.png"
 
   // State for selections
   const [expandedSection, setExpandedSection] = useState(1)
   const [selectedFragrance, setSelectedFragrance] = useState<string | null>(null)
-  const [selectedBottle, setSelectedBottle] = useState<'black' | 'clear'>('clear')
-  const [selectedLabelSize, setSelectedLabelSize] = useState<LabelSize>('medium')
+  const [selectedBottle, setSelectedBottle] = useState<string | null>("clear") // 初期値をクリアガラスに設定
+  const [selectedLabelSize, setSelectedLabelSize] = useState<string | null>("medium") // 初期値を中に設定
   const [useTemplate, setUseTemplate] = useState(true)
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null)
   const [uploadedImage, setUploadedImage] = useState<string | null>(defaultLabelImage)
@@ -65,6 +80,11 @@ export default function PerfumeOrderingPage() {
   const [isMoving, setIsMoving] = useState(false)
   const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(null)
   const [initialImageSize, setInitialImageSize] = useState<{ width: number; height: number } | null>(null)
+  const [imageKey, setImageKey] = useState<string | null>(null)
+  const [finalImageKey, setFinalImageKey] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const supabase = createClientComponentClient()
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Handle window resize
   useEffect(() => {
@@ -207,8 +227,8 @@ export default function PerfumeOrderingPage() {
   ]
 
   const bottles: Bottle[] = [
-    { id: "clear", name: "クリアガラス", image: "/labels/Clear_bottle.png" },
-    { id: "black", name: "マットブラック", image: "/labels/Black_bottle.png" },
+    { id: "clear", name: "クリアガラス", image: "/labels/Clear_bottle.png", price: 4980 },
+    { id: "black", name: "マットブラック", image: "/labels/Black_bottle.png", price: 4980 },
   ]
 
   const labelSizes = [
@@ -248,24 +268,31 @@ export default function PerfumeOrderingPage() {
   }
 
   // Handle file upload
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader()
-      reader.onload = (event) => {
-        setUploadedImage(event.target?.result as string)
-        setUseTemplate(false)
-        setSelectLater(false)
-        setImageTransform({
-          x: 0,
-          y: 0,
-          scale: 1,
-          rotation: 0,
-        })
+      try {
+        const result = await uploadImage(file);
+        if (result.success) {
+          setImageKey(result.imageKey!);
+          setFinalImageKey(result.finalKey!);
+          setUploadedImage(result.publicUrl!);
+          setUseTemplate(false);
+          setSelectLater(false);
+          setImageTransform({
+            x: 0,
+            y: 0,
+            scale: 1,
+            rotation: 0,
+          });
+        } else {
+          console.error('Image upload failed:', result.error);
+        }
+      } catch (error) {
+        console.error('Error uploading image:', error);
       }
-      reader.readAsDataURL(file)
     }
-  }
+  };
 
   // Handle drag and drop
   const handleDragOver = (e: React.DragEvent) => {
@@ -277,27 +304,34 @@ export default function PerfumeOrderingPage() {
     setIsDragging(false)
   }
 
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragging(false)
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
 
-    const file = e.dataTransfer.files?.[0]
+    const file = e.dataTransfer.files?.[0];
     if (file) {
-      const reader = new FileReader()
-      reader.onload = (event) => {
-        setUploadedImage(event.target?.result as string)
-        setUseTemplate(false)
-        setSelectLater(false)
-        setImageTransform({
-          x: 0,
-          y: 0,
-          scale: 1,
-          rotation: 0,
-        })
+      try {
+        const result = await uploadImage(file);
+        if (result.success) {
+          setImageKey(result.imageKey!);
+          setFinalImageKey(result.finalKey!);
+          setUploadedImage(result.publicUrl!);
+          setUseTemplate(false);
+          setSelectLater(false);
+          setImageTransform({
+            x: 0,
+            y: 0,
+            scale: 1,
+            rotation: 0,
+          });
+        } else {
+          console.error('Image upload failed:', result.error);
+        }
+      } catch (error) {
+        console.error('Error uploading image:', error);
       }
-      reader.readAsDataURL(file)
     }
-  }
+  };
 
   // Handle info icon click
   const handleInfoClick = (e: React.MouseEvent, fragranceId: string) => {
@@ -340,7 +374,7 @@ export default function PerfumeOrderingPage() {
   }
 
   // 選択中のラベルサイズを取得
-  const selectedLabelDimensions = LABEL_SIZES[selectedLabelSize] || { width: 500, height: 700 }
+  const selectedLabelDimensions = LABEL_SIZES[selectedLabelSize as LabelSize] || { width: 500, height: 700 }
 
   const handleSave = (imageUrl: string) => {
     console.log('Saved image:', imageUrl)
@@ -381,6 +415,9 @@ export default function PerfumeOrderingPage() {
       scale: 1,
       rotation: 0,
     })
+    // テンプレート画像用のキーを設定
+    setImageKey('template/default')
+    setFinalImageKey('template/default')
   }
 
   // 画像の最小スケールを計算
@@ -482,9 +519,78 @@ export default function PerfumeOrderingPage() {
     }))
   }
 
+  // カスタム商品のIDを生成する関数
+  const generateCustomProductId = (fragranceId: string, bottleId: string) => {
+    return `custom_${fragranceId}_${bottleId}_${Date.now()}`;
+  };
+
+  const handleOrder = async () => {
+    try {
+      setIsLoading(true);
+
+      if (!selectedFragrance || !selectedBottle) {
+        throw new Error('香水とボトルを選択してください');
+      }
+
+      const selectedFragranceData = fragrances.find(f => f.id === selectedFragrance);
+      const selectedBottleData = bottles.find(b => b.id === selectedBottle);
+
+      if (!selectedFragranceData || !selectedBottleData) {
+        throw new Error('選択された商品が見つかりません');
+      }
+
+      // カスタム商品のIDを生成
+      const customProductId = generateCustomProductId(selectedFragrance, selectedBottle);
+
+      // カートに商品を追加
+      const cartItem = {
+        priceId: selectedBottle,
+        customProductId,
+        name: `${selectedFragranceData.name} - ${selectedBottleData.name}`,
+        price: selectedBottleData.price,
+        image: uploadedImage,
+        customDetails: {
+          fragranceId: selectedFragrance,
+          fragranceName: selectedFragranceData.name,
+          bottleId: selectedBottle,
+          bottleName: selectedBottleData.name,
+          labelSize: selectedLabelSize,
+          labelType: useTemplate ? 'template' as const : 'original' as const,
+          labelImageUrl: uploadedImage,
+          imageTransform: {
+            x: imageTransform.x,
+            y: imageTransform.y,
+            scale: imageTransform.scale,
+            rotation: imageTransform.rotation
+          }
+        }
+      };
+
+      console.log('Adding item to cart:', cartItem);
+      addToCart(cartItem);
+
+      // カートドロワーを開く
+      setIsCartOpen(true);
+
+    } catch (error) {
+      console.error('Error in handleOrder:', error);
+      toast({
+        title: "エラーが発生しました",
+        description: error instanceof Error ? error.message : "注文処理中にエラーが発生しました。もう一度お試しください。",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#F5F5F5]">
       <WelcomePopup />
+      <div className="fixed top-4 right-4 z-50">
+        <StripeCartButton />
+      </div>
+      <StripeCartDrawer open={isCartOpen} onOpenChange={setIsCartOpen} />
       <main className="container mx-auto px-4 py-4 sm:py-8">
         {/* 戻るボタン */}
         <div className="mb-6">
@@ -625,7 +731,7 @@ export default function PerfumeOrderingPage() {
                           "border p-2 flex items-center cursor-pointer rounded-lg transition-colors",
                           selectedBottle === bottle.id ? "border-[#FF6B6B] bg-[#FF6B6B]/5" : "border-gray-200 hover:border-[#FF6B6B]",
                         )}
-                        onClick={() => setSelectedBottle(bottle.id as 'black' | 'clear')}
+                        onClick={() => setSelectedBottle(bottle.id)}
                       >
                         <div className="flex items-center mr-3">
                           {selectedBottle === bottle.id && (
@@ -686,7 +792,7 @@ export default function PerfumeOrderingPage() {
                               ? "border-[#FF6B6B] bg-[#FF6B6B]/5"
                               : "border-gray-200 hover:border-[#FF6B6B]"
                           )}
-                          onClick={() => setSelectedLabelSize(size.id as LabelSize)}
+                          onClick={() => setSelectedLabelSize(size.id)}
                         >
                           <div className="flex-1">
                             <div className="font-medium">{size.name}</div>
@@ -758,28 +864,29 @@ export default function PerfumeOrderingPage() {
                           または
                         </p>
                       </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => document.getElementById("file-upload")?.click()}
-                        className="w-40"
-                      >
-                        ファイルを選択
-                      </Button>
-                      <input
-                        id="file-upload"
-                        type="file"
-                        className="hidden"
-                        accept="image/*"
-                        onChange={handleFileUpload}
-                      />
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          className="flex-1"
+                          onClick={() => fileInputRef.current?.click()}
+                        >
+                          {uploadedImage ? '画像を変更' : '画像をアップロード'}
+                        </Button>
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={handleFileUpload}
+                        />
+                      </div>
                     </div>
                   </div>
 
                   <div className="flex flex-col sm:flex-row justify-center gap-4 mb-8">
-                    <Button 
-                      variant="outline" 
-                      className="flex-1"
+                    <Button
+                      variant="outline"
+                      className="w-full"
                       onClick={handleTemplateSelect}
                     >
                       テンプレートを選択
@@ -789,29 +896,28 @@ export default function PerfumeOrderingPage() {
               )}
             </div>
 
-            {/* Order Button */}
-            <div className="text-center mt-6">
+            {/* Order Button Section */}
+            <div className="bg-white rounded-lg shadow-sm p-4">
               <Button
                 className={cn(
-                  "w-full py-4 sm:py-6 text-lg rounded-full text-white",
-                  !selectedFragrance 
+                  "w-full py-4 sm:py-6 text-lg rounded-full text-white shadow-lg",
+                  !selectedFragrance || !selectedBottle || (!imageKey && !useTemplate) || isLoading
                     ? "bg-gray-400 cursor-not-allowed"
                     : "bg-[#FF6B6B] hover:bg-[#FF6B6B]/90"
                 )}
-                disabled={!selectedFragrance}
-                onClick={() => {
-                  if (!selectedFragrance) {
-                    toggleSection(1);
-                  }
-                }}
+                disabled={!selectedFragrance || !selectedBottle || (!imageKey && !useTemplate) || isLoading}
+                onClick={handleOrder}
               >
-                {!selectedFragrance ? "香りを選んでください" : "注文する"}
+                {isLoading ? '処理中...' : '注文する（4,980円）'}
               </Button>
             </div>
           </div>
 
           <div className="lg:col-span-3 order-1 lg:order-2 mb-6 lg:mb-0">
-            <div className="bg-white rounded-lg p-2 sm:p-6 shadow-sm">
+            <div className="bg-white rounded-lg p-2 sm:p-6 shadow-sm relative">
+              <div className="absolute top-4 right-4 z-10">
+                <StripeCartButton />
+              </div>
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
                 <h2 className="text-lg font-medium">プレビュー</h2>
                 <div className="flex flex-wrap gap-2 w-full sm:w-auto">
@@ -935,7 +1041,7 @@ export default function PerfumeOrderingPage() {
           onClick={() => setIsEditorOpen(false)}
         >
           <div 
-            className="bg-white rounded-lg p-6 max-w-lg w-full mx-4 relative"
+            className="bg-white rounded-lg p-6 max-w-4xl w-full mx-4 relative"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-4 border-b flex justify-between items-center">
@@ -953,7 +1059,7 @@ export default function PerfumeOrderingPage() {
             </div>
             <div className="p-4">
               <ImageEditorComponent
-                imageUrl={uploadedImage || ''}
+                imageUrl={editingImage || ''}
                 onSave={handleSaveEdit}
                 onClose={() => {
                   setEditingImage(null)
@@ -968,4 +1074,3 @@ export default function PerfumeOrderingPage() {
     </div>
   )
 }
-

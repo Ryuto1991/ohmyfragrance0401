@@ -4,10 +4,9 @@ import React, { createContext, useContext, useState, ReactNode } from 'react';
 
 // コンテキストの型定義
 interface CartDrawerContextType {
-  isCartOpen: boolean;
-  openCartDrawer: () => void;
-  closeCartDrawer: () => void;
-  toggleCartDrawer: () => void;
+  isOpen: boolean;
+  openCart: () => void;
+  closeCart: () => void;
 }
 
 // デフォルト値を持つコンテキストを作成
