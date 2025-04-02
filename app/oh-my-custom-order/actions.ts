@@ -435,6 +435,7 @@ interface OrderData {
   address?: string;
   labelType?: string;
   amount?: string;
+  memo?: string;
 }
 
 export async function appendOrderToSpreadsheet(orderData: OrderData): Promise<boolean> {
@@ -480,6 +481,7 @@ export async function appendOrderToSpreadsheet(orderData: OrderData): Promise<bo
         '新規注文',
         orderData.originalImageUrl,
         orderData.labelImageUrl,
+        orderData.memo || '',
       ],
     ];
 
@@ -507,11 +509,15 @@ export async function handleOrder(
   originalUrl: string,
   labelUrl: string,
   labelSize: string,
-  sessionId: string
+  sessionId: string,
+  memo: string
 ) {
   try {
-    // Stripeセッションの取得
-    const session = await stripe.checkout.sessions.retrieve(sessionId);
+    // Stripeセッションの取得（customer_detailsとpayment_intentを展開）
+    const session = await stripe.checkout.sessions.retrieve(sessionId, {
+      expand: ['customer_details', 'payment_intent']
+    });
+
     if (!session?.customer_details) {
       throw new Error('Customer details not found in session');
     }
@@ -572,16 +578,9 @@ export async function handleOrder(
         '新規注文',
         originalUrl,
         labelUrl,
+        memo,
       ],
     ];
-
-    // スプレッドシートの最終行を取得
-    const currentData = await sheets.spreadsheets.values.get({
-      spreadsheetId: SPREADSHEET_ID,
-      range: `${SHEET_NAME}!A:A`,
-    });
-
-    const lastRow = (currentData.data.values?.length || 0) + 1;
 
     // スプレッドシートにデータを追加
     await sheets.spreadsheets.values.append({

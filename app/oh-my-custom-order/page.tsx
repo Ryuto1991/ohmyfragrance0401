@@ -49,6 +49,25 @@ interface Bottle {
   price: number
 }
 
+interface CustomDetails {
+  fragranceId: string;
+  fragranceName: string;
+  bottleId: string;
+  bottleName: string;
+  labelSize: string | null;
+  labelType: "template" | "original";
+  labelImageUrl?: string | null;
+  originalImageUrl?: string | null;
+  imageBase64?: string | null;
+  imageTransform?: {
+    x: number;
+    y: number;
+    scale: number;
+    rotation: number;
+  };
+  memo?: string;
+}
+
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
 
 export default function PerfumeOrderingPage() {
@@ -89,6 +108,7 @@ export default function PerfumeOrderingPage() {
   const supabase = createClientComponentClient()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [memo, setMemo] = useState<string>('')
+  const [imageBase64, setImageBase64] = useState<string | null>(null)
 
   // Handle window resize
   useEffect(() => {
@@ -277,6 +297,14 @@ export default function PerfumeOrderingPage() {
     if (file) {
       setIsLoading(true);
       try {
+        // Base64データを保存
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          setImageBase64(event.target?.result as string);
+        };
+        reader.readAsDataURL(file);
+
+        // 画像をアップロード
         const result = await uploadImage(file);
         if (result.success) {
           setImageKey(result.imageKey!);
@@ -332,6 +360,14 @@ export default function PerfumeOrderingPage() {
     if (file) {
       setIsLoading(true);
       try {
+        // Base64データを保存
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          setImageBase64(event.target?.result as string);
+        };
+        reader.readAsDataURL(file);
+
+        // 画像をアップロード
         const result = await uploadImage(file);
         if (result.success) {
           setImageKey(result.imageKey!);
@@ -609,6 +645,8 @@ export default function PerfumeOrderingPage() {
           labelSize: selectedLabelSize,
           labelType: useTemplate ? 'template' as const : 'original' as const,
           labelImageUrl: uploadedImage,
+          originalImageUrl: uploadedImage,
+          imageBase64: imageBase64,  // Base64データを追加
           imageTransform: {
             x: imageTransform.x,
             y: imageTransform.y,
@@ -995,7 +1033,7 @@ export default function PerfumeOrderingPage() {
               {expandedSection === 5 && (
                 <div className="p-3">
                   <div className="space-y-2">
-                    <Label htmlFor="memo">メモ（オプション）</Label>
+                    <Label htmlFor="memo">メモ</Label>
                     <Textarea
                       id="memo"
                       placeholder="特別な要望やメッセージがありましたらご記入ください"

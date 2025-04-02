@@ -84,6 +84,7 @@ export default function StripeCartDrawer({ open, onOpenChange }: StripeCartDrawe
           ls: item.customDetails?.labelSize || '',
           lt: item.customDetails?.labelType || '',
           li: item.customDetails?.labelImageUrl || '',
+          oi: item.customDetails?.originalImageUrl || '',
           q: item.quantity,
           ...(item.customDetails?.imageTransform && {
             t: item.customDetails.imageTransform
@@ -119,6 +120,8 @@ export default function StripeCartDrawer({ open, onOpenChange }: StripeCartDrawe
           if (order.li && order.t && order.id) {
             try {
               console.log('Moving and processing images for order:', order.id);
+              console.log('Original image URL:', order.li);
+              
               // URLから一時保存用のキーを抽出
               const url = new URL(order.li);
               const pathParts = url.pathname.split('/');
@@ -147,7 +150,7 @@ export default function StripeCartDrawer({ open, onOpenChange }: StripeCartDrawe
                 order.id,
                 order.t,
                 { width: 600, height: 480 },
-                order.li
+                cartItems.find(item => item.customProductId === order.id)?.customDetails?.imageBase64 || ''
               );
 
               if (!success) {
@@ -159,9 +162,20 @@ export default function StripeCartDrawer({ open, onOpenChange }: StripeCartDrawe
                 throw new Error('ラベル画像のURLが取得できませんでした');
               }
 
+              console.log('Processed image URLs:', {
+                originalUrl,
+                labelUrl
+              });
+
               // 処理された画像のURLを注文詳細に追加
               order.li = labelUrl;
               order.oi = originalUrl;
+              
+              console.log('Updated order details:', {
+                id: order.id,
+                li: order.li,
+                oi: order.oi
+              });
             } catch (error) {
               console.error('Error processing images:', error);
               throw new Error('画像の処理中にエラーが発生しました');

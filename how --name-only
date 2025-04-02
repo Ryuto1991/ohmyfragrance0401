@@ -1,0 +1,17 @@
+[33mcommit 576c22b2019e9eb6fddc97a4876396c68dfd4a4f[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mfeature/optimize-concept-images[m[33m)[m
+Author: Ryuto Kawamata <kawamata@pxcell.co.jp>
+Date:   Thu Apr 3 00:30:58 2025 +0900
+
+    feat: Google Sheets APIを使用して注文データをスプレッドシートに直接記録する機能を実装
+
+[33mcommit 7b3e19ea0e3028245eca1acda512e4651a66399e[m
+Author: Ryuto Kawamata <kawamata@pxcell.co.jp>
+Date:   Wed Apr 2 22:57:57 2025 +0900
+
+    feat: 画像処理の改善とエラーハンドリングの強化 - トップページからのチェックアウト時の画像処理エラー対応 - Supabaseクライアントの追加と画像存在確認の実装 - エラーメッセージの日本語化と詳細なログ出力の追加 - 画像処理スクリプトの追加と改善
+
+[33mcommit c11a318c799fe10474f70a018eed0b5e3d780caa[m
+Author: Ryuto Kawamata <kawamata@pxcell.co.jp>
+Date:   Wed Apr 2 22:08:25 2025 +0900
+
+    feat: update Stripe checkout and fix navigation

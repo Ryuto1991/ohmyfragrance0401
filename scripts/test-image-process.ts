@@ -1,7 +1,5 @@
 import { config } from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
-import fs from 'fs';
-import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { createCanvas } from 'canvas';
 
@@ -188,7 +186,7 @@ async function testImageProcess() {
     // 画像の移動と処理
     console.log('Moving and processing images...');
     const orderId = `test-order-${uuidv4()}`; // UUIDを使用して一意の注文IDを生成
-    const { success, originalUrl, labelUrl, error: processError } = await moveAndProcessImages(tempKey, orderId, { x: 0, y: 0, scale: 1, rotation: 0 }, { width: 600, height: 480 }, createTestImageData());
+    const { originalUrl, labelUrl, error: processError } = await moveAndProcessImages(tempKey, orderId, { x: 0, y: 0, scale: 1, rotation: 0 }, { width: 600, height: 480 }, createTestImageData());
     
     if (processError) {
       console.error('Process failed:', processError);

@@ -20,6 +20,8 @@ interface CartItem {
     labelSize: string | null;
     labelType: 'template' | 'original';
     labelImageUrl?: string | null;
+    originalImageUrl?: string | null;
+    imageBase64?: string | null;
     imageTransform?: {
       x: number;
       y: number;
