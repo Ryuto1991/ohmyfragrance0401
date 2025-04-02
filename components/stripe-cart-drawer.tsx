@@ -10,11 +10,42 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Trash2, Minus, Plus, Loader2 } from 'lucide-react';
 import { getStripe } from "@/lib/stripe";
 import { useToast } from "@/components/ui/use-toast";
+import { moveAndProcessImages } from "@/app/oh-my-custom-order/actions";
+import { createClient } from '@supabase/supabase-js';
 
 interface StripeCartDrawerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
+
+// 型定義を追加
+type OrderDetails = {
+  id: string | undefined;
+  f: string;
+  fn: string;
+  b: string;
+  bn: string;
+  ls: string;
+  lt: string;
+  li: string;
+  oi?: string; // 元画像のURL
+  q: number;
+  t?: {
+    x: number;
+    y: number;
+    scale: number;
+    rotation: number;
+  };
+};
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error('Missing Supabase environment variables');
+}
+
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export default function StripeCartDrawer({ open, onOpenChange }: StripeCartDrawerProps) {
   const { cartItems, removeFromCart, updateQuantity, clearCart, totalPrice, cartCount } = useStripeCart();
@@ -42,7 +73,7 @@ export default function StripeCartDrawer({ open, onOpenChange }: StripeCartDrawe
       console.log('Starting checkout with cart items:', cartItems);
 
       // カスタム商品の注文詳細を収集（メタデータを圧縮）
-      const orderDetails = cartItems
+      const orderDetails: OrderDetails[] = cartItems
         .filter(item => item.customProductId)
         .map(item => ({
           id: item.customProductId,
@@ -82,6 +113,62 @@ export default function StripeCartDrawer({ open, onOpenChange }: StripeCartDrawe
       // カスタム商品が含まれている場合
       if (orderDetails.length > 0) {
         console.log('Processing custom product checkout');
+
+        // カスタム商品の画像を処理
+        for (const order of orderDetails) {
+          if (order.li && order.t && order.id) {
+            try {
+              console.log('Moving and processing images for order:', order.id);
+              // URLから一時保存用のキーを抽出
+              const url = new URL(order.li);
+              const pathParts = url.pathname.split('/');
+              const tempKey = pathParts[pathParts.length - 1];
+              
+              if (!tempKey) {
+                console.error('Invalid image URL:', order.li);
+                throw new Error('画像のURLが正しくありません');
+              }
+              
+              const fullTempKey = `temp/${tempKey}`;
+              console.log('Processing image with key:', fullTempKey);
+              
+              // 画像の存在確認
+              const { data: imageExists } = await supabase.storage
+                .from('custom-perfumes')
+                .list('temp/');
+              
+              if (!imageExists?.some(file => file.name === tempKey)) {
+                console.error('Image not found in temp folder:', tempKey);
+                throw new Error('一時保存された画像が見つかりません。画像を再度アップロードしてください。');
+              }
+              
+              const { success, originalUrl, labelUrl, error } = await moveAndProcessImages(
+                fullTempKey,
+                order.id,
+                order.t,
+                { width: 600, height: 480 },
+                order.li
+              );
+
+              if (!success) {
+                console.error('Failed to process images:', error);
+                throw new Error(`画像の処理に失敗しました: ${error || '不明なエラー'}`);
+              }
+
+              if (!labelUrl) {
+                throw new Error('ラベル画像のURLが取得できませんでした');
+              }
+
+              // 処理された画像のURLを注文詳細に追加
+              order.li = labelUrl;
+              order.oi = originalUrl;
+            } catch (error) {
+              console.error('Error processing images:', error);
+              throw new Error('画像の処理中にエラーが発生しました');
+            }
+          }
+        }
+
         const checkoutResponse = await fetch('/api/create-checkout-session', {
           method: 'POST',
           headers: {

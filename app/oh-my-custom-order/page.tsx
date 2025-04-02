@@ -271,6 +271,7 @@ export default function PerfumeOrderingPage() {
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      setIsLoading(true);
       try {
         const result = await uploadImage(file);
         if (result.success) {
@@ -285,11 +286,26 @@ export default function PerfumeOrderingPage() {
             scale: 1,
             rotation: 0,
           });
+          toast({
+            title: "画像アップロード成功",
+            description: "画像が正常にアップロードされました。",
+          });
         } else {
-          console.error('Image upload failed:', result.error);
+          toast({
+            title: "エラー",
+            description: result.error || "画像のアップロードに失敗しました。",
+            variant: "destructive",
+          });
         }
       } catch (error) {
         console.error('Error uploading image:', error);
+        toast({
+          title: "エラー",
+          description: "画像のアップロード中にエラーが発生しました。",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
       }
     }
   };
@@ -310,6 +326,7 @@ export default function PerfumeOrderingPage() {
 
     const file = e.dataTransfer.files?.[0];
     if (file) {
+      setIsLoading(true);
       try {
         const result = await uploadImage(file);
         if (result.success) {
@@ -324,11 +341,26 @@ export default function PerfumeOrderingPage() {
             scale: 1,
             rotation: 0,
           });
+          toast({
+            title: "画像アップロード成功",
+            description: "画像が正常にアップロードされました。",
+          });
         } else {
-          console.error('Image upload failed:', result.error);
+          toast({
+            title: "エラー",
+            description: result.error || "画像のアップロードに失敗しました。",
+            variant: "destructive",
+          });
         }
       } catch (error) {
         console.error('Error uploading image:', error);
+        toast({
+          title: "エラー",
+          description: "画像のアップロード中にエラーが発生しました。",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
       }
     }
   };
@@ -844,6 +876,7 @@ export default function PerfumeOrderingPage() {
                       "border-2 border-dashed rounded-lg p-4 sm:p-6 transition-colors mb-4",
                       isDragging ? "border-[#FF6B6B] bg-[#FF6B6B]/5" : "border-gray-300",
                       "hover:border-[#FF6B6B] hover:bg-[#FF6B6B]/5",
+                      isLoading ? "opacity-50 cursor-not-allowed" : ""
                     )}
                     onDragOver={handleDragOver}
                     onDragLeave={handleDragLeave}
@@ -852,16 +885,27 @@ export default function PerfumeOrderingPage() {
                     <div className="text-center">
                       <div className="mb-4">
                         <div className="w-12 h-12 rounded-full bg-gray-50 mx-auto flex items-center justify-center">
-                          <Upload className="h-6 w-6 text-gray-400" />
+                          {isLoading ? (
+                            <div className="animate-spin rounded-full h-6 w-6 border-2 border-[#FF6B6B] border-t-transparent" />
+                          ) : (
+                            <Upload className="h-6 w-6 text-gray-400" />
+                          )}
                         </div>
                       </div>
                       <div className="text-sm text-gray-600 mb-4">
                         <p className="font-medium mb-2">推奨サイズ: 600 × 480 px以上</p>
                         <p className="text-xs mb-2">対応フォーマット: PNG, JPG（300dpi）</p>
+                        <p className="text-xs mb-1">ファイルサイズ: 3MB以下</p>
                         <p className="text-xs text-gray-500">
-                          ここにファイルをドラッグ＆ドロップ
-                          <br />
-                          または
+                          {isLoading ? (
+                            "アップロード中..."
+                          ) : (
+                            <>
+                              ここにファイルをドラッグ＆ドロップ
+                              <br />
+                              または
+                            </>
+                          )}
                         </p>
                       </div>
                       <div className="flex items-center gap-2">
@@ -869,15 +913,24 @@ export default function PerfumeOrderingPage() {
                           variant="outline"
                           className="flex-1"
                           onClick={() => fileInputRef.current?.click()}
+                          disabled={isLoading}
                         >
-                          {uploadedImage ? '画像を変更' : '画像をアップロード'}
+                          {isLoading ? (
+                            <span className="flex items-center gap-2">
+                              <div className="animate-spin rounded-full h-4 w-4 border-2 border-current border-t-transparent" />
+                              アップロード中...
+                            </span>
+                          ) : (
+                            uploadedImage ? '画像を変更' : '画像をアップロード'
+                          )}
                         </Button>
                         <input
                           ref={fileInputRef}
                           type="file"
-                          accept="image/*"
+                          accept="image/jpeg,image/png,image/gif"
                           className="hidden"
                           onChange={handleFileUpload}
+                          disabled={isLoading}
                         />
                       </div>
                     </div>
@@ -888,6 +941,7 @@ export default function PerfumeOrderingPage() {
                       variant="outline"
                       className="w-full"
                       onClick={handleTemplateSelect}
+                      disabled={isLoading}
                     >
                       テンプレートを選択
                     </Button>

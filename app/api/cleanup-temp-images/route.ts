@@ -1,62 +1,34 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { cleanupTempImages } from '@/app/oh-my-custom-order/actions';
 
-const supabaseUrl = 'https://igpsidgueemtziedebcs.supabase.co';
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
-const supabase = createClient(supabaseUrl, supabaseKey);
-
-export async function POST(req: Request) {
+export async function POST(request: Request) {
   try {
-    // 期限切れの画像を取得
-    const { data: expiredImages, error: fetchError } = await supabase
-      .from('temp_custom_perfume_images')
-      .select('image_key')
-      .lt('expires_at', new Date().toISOString());
-
-    if (fetchError) {
-      throw fetchError;
+    // 認証チェック（シークレットキーによる）
+    const authHeader = request.headers.get('authorization');
+    if (authHeader !== `Bearer ${process.env.CLEANUP_SECRET_KEY}`) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
     }
 
-    if (!expiredImages || expiredImages.length === 0) {
-      return NextResponse.json({
-        success: true,
-        message: 'No expired images found',
-        cleaned: 0
-      });
+    console.log('Starting cleanup of temporary images...');
+    const { success, error } = await cleanupTempImages();
+
+    if (!success) {
+      console.error('Cleanup failed:', error);
+      return NextResponse.json(
+        { error: error || 'Cleanup failed' },
+        { status: 500 }
+      );
     }
 
-    // 期限切れの画像を削除
-    const imageKeys = expiredImages.map(img => img.image_key);
-    
-    // Storageから画像を削除
-    const { error: storageError } = await supabase.storage
-      .from('custom-perfumes')
-      .remove(imageKeys);
-
-    if (storageError) {
-      throw storageError;
-    }
-
-    // データベースから記録を削除
-    const { error: dbError } = await supabase
-      .from('temp_custom_perfume_images')
-      .delete()
-      .in('image_key', imageKeys);
-
-    if (dbError) {
-      throw dbError;
-    }
-
-    return NextResponse.json({
-      success: true,
-      message: `Cleaned up ${imageKeys.length} expired images`,
-      cleaned: imageKeys.length
-    });
+    console.log('Cleanup completed successfully');
+    return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error cleaning up temp images:', error);
+    console.error('Error in cleanup endpoint:', error);
     return NextResponse.json(
-      { error: 'Failed to clean up temp images' },
+      { error: error instanceof Error ? error.message : 'Internal server error' },
       { status: 500 }
     );
   }

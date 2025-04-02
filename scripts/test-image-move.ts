@@ -1,63 +1,89 @@
-import { uploadImage, moveImageToFinal } from '../app/oh-my-custom-order/actions';
-import fs from 'fs';
-import path from 'path';
+import { config } from 'dotenv';
+import { createClient } from '@supabase/supabase-js';
 
-// 環境変数を直接設定
-process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://igpsidgueemtziedebcs.supabase.co';
-process.env.SUPABASE_SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlncHNpZGd1ZWVtdHppZWRlYmNzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0MzE3MTk4MiwiZXhwIjoyMDU4NzQ3OTgyfQ.YWaLE2vMj1Km4lmY7ZNr6zzQ8Qz0n3UcKtwm-pPFyrk';
+// 環境変数を読み込む
+config({ path: '.env.test' });
 
-// Node.js環境用のFileオブジェクトをシミュレート
-class NodeFile {
-  name: string;
-  type: string;
-  buffer: Buffer;
+// 環境変数が正しく設定されているか確認
+console.log('Checking environment variables...');
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  constructor(buffer: Buffer, name: string, type: string) {
-    this.buffer = buffer;
-    this.name = name;
-    this.type = type;
-  }
+if (!supabaseUrl || !supabaseServiceKey) {
+  console.error('Error: Supabase environment variables are not set');
+  process.exit(1);
+}
 
-  arrayBuffer() {
-    return Promise.resolve(this.buffer);
+const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+async function moveImageToFinal(tempKey: string, finalKey: string): Promise<any> {
+  try {
+    // キーの形式を検証
+    if (!tempKey.startsWith('temp/') || !finalKey.startsWith('orders/')) {
+      return {
+        success: false,
+        error: 'Invalid key format'
+      };
+    }
+
+    // 一時保存から最終保存に移動
+    const { error: moveError } = await supabase.storage
+      .from('custom-perfumes')
+      .move(tempKey, finalKey);
+
+    if (moveError) {
+      return {
+        success: false,
+        error: `Move failed: ${moveError.message}`
+      };
+    }
+
+    // 一時保存の記録を削除
+    const { error: deleteError } = await supabase
+      .from('temp_custom_perfume_images')
+      .delete()
+      .eq('image_key', tempKey);
+
+    if (deleteError) {
+      return {
+        success: false,
+        error: `Failed to delete temp record: ${deleteError.message}`
+      };
+    }
+
+    // 最終URLを取得
+    const { data: { publicUrl } } = supabase.storage
+      .from('custom-perfumes')
+      .getPublicUrl(finalKey);
+
+    return {
+      success: true,
+      publicUrl
+    };
+  } catch (error) {
+    console.error('Error moving image:', error);
+    return {
+      success: false,
+      error: 'Unexpected error occurred while moving image'
+    };
   }
 }
 
 async function testImageMove() {
   try {
-    // テスト用の画像ファイルを作成
-    const testImagePath = path.join(process.cwd(), 'test-image.jpg');
-    const testImageBuffer = Buffer.from('test image content');
-    fs.writeFileSync(testImagePath, testImageBuffer);
+    // アップロードテストの結果から取得したキーを使用
+    const tempKey = 'temp/384256e9-2e5f-4164-bbf7-46967e266996.jpg';
+    const finalKey = 'orders/384256e9-2e5f-4164-bbf7-46967e266996.jpg';
 
-    // NodeFile オブジェクトを作成
-    const file = new NodeFile(testImageBuffer, 'test-image.jpg', 'image/jpeg') as unknown as File;
+    console.log('Moving image from temp to final location...');
+    const result = await moveImageToFinal(tempKey, finalKey);
 
-    // 1. 画像をアップロード（一時保存）
-    console.log('1. Uploading test image...');
-    const uploadResult = await uploadImage(file);
-
-    if (!uploadResult.success) {
-      throw new Error('Upload failed: ' + uploadResult.error);
+    if (result.success) {
+      console.log('Move successful!');
+      console.log('Final Public URL:', result.publicUrl);
+    } else {
+      console.error('Move failed:', result.error);
     }
-
-    console.log('Upload successful!');
-    console.log('Temp Image Key:', uploadResult.imageKey);
-    console.log('Temp Public URL:', uploadResult.publicUrl);
-
-    // 2. 画像を移動（本保存）
-    console.log('\n2. Moving image to final location...');
-    const moveResult = await moveImageToFinal(uploadResult.imageKey, uploadResult.finalKey);
-
-    if (!moveResult.success) {
-      throw new Error('Move failed: ' + moveResult.error);
-    }
-
-    console.log('Move successful!');
-    console.log('Final Public URL:', moveResult.publicUrl);
-
-    // テスト用の画像ファイルを削除
-    fs.unlinkSync(testImagePath);
   } catch (error) {
     console.error('Test failed:', error);
   }
