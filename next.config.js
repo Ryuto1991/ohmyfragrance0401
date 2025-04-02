@@ -7,18 +7,27 @@ const TerserPlugin = require('terser-webpack-plugin')
 const nextConfig = {
   reactStrictMode: true,
   images: {
-    domains: [
-      'images.unsplash.com',
-      'hebbkx1anhila5yf.public.blob.vercel-storage.com',
-      'localhost',
-      '127.0.0.1'
-    ],
     remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+        pathname: '/**',
+      },
       {
         protocol: 'https',
         hostname: 'hebbkx1anhila5yf.public.blob.vercel-storage.com',
         pathname: '/**',
       },
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+        pathname: '/**',
+      },
+      {
+        protocol: 'http',
+        hostname: '127.0.0.1',
+        pathname: '/**',
+      }
     ],
     formats: ['image/avif', 'image/webp'],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],

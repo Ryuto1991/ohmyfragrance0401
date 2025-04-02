@@ -10,6 +10,7 @@ import SiteHeader from "@/components/site-header"
 import SiteFooter from "@/components/site-footer"
 import { Button } from "@/components/ui/button"
 import { useStripeCart } from "@/contexts/stripe-cart-context"
+import RelatedProducts from "@/components/related-products"
 
 export default function SoapBubbleDaydreamPage() {
   const { addToCart } = useStripeCart()
@@ -135,6 +136,7 @@ export default function SoapBubbleDaydreamPage() {
                     width={600}
                     height={600}
                     className="rounded-lg shadow-2xl"
+                    priority
                   />
                 </motion.div>
               </div>
@@ -257,99 +259,7 @@ export default function SoapBubbleDaydreamPage() {
         </section>
 
         {/* 関連商品セクション */}
-        <section className="py-16 bg-gray-50">
-          <div className="container mx-auto px-4 md:px-8">
-            <h2 className="text-2xl font-medium mb-8 text-center text-secondary-foreground font-zen">
-              その他のコラボレーション香水
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              <motion.div
-                className="bg-white rounded-lg overflow-hidden shadow-sm"
-                whileHover={{
-                  y: -10,
-                  scale: 1.02,
-                  boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
-                }}
-              >
-                <Link href="/showcase/silent-pulse">
-                  <div className="relative aspect-[3/4] bg-white flex items-center justify-center">
-                    <Image src="/images/silent-pulse.png" alt="Silent Pulse" fill className="object-contain p-4" />
-                  </div>
-                  <div className="p-6">
-                    <h3 className="text-lg font-medium mb-2 text-secondary-foreground font-zen">Silent Pulse</h3>
-                    <p className="text-sm text-secondary-foreground/70 mb-4 font-zen">
-                      都会の夜に浮かぶ、孤独と希望のグラデーション。Re:Noirが紡ぐ繊細な旋律と感情を香りで再構成。
-                    </p>
-                    <div className="flex justify-end">
-                      <span className="text-primary text-sm flex items-center font-montserrat">
-                        詳細を見る
-                        <ArrowLeft className="ml-1 h-3 w-3" />
-                      </span>
-                    </div>
-                  </div>
-                </Link>
-              </motion.div>
-              <motion.div
-                className="bg-white rounded-lg overflow-hidden shadow-sm"
-                whileHover={{
-                  y: -10,
-                  scale: 1.02,
-                  boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
-                }}
-              >
-                <Link href="/showcase/eternal-smoke">
-                  <div className="relative aspect-[3/4] bg-white flex items-center justify-center">
-                    <Image 
-                      src="/images/eternal-smoke.png" 
-                      alt="Eternal Smoke" 
-                      fill 
-                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                      className="object-contain p-4" 
-                    />
-                  </div>
-                  <div className="p-6">
-                    <h3 className="text-lg font-medium mb-2 text-secondary-foreground font-zen">Eternal Smoke</h3>
-                    <p className="text-sm text-secondary-foreground/70 mb-4 font-zen">
-                      ネオンの残光、路地裏の静寂、その空気ごとまとうような、深く長いスモーキーな香り。
-                    </p>
-                    <div className="flex justify-end">
-                      <span className="text-primary text-sm flex items-center font-montserrat">
-                        詳細を見る
-                        <ArrowLeft className="ml-1 h-3 w-3" />
-                      </span>
-                    </div>
-                  </div>
-                </Link>
-              </motion.div>
-              <motion.div
-                className="bg-white rounded-lg overflow-hidden shadow-sm"
-                whileHover={{
-                  y: -10,
-                  scale: 1.02,
-                  boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
-                }}
-              >
-                <Link href="/showcase/erina-grace">
-                  <div className="relative aspect-[3/4] bg-white flex items-center justify-center">
-                    <Image src="/images/erina-grace.png" alt="Erina Grace" fill className="object-contain p-4" />
-                  </div>
-                  <div className="p-6">
-                    <h3 className="text-lg font-medium mb-2 text-secondary-foreground font-zen">Erina Grace</h3>
-                    <p className="text-sm text-secondary-foreground/70 mb-4 font-zen">
-                      凛とした佇まいと、どこか儚げな微笑み。触れれば消えてしまいそうな透明感と、心に残る芯の強さ。
-                    </p>
-                    <div className="flex justify-end">
-                      <span className="text-primary text-sm flex items-center font-montserrat">
-                        詳細を見る
-                        <ArrowLeft className="ml-1 h-3 w-3" />
-                      </span>
-                    </div>
-                  </div>
-                </Link>
-              </motion.div>
-            </div>
-          </div>
-        </section>
+        <RelatedProducts />
       </main>
 
       <SiteFooter />

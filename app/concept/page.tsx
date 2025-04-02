@@ -56,7 +56,7 @@ export default function ConceptPage() {
                 transition={{ duration: 0.5, delay: 0.2 }}
               >
                 <Image
-                  src="/images/concept_main.png"
+                  src="/images/concept_main.webp"
                   alt="Oh My Fragranceのコンセプト"
                   fill
                   className="object-cover"
@@ -69,48 +69,44 @@ export default function ConceptPage() {
           </div>
         </section>
 
-        {/* 香水作りのプロセス */}
-        <section className="py-16">
-          <div className="container px-4">
-            <div className="text-center mb-12">
-              <h2 className="text-3xl font-bold mb-4 font-zen text-secondary-foreground">香水作りのプロセス</h2>
-              <p className="text-muted-foreground max-w-2xl mx-auto font-zen text-base leading-relaxed">
-                あなたの思いを形にする、3つのステップ
+        {/* 香水つくりのプロセス */}
+        <section className="py-20 bg-white">
+          <div className="container mx-auto px-4 md:px-8">
+            <div className="max-w-4xl mx-auto text-center">
+              <h2 className="text-3xl md:text-4xl font-medium mb-8 text-secondary-foreground font-zen">
+                香水作りのプロセス
+              </h2>
+              <p className="text-xl text-secondary-foreground/70 mb-12 font-zen">
+                あなたの好みに合わせて、AIが最適な香りを提案します
               </p>
-            </div>
-
-            <div className="grid md:grid-cols-3 gap-8">
-              {/* Step 1 */}
-              <div className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow">
-                <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4">
-                  <span className="text-primary font-bold text-xl font-zen">1</span>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div className="bg-gray-50 p-6 rounded-lg">
+                  <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4 mx-auto">
+                    <span className="text-primary text-xl font-bold">1</span>
+                  </div>
+                  <h3 className="text-lg font-medium mb-2 text-secondary-foreground font-zen">AIとの対話</h3>
+                  <p className="text-secondary-foreground/70 font-zen">
+                    好みやイメージをAIと対話しながら、あなただけの香りをデザインします
+                  </p>
                 </div>
-                <h3 className="text-xl font-bold mb-3 font-zen text-secondary-foreground">デザイン</h3>
-                <p className="text-muted-foreground font-zen text-base leading-relaxed">
-                  ラベルデザインをアップロードまたは、テンプレートから選択して、あなただけのオリジナルラベルを作成します。
-                </p>
-              </div>
-
-              {/* Step 2 */}
-              <div className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow">
-                <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4">
-                  <span className="text-primary font-bold text-xl font-zen">2</span>
+                <div className="bg-gray-50 p-6 rounded-lg">
+                  <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4 mx-auto">
+                    <span className="text-primary text-xl font-bold">2</span>
+                  </div>
+                  <h3 className="text-lg font-medium mb-2 text-secondary-foreground font-zen">香りの提案</h3>
+                  <p className="text-secondary-foreground/70 font-zen">
+                    AIが最適な香りの組み合わせを提案し、あなたの好みに合わせて調整します
+                  </p>
                 </div>
-                <h3 className="text-xl font-bold mb-3 font-zen text-secondary-foreground">香り選び</h3>
-                <p className="text-muted-foreground font-zen text-base leading-relaxed">
-                  トップノート、ミドルノート、ベースノートから好みの香りを選び、あなただけのオリジナルフレグランスを作成します。
-                </p>
-              </div>
-
-              {/* Step 3 */}
-              <div className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow">
-                <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4">
-                  <span className="text-primary font-bold text-xl font-zen">3</span>
+                <div className="bg-gray-50 p-6 rounded-lg">
+                  <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4 mx-auto">
+                    <span className="text-primary text-xl font-bold">3</span>
+                  </div>
+                  <h3 className="text-lg font-medium mb-2 text-secondary-foreground font-zen">完成</h3>
+                  <p className="text-secondary-foreground/70 font-zen">
+                    世界にひとつだけの、あなただけの香りが完成します
+                  </p>
                 </div>
-                <h3 className="text-xl font-bold mb-3 font-zen text-secondary-foreground">完成</h3>
-                <p className="text-muted-foreground font-zen text-base leading-relaxed">
-                  選んだ香りとデザインを組み合わせて、あなただけのオリジナルフレグランスが完成します。
-                </p>
               </div>
             </div>
           </div>
@@ -127,7 +123,7 @@ export default function ConceptPage() {
               <div className="grid md:grid-cols-2 gap-12 items-center mb-16">
                 <div className="relative h-[300px]">
                   <Image
-                    src="/images/concept_ai.png"
+                    src="/images/concept_ai.webp"
                     alt="AIとつくる、あなただけの香り"
                     fill
                     className="object-cover rounded-lg"
@@ -155,7 +151,7 @@ export default function ConceptPage() {
                 </div>
                 <div className="relative h-[300px] order-1 md:order-2">
                   <Image
-                    src="/images/concept_lab.png"
+                    src="/images/concept_lab.webp"
                     alt="クリーンラボから届く、こだわりの一本"
                     fill
                     className="object-cover rounded-lg"
