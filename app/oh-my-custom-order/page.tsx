@@ -16,8 +16,9 @@ import StripeCartButton from '@/components/stripe-cart-button'
 import StripeCartDrawer from '@/components/stripe-cart-drawer'
 import { loadStripe } from '@stripe/stripe-js'
 import { uploadImage } from './actions'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { toast } from "@/components/ui/use-toast"
+import { savePreviewImage } from './utils/savePreviewImage'
+import supabase from '@/lib/supabase'
 
 const ImageEditorComponent = dynamic(() => import("../components/image-editor"), {
   ssr: false,
@@ -83,7 +84,6 @@ export default function PerfumeOrderingPage() {
   const [imageKey, setImageKey] = useState<string | null>(null)
   const [finalImageKey, setFinalImageKey] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
-  const supabase = createClientComponentClient()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Handle window resize
@@ -546,6 +546,9 @@ export default function PerfumeOrderingPage() {
       // カスタム商品のIDを生成
       const customProductId = generateCustomProductId(selectedFragrance, selectedBottle);
 
+      // プレビュー画像を保存
+      await savePreviewImage(customProductId);
+
       // カートに商品を追加
       const cartItem = {
         priceId: 'price_1R9QuLE0t3PGpOQ5VMQyu3po',  // 更新されたStripe価格ID
@@ -967,60 +970,62 @@ export default function PerfumeOrderingPage() {
                 ref={previewRef}
                 className="aspect-[4/3] bg-gray-50 rounded-lg relative overflow-hidden preview-container"
               >
-                {selectedBottle && (
-                  <div className="absolute inset-0 p-2 sm:p-8">
-                    <img
-                      src={bottles.find((b) => b.id === selectedBottle)?.image}
-                      alt="ボトルプレビュー"
-                      className="w-full h-full object-contain"
-                    />
-                  </div>
-                )}
-
-                {selectedLabelSize && (
-                  <div 
-                    className="absolute"
-                    style={{
-                      width: `${labelSizes.find((s) => s.id === selectedLabelSize)?.width}cm`,
-                      height: `${labelSizes.find((s) => s.id === selectedLabelSize)?.height}cm`,
-                      left: '50%',
-                      top: '60%',
-                      transform: 'translate(-50%, -50%)',
-                      position: 'absolute',
-                      backgroundColor: 'white',
-                      borderRadius: '4px'
-                    }}
-                  >
-                    <div className="absolute inset-0 border-2 border-gray-300 rounded overflow-hidden">
-                      {uploadedImage && (
-                        <div
-                          className={`absolute inset-0 ${isMoving ? 'cursor-move' : ''}`}
-                          style={{
-                            transform: `translate(${imageTransform.x}px, ${imageTransform.y}px) scale(${imageTransform.scale}) rotate(${imageTransform.rotation}deg)`,
-                            transformOrigin: 'center center',
-                            width: '100%',
-                            height: '100%',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center'
-                          }}
-                          onMouseDown={handleImageMouseDown}
-                          onMouseMove={handleImageMouseMove}
-                          onMouseUp={handleImageMouseUp}
-                          onMouseLeave={handleImageMouseUp}
-                        >
-                          <img
-                            src={uploadedImage}
-                            alt="ラベル画像"
-                            className="max-w-full max-h-full object-contain"
-                            draggable={false}
-                            onLoad={handleImageLoad}
-                          />
-                        </div>
-                      )}
+                <div id="label-preview">
+                  {selectedBottle && (
+                    <div className="absolute inset-0 p-2 sm:p-8">
+                      <img
+                        src={bottles.find((b) => b.id === selectedBottle)?.image}
+                        alt="ボトルプレビュー"
+                        className="w-full h-full object-contain"
+                      />
                     </div>
-                  </div>
-                )}
+                  )}
+
+                  {selectedLabelSize && (
+                    <div 
+                      className="absolute"
+                      style={{
+                        width: `${labelSizes.find((s) => s.id === selectedLabelSize)?.width}cm`,
+                        height: `${labelSizes.find((s) => s.id === selectedLabelSize)?.height}cm`,
+                        left: '50%',
+                        top: '60%',
+                        transform: 'translate(-50%, -50%)',
+                        position: 'absolute',
+                        backgroundColor: 'white',
+                        borderRadius: '4px'
+                      }}
+                    >
+                      <div className="absolute inset-0 border-2 border-gray-300 rounded overflow-hidden">
+                        {uploadedImage && (
+                          <div
+                            className={`absolute inset-0 ${isMoving ? 'cursor-move' : ''}`}
+                            style={{
+                              transform: `translate(${imageTransform.x}px, ${imageTransform.y}px) scale(${imageTransform.scale}) rotate(${imageTransform.rotation}deg)`,
+                              transformOrigin: 'center center',
+                              width: '100%',
+                              height: '100%',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center'
+                            }}
+                            onMouseDown={handleImageMouseDown}
+                            onMouseMove={handleImageMouseMove}
+                            onMouseUp={handleImageMouseUp}
+                            onMouseLeave={handleImageMouseUp}
+                          >
+                            <img
+                              src={uploadedImage}
+                              alt="ラベル画像"
+                              className="max-w-full max-h-full object-contain"
+                              draggable={false}
+                              onLoad={handleImageLoad}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="mt-4">
