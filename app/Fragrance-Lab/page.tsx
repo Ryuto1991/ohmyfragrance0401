@@ -8,7 +8,9 @@ export default async function FragranceLabPage({
 }: {
   searchParams?: { [key: string]: string | string[] | undefined };
 }) {
-  const initialQuery = searchParams?.query as string | undefined;
+  // searchParamsが未定義の場合のフォールバック処理を追加
+  const query = searchParams?.query;
+  const initialQuery = typeof query === 'string' ? query : undefined;
 
   return (
     <div className="min-h-screen bg-secondary flex flex-col">
