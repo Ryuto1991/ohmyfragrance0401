@@ -2,6 +2,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { v4 as uuidv4 } from 'uuid';
+import { uploadCroppedImage } from './server/uploadImage';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -29,99 +30,33 @@ export type MoveResult = {
 
 export async function uploadImage(file: File): Promise<UploadResult> {
   try {
-    // ファイルサイズのチェック（3MB以下）
+    // ファイルサイズチェック（3MB以下）
     if (file.size > 3 * 1024 * 1024) {
       return {
         success: false,
-        error: 'File size must be less than 3MB'
+        error: 'ファイルサイズは3MB以下にしてください'
       };
     }
 
-    // ファイル形式のチェック
+    // ファイルタイプチェック
     const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
     if (!allowedTypes.includes(file.type)) {
       return {
         success: false,
-        error: 'File type must be JPEG, PNG, or GIF'
+        error: 'JPG、PNG、GIF形式の画像のみアップロード可能です'
       };
     }
 
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${uuidv4()}.${fileExt}`;
-    const tempKey = `temp/${fileName}`;
-    const finalKey = `orders/${fileName}`;
+    // ファイルをBlobとして取得
+    const blob = new Blob([file], { type: file.type });
 
-    // FileをBufferに変換
-    let buffer: Buffer;
-    try {
-      if ('arrayBuffer' in file) {
-        const arrayBuffer = await file.arrayBuffer();
-        buffer = Buffer.from(arrayBuffer);
-      } else {
-        buffer = (file as any).buffer;
-      }
-    } catch (error) {
-      return {
-        success: false,
-        error: 'Failed to process file'
-      };
-    }
-
-    // 一時保存用のパスに画像をアップロード
-    const { error: uploadError } = await supabase.storage
-      .from('custom-perfumes')
-      .upload(tempKey, buffer, {
-        contentType: file.type
-      });
-
-    if (uploadError) {
-      return {
-        success: false,
-        error: `Upload failed: ${uploadError.message}`
-      };
-    }
-
-    // 一時保存の記録を作成（24時間後に期限切れ）
-    const expiresAt = new Date();
-    expiresAt.setHours(expiresAt.getHours() + 24);
-
-    const { error: dbError } = await supabase
-      .from('temp_custom_perfume_images')
-      .insert([
-        {
-          image_key: tempKey,
-          expires_at: expiresAt.toISOString()
-        }
-      ]);
-
-    if (dbError) {
-      // エラーが発生した場合は一時保存した画像を削除
-      await supabase.storage
-        .from('custom-perfumes')
-        .remove([tempKey]);
-      
-      return {
-        success: false,
-        error: `Database error: ${dbError.message}`
-      };
-    }
-
-    // 一時URLを取得
-    const { data: { publicUrl } } = supabase.storage
-      .from('custom-perfumes')
-      .getPublicUrl(tempKey);
-
-    return {
-      success: true,
-      imageKey: tempKey,
-      publicUrl,
-      finalKey
-    };
+    // 画像をアップロード
+    return await uploadCroppedImage(blob);
   } catch (error) {
     console.error('Error uploading image:', error);
     return {
       success: false,
-      error: 'Unexpected error occurred while uploading image'
+      error: error instanceof Error ? error.message : '画像のアップロードに失敗しました'
     };
   }
 }
