@@ -532,6 +532,10 @@ export default function PerfumeOrderingPage() {
         throw new Error('香水とボトルを選択してください');
       }
 
+      if (!uploadedImage) {
+        throw new Error('ラベル画像をアップロードしてください');
+      }
+
       const selectedFragranceData = fragrances.find(f => f.id === selectedFragrance);
       const selectedBottleData = bottles.find(b => b.id === selectedBottle);
 
@@ -576,13 +580,16 @@ export default function PerfumeOrderingPage() {
       console.error('Error in handleOrder:', error);
       toast({
         title: "エラーが発生しました",
-        description: error instanceof Error ? error.message : "注文処理中にエラーが発生しました。もう一度お試しください。",
+        description: error instanceof Error ? error.message : "注文処理中にエラーが発生しました",
         variant: "destructive",
       });
     } finally {
       setIsLoading(false);
     }
   };
+
+  // 注文ボタンの条件を更新
+  const isOrderButtonDisabled = !selectedFragrance || !selectedBottle || !uploadedImage || isLoading;
 
   return (
     <div className="min-h-screen bg-[#F5F5F5]">
@@ -899,16 +906,21 @@ export default function PerfumeOrderingPage() {
             {/* Order Button Section */}
             <div className="bg-white rounded-lg shadow-sm p-4">
               <Button
-                className={cn(
-                  "w-full py-4 sm:py-6 text-lg rounded-full text-white shadow-lg",
-                  !selectedFragrance || !selectedBottle || (!imageKey && !useTemplate) || isLoading
-                    ? "bg-gray-400 cursor-not-allowed"
-                    : "bg-[#FF6B6B] hover:bg-[#FF6B6B]/90"
-                )}
-                disabled={!selectedFragrance || !selectedBottle || (!imageKey && !useTemplate) || isLoading}
                 onClick={handleOrder}
+                disabled={isOrderButtonDisabled}
+                className={cn(
+                  "w-full py-6 text-lg font-zen",
+                  isOrderButtonDisabled ? "opacity-50 cursor-not-allowed" : "hover:bg-primary/90"
+                )}
               >
-                {isLoading ? '処理中...' : '注文する（4,980円）'}
+                {isLoading ? (
+                  <div className="flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                    処理中...
+                  </div>
+                ) : (
+                  "注文する"
+                )}
               </Button>
             </div>
           </div>
