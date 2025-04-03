@@ -1,0 +1,5 @@
+[33mffd81d3[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32morder-flow-base[m[33m)[m feat: Improve chat history and initialQuery handling
+[33m404af63[m[33m ([m[1;31morigin/order-flow-base[m[33m)[m feat: 注文データの拡張とアクセシビリティの改善 - スプレッドシートに商品タイプと画像情報を追加 - DialogContentにアクセシビリティ設定を追加 - トースト通知のデバッグログを追加
+[33m4d5a64b[m feat: プレビュー画像の保存機能を改善 - トースト通知の追加とエラーハンドリングの強化
+[33mb9c3af8[m feat: Stripeチェックアウト画面の改善 - メモ欄をtextareaに変更し、配送先住所の収集を追加
+[33m3d5fd94[m feat: Stripeチェックアウト画面の改善 - メモ欄をtextareaに変更し、配送先住所の収集を追加
