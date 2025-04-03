@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useVirtualizer } from '@tanstack/react-virtual'
+import { useVirtualizer, VirtualItem } from '@tanstack/react-virtual'
 
 interface VirtualizedListProps<T> {
   items: T[]
@@ -44,7 +44,7 @@ export function VirtualizedList<T>({
         position: 'relative',
       }}
     >
-      {rowVirtualizer.getVirtualItems().map((virtualRow) => (
+      {rowVirtualizer.getVirtualItems().map((virtualRow: VirtualItem) => (
         <div
           key={virtualRow.index}
           style={{

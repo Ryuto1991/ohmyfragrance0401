@@ -70,7 +70,8 @@ export default function ImageEditorComponent({ imageUrl, onSave, onClose, labelS
         const response = await fetch('/api/label-sizes')
         const data = await response.json()
         const bottleType = imageUrl.includes('Black') ? 'black' : 'clear'
-        const savedData = data[bottleType][labelSize]
+        const sizeKey = `${labelSize.width}x${labelSize.height}`
+        const savedData = data[bottleType][sizeKey]
         if (savedData) {
           setLabelConfig(savedData)
         }
