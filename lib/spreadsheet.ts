@@ -45,7 +45,7 @@ async function createNewSheet(sheetName: string) {
                 title: sheetName,
                 gridProperties: {
                   rowCount: 1000,
-                  columnCount: 12,
+                  columnCount: 25,
                 },
               },
             },
@@ -57,32 +57,55 @@ async function createNewSheet(sheetName: string) {
     // ヘッダー行を設定
     await sheets.spreadsheets.values.update({
       spreadsheetId,
-      range: `${sheetName}!A1:Q1`,
+      range: `${sheetName}!A1:AC1`,
       valueInputOption: 'RAW',
       requestBody: {
         values: [[
+          // 注文情報
           '注文日時',
+          '注文ID',
+          'StripeセッションID',
+          '支払い状況',
+          '支払い方法',
+          '合計金額',
+          '配送料',
+          '消費税',
+          '小計',
+          
+          // 顧客情報
+          '顧客名',
+          'メールアドレス',
+          '電話番号',
+          '郵便番号',
+          '都道府県',
+          '市区町村',
+          '番地・建物名',
+          
+          // 商品情報
+          '商品タイプ',
           '香り',
           'ボトル',
+          'ラベルサイズ',
+          'ラベル画像URL',
+          '備考',
+          
+          // 画像情報
           '元画像URL',
-          '元画像プレビュー',
           '元画像サイズ',
           '元画像形式',
-          'ラベル画像URL',
-          'ラベル画像プレビュー',
-          'ラベル画像サイズ',
-          'ラベル画像形式',
-          '注文完了',
-          '発送完了',
+          '編集後画像URL',
+          '編集後画像サイズ',
+          '編集後画像形式',
+          
+          // 発送情報
+          '発送状況',
           '発送日',
-          '備考',
-          'ラベルサイズ',
-          'StripeセッションID'
+          '追跡番号'
         ]],
       },
     });
 
-    // チェックボックスを追加（注文完了と発送完了）
+    // チェックボックスを追加（発送状況）
     await sheets.spreadsheets.batchUpdate({
       spreadsheetId,
       requestBody: {
@@ -93,17 +116,18 @@ async function createNewSheet(sheetName: string) {
                 sheetId: 0,
                 startRowIndex: 1,
                 endRowIndex: 1000,
-                startColumnIndex: 11,
-                endColumnIndex: 13,
+                startColumnIndex: 22,
+                endColumnIndex: 23,
               },
               cell: {
                 dataValidation: {
                   condition: {
-                    type: 'BOOLEAN',
+                    type: 'ONE_OF_LIST',
                     values: [
-                      {
-                        userEnteredValue: 'TRUE',
-                      },
+                      { userEnteredValue: '未発送' },
+                      { userEnteredValue: '発送済み' },
+                      { userEnteredValue: '配送中' },
+                      { userEnteredValue: '配達完了' }
                     ],
                   },
                   showCustomUi: true,
@@ -145,40 +169,93 @@ export async function appendSpreadsheetRow(values: Array<string | number | undef
 }
 
 export async function appendOrderToSpreadsheet({
+  orderId,
+  stripeSessionId,
+  paymentStatus,
+  paymentMethod,
+  amountTotal,
+  shippingCost,
+  taxAmount,
+  subtotal,
+  customerName,
+  customerEmail,
+  customerPhone,
+  customerAddress,
+  productType,
   fragranceName,
   bottleType,
+  labelSize,
+  labelImageUrl,
+  orderNote,
   originalImageUrl,
   originalImageSize,
   originalImageFormat,
-  labelImageUrl,
-  labelImageSize,
-  labelImageFormat,
-  labelSize,
-  stripeSessionId,
+  editedImageUrl,
+  editedImageSize,
+  editedImageFormat,
 }: {
+  orderId: string;
+  stripeSessionId: string;
+  paymentStatus: string;
+  paymentMethod: string;
+  amountTotal: number;
+  shippingCost: number;
+  taxAmount: number;
+  subtotal: number;
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string;
+  customerAddress: {
+    postalCode: string;
+    prefecture: string;
+    city: string;
+    address: string;
+  };
+  productType: string;
   fragranceName?: string;
   bottleType?: string;
+  labelSize?: string;
+  labelImageUrl?: string;
+  orderNote?: string;
   originalImageUrl?: string;
   originalImageSize?: string;
   originalImageFormat?: string;
-  labelImageUrl?: string;
-  labelImageSize?: string;
-  labelImageFormat?: string;
-  labelSize?: string;
-  stripeSessionId: string;
+  editedImageUrl?: string;
+  editedImageSize?: string;
+  editedImageFormat?: string;
 }) {
   const values = [
     new Date().toISOString(),
+    orderId,
     stripeSessionId,
+    paymentStatus,
+    paymentMethod,
+    amountTotal.toString(),
+    shippingCost.toString(),
+    taxAmount.toString(),
+    subtotal.toString(),
+    customerName,
+    customerEmail,
+    customerPhone,
+    customerAddress.postalCode,
+    customerAddress.prefecture,
+    customerAddress.city,
+    customerAddress.address,
+    productType,
     fragranceName || '',
     bottleType || '',
+    labelSize || '',
+    labelImageUrl || '',
+    orderNote || '',
     originalImageUrl || '',
     originalImageSize || '',
     originalImageFormat || '',
-    labelImageUrl || '',
-    labelImageSize || '',
-    labelImageFormat || '',
-    labelSize || '',
+    editedImageUrl || '',
+    editedImageSize || '',
+    editedImageFormat || '',
+    '未発送',
+    '',
+    '',
   ];
 
   return appendSpreadsheetRow(values);

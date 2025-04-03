@@ -55,6 +55,14 @@ export async function POST(req: NextRequest) {
         field => field.key === 'order_note'
       )?.text?.value || '';
 
+      // 商品タイプの判断
+      let productType = 'その他';
+      if (session.metadata?.productId === 'prod_S2kQjCXti9ub7Z') {
+        productType = 'Oh my custom';
+      } else if (session.metadata?.productId === 'prod_S2geMiCNZiXwbY') {
+        productType = 'Fragrance Lab';
+      }
+
       if (!fragranceName || !bottleType) {
         console.warn('⚠️ 必須メタデータが不足:', metadata)
       }
@@ -90,30 +98,39 @@ export async function POST(req: NextRequest) {
       }
 
       // スプレッドシートに注文記録
-      await appendSpreadsheetRow([
-        new Date().toISOString(),
-        session.id,
-        session.payment_status,
-        customerName || '',
-        customerEmail || '',
-        fragranceName || '',
-        bottleType || '',
-        labelImageUrl || '',
-        session.amount_total ? (session.amount_total / 100).toString() : '0',
-        orderNote // 注文メモを追加
-      ])
-
       await appendOrderToSpreadsheet({
-        fragranceName,
-        bottleType,
-        originalImageUrl,
-        originalImageSize,
-        originalImageFormat,
-        labelImageUrl,
-        labelImageSize,
-        labelImageFormat,
-        labelSize,
+        orderId: session.id,
         stripeSessionId: session.id,
+        paymentStatus: session.payment_status,
+        paymentMethod: session.payment_method_types[0],
+        amountTotal: session.amount_total ? session.amount_total / 100 : 0,
+        shippingCost: session.shipping_cost ? session.shipping_cost.amount_total / 100 : 0,
+        taxAmount: session.total_details?.amount_tax ? session.total_details.amount_tax / 100 : 0,
+        subtotal: session.amount_subtotal ? session.amount_subtotal / 100 : 0,
+        customerName: session.customer_details?.name || customerName || '',
+        customerEmail: session.customer_details?.email || customerEmail || '',
+        customerPhone: session.customer_details?.phone || '',
+        customerAddress: {
+          postalCode: session.customer_details?.address?.postal_code || '',
+          prefecture: session.customer_details?.address?.state || '',
+          city: session.customer_details?.address?.city || '',
+          address: [
+            session.customer_details?.address?.line1,
+            session.customer_details?.address?.line2
+          ].filter(Boolean).join(' ') || ''
+        },
+        productType,
+        fragranceName: fragranceName || '',
+        bottleType: bottleType || '',
+        labelSize: labelSize || '',
+        labelImageUrl: labelImageUrl || '',
+        orderNote,
+        originalImageUrl: originalImageUrl || '',
+        originalImageSize: originalImageSize || '',
+        originalImageFormat: originalImageFormat || '',
+        editedImageUrl: labelImageUrl || '',
+        editedImageSize: labelImageSize || '',
+        editedImageFormat: labelImageFormat || ''
       })
 
       return NextResponse.json({ received: true })

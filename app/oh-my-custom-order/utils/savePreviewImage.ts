@@ -5,11 +5,13 @@ export async function savePreviewImage(labelId: string): Promise<string> {
   const node = document.getElementById('label-preview');
   if (!node) throw new Error('label-preview が見つかりません');
 
+  console.log('トースト表示前');
   // 処理開始のトースト
   toast({
     title: "プレビュー画像の準備を開始しています",
     description: "しばらくお待ちください...",
   });
+  console.log('トースト表示後');
 
   // キャプチャ時のスタイルを設定
   const style = {
