@@ -5,20 +5,26 @@ import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { CheckCircle } from 'lucide-react';
 import Link from 'next/link';
+import { useStripeCart } from '@/contexts/stripe-cart-context';
 
 export default function SuccessPage() {
   const searchParams = useSearchParams();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
+  const { clearCart } = useStripeCart();
 
   useEffect(() => {
     const sessionId = searchParams.get('session_id');
     if (sessionId) {
-      // ここで注文の確認処理を行う
+      // カートをクリア
+      clearCart();
+      // 非ログインユーザーのセッションIDを削除
+      localStorage.removeItem('cartSessionId');
+      // ステータスを更新
       setStatus('success');
     } else {
       setStatus('error');
     }
-  }, [searchParams]);
+  }, []); // 依存配列を空にして、マウント時に1回だけ実行
 
   return (
     <div className="min-h-screen bg-[#F5F5F5] flex items-center justify-center">
@@ -32,23 +38,20 @@ export default function SuccessPage() {
 
         {status === 'success' && (
           <div className="text-center">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <CheckCircle className="h-8 w-8 text-green-500" />
+            <div className="flex justify-center mb-6">
+              <CheckCircle className="h-20 w-20 text-green-500" />
             </div>
             <h1 className="text-2xl font-bold mb-4">ご注文ありがとうございます</h1>
             <p className="text-gray-600 mb-8">
-              ご注文の確認メールをお送りしました。<br />
-              メールの内容をご確認ください。
+              ご注文を受け付けました。ご入力いただいたメールアドレスに確認メールをお送りしましたので、ご確認ください。
             </p>
             <div className="space-y-4">
-              <Link href="/" className="block">
-                <Button className="w-full bg-[#FF6B6B] hover:bg-[#FF6B6B]/90">
-                  トップページに戻る
-                </Button>
+              <Link href="/">
+                <Button className="w-full">トップページへ戻る</Button>
               </Link>
-              <Link href="/oh-my-custom-order" className="block">
+              <Link href="/oh-my-custom-order">
                 <Button variant="outline" className="w-full">
-                  もう1つ注文する
+                  他の商品を見る
                 </Button>
               </Link>
             </div>
@@ -59,13 +62,10 @@ export default function SuccessPage() {
           <div className="text-center">
             <h1 className="text-2xl font-bold mb-4">エラーが発生しました</h1>
             <p className="text-gray-600 mb-8">
-              申し訳ありませんが、注文の確認中にエラーが発生しました。<br />
-              もう一度お試しください。
+              注文の確認中にエラーが発生しました。お手数ですが、もう一度お試しください。
             </p>
-            <Link href="/oh-my-custom-order" className="block">
-              <Button className="w-full bg-[#FF6B6B] hover:bg-[#FF6B6B]/90">
-                注文ページに戻る
-              </Button>
+            <Link href="/">
+              <Button className="w-full">トップページへ戻る</Button>
             </Link>
           </div>
         )}

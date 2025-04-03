@@ -45,12 +45,23 @@ export async function POST(request: Request) {
         bottleType,
         imageKey,
         finalImageKey,
+        userId: body.userId,
+        anonymousId: body.anonymousId,
         orderDetails: JSON.stringify(orderDetails || [])
       },
-      billing_address_collection: 'required',
-      customer_creation: 'always',
-      phone_number_collection: {
-        enabled: true
+      custom_fields: [
+        {
+          key: 'order_note',
+          label: { 
+            type: 'custom', 
+            custom: 'ご希望やメモ（任意）' 
+          },
+          type: 'textarea',
+          optional: true
+        }
+      ],
+      shipping_address_collection: {
+        allowed_countries: ['JP'], // 日本のみ許可
       }
     });
 
