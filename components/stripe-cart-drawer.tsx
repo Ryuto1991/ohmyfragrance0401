@@ -10,6 +10,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Trash2, Minus, Plus, Loader2 } from 'lucide-react';
 import { getStripe } from "@/lib/stripe";
 import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/lib/supabase";
 
 interface StripeCartDrawerProps {
   open: boolean;
@@ -40,6 +41,14 @@ export default function StripeCartDrawer({ open, onOpenChange }: StripeCartDrawe
     try {
       setIsCheckingOut(true);
       console.log('Starting checkout with cart items:', cartItems);
+
+      // ユーザーIDを取得
+      const { data: { session } } = await supabase.auth.getSession();
+      const userId = session?.user?.id;
+      // 非ログインユーザー用のセッションID
+      const anonymousId = localStorage.getItem('cartSessionId') || 
+        Math.random().toString(36).substring(2, 15);
+      localStorage.setItem('cartSessionId', anonymousId);
 
       // カスタム商品の注文詳細を収集（メタデータを圧縮）
       const orderDetails = cartItems
@@ -94,6 +103,8 @@ export default function StripeCartDrawer({ open, onOpenChange }: StripeCartDrawe
             bottleType: orderDetails[0].bn,
             imageKey: orderDetails[0].li,
             finalImageKey: orderDetails[0].li,
+            userId: userId,
+            anonymousId: !userId ? anonymousId : undefined, // 非ログインユーザーの場合のみ送信
             customer_email: 'required',
             billing_address_collection: 'required',
             customer_creation: 'always',

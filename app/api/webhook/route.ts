@@ -1,113 +1,128 @@
-import { NextRequest, NextResponse } from 'next/server';
-import Stripe from 'stripe';
-import { supabase } from '@/lib/supabase';
-import { sendOrderConfirmationEmail } from '@/lib/email';
-import { appendOrderToSpreadsheet } from '@/lib/spreadsheet';
-import { createClient } from '@supabase/supabase-js';
-import { moveImageToFinal } from '@/app/oh-my-custom-order/actions';
-import { appendSpreadsheetRow } from '@/lib/spreadsheet';
-
-// Supabaseクライアントの初期化
-const supabaseClient = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+import { NextRequest, NextResponse } from 'next/server'
+import Stripe from 'stripe'
+import { supabase } from '@/lib/supabase'
+import { sendOrderConfirmationEmail } from '@/lib/email'
+import { appendOrderToSpreadsheet } from '@/lib/spreadsheet'
+import { moveImageToFinal } from '@/app/oh-my-custom-order/actions'
+import { appendSpreadsheetRow } from '@/lib/spreadsheet'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2023-10-16',
-});
+  apiVersion: '2025-02-24.acacia',
+})
 
-const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET!;
+const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET!
 
 export async function POST(req: NextRequest) {
-  const payload = await req.text();
-  const sig = req.headers.get('stripe-signature');
+  const payload = await req.text()
+  const sig = req.headers.get('stripe-signature')
 
-  let event: Stripe.Event;
+  let event: Stripe.Event
 
   try {
-    event = stripe.webhooks.constructEvent(payload, sig!, endpointSecret);
+    event = stripe.webhooks.constructEvent(payload, sig!, endpointSecret)
   } catch (err: any) {
-    console.error('Webhook signature verification failed:', err.message);
-    return NextResponse.json({ error: `Webhook Error: ${err.message}` }, { status: 400 });
+    console.error('Webhook signature verification failed:', err.message)
+    return NextResponse.json({ received: false }, { status: 200 })
   }
 
   if (event.type === 'checkout.session.completed') {
-    const session = event.data.object as Stripe.Checkout.Session;
-    
+    const session = event.data.object as Stripe.Checkout.Session
+
     try {
-      console.log('Processing completed checkout session:', session.id);
-      
-      // メタデータから必要な情報を取得
-      const metadata = session.metadata || {};
+      console.log('✅ Checkout Session:', session.id)
+
+      const metadata = session.metadata || {}
       const {
         fragranceName,
         bottleType,
         imageKey,
         finalImageKey,
         customerName,
-        customerEmail
-      } = metadata;
+        customerEmail,
+        originalImageUrl,
+        originalImageSize,
+        originalImageFormat,
+        labelImageUrl,
+        labelImageSize,
+        labelImageFormat,
+        labelSize,
+        userId,
+        anonymousId
+      } = metadata
 
-      console.log('Order details:', {
-        fragranceName,
-        bottleType,
-        imageKey,
-        finalImageKey,
-        customerName,
-        customerEmail
-      });
+      // カスタムフィールドの値を取得
+      const orderNote = session.custom_fields?.find(
+        field => field.key === 'order_note'
+      )?.text?.value || '';
 
-      // 画像を一時保存から本保存に移動
-      if (imageKey && finalImageKey) {
-        console.log('Moving image from temp to final location...');
-        const moveResult = await moveImageToFinal(imageKey, finalImageKey);
-        if (!moveResult.success) {
-          console.error('Failed to move image:', moveResult.error);
+      if (!fragranceName || !bottleType) {
+        console.warn('⚠️ 必須メタデータが不足:', metadata)
+      }
+
+      // カートをクリア
+      if (userId) {
+        console.log('🛒 Clearing cart for user:', userId)
+        const { error: deleteError } = await supabase
+          .from('shopping_cart')
+          .delete()
+          .eq('user_id', userId)
+
+        if (deleteError) {
+          console.error('❌ Failed to clear cart:', deleteError)
         } else {
-          console.log('Image moved successfully. New URL:', moveResult.publicUrl);
-          metadata.imageUrl = moveResult.publicUrl;
+          console.log('✅ Cart cleared successfully')
+        }
+      } else if (anonymousId) {
+        // 非ログインユーザーのカートクリアは、フロントエンド側で
+        // localStorage.removeItem('cartItems') を実行する必要があります
+        console.log('🛒 Anonymous user cart will be cleared on client side:', anonymousId)
+      }
+
+      // 画像移動
+      if (imageKey && finalImageKey) {
+        console.log('🛠 Moving image...')
+        const moveResult = await moveImageToFinal(imageKey, finalImageKey)
+        if (!moveResult.success) {
+          console.error('❌ Failed to move image:', moveResult.error)
+        } else {
+          console.log('✅ Image moved to:', moveResult.publicUrl)
         }
       }
 
-      // スプレッドシートに注文情報を記録
-      console.log('Recording order in spreadsheet...');
+      // スプレッドシートに注文記録
       await appendSpreadsheetRow([
-        new Date().toISOString(), // 注文日時
-        session.id, // セッションID
-        session.payment_status, // 支払い状態
-        customerName || '', // 顧客名
-        customerEmail || '', // メールアドレス
-        fragranceName || '', // フレグランス名
-        bottleType || '', // ボトルタイプ
-        metadata.imageUrl || '', // 画像URL
-        session.amount_total ? (session.amount_total / 100).toString() : '0' // 合計金額（円）
-      ]);
-      console.log('Order recorded in spreadsheet');
+        new Date().toISOString(),
+        session.id,
+        session.payment_status,
+        customerName || '',
+        customerEmail || '',
+        fragranceName || '',
+        bottleType || '',
+        labelImageUrl || '',
+        session.amount_total ? (session.amount_total / 100).toString() : '0',
+        orderNote // 注文メモを追加
+      ])
 
-      // スプレッドシートに注文情報を追加
       await appendOrderToSpreadsheet({
-        fragranceName: metadata.fragranceName,
-        bottleType: metadata.bottleType,
-        originalImageUrl: metadata.originalImageUrl,
-        originalImageSize: metadata.originalImageSize,
-        originalImageFormat: metadata.originalImageFormat,
-        labelImageUrl: metadata.labelImageUrl,
-        labelImageSize: metadata.labelImageSize,
-        labelImageFormat: metadata.labelImageFormat,
-        labelSize: metadata.labelSize,
-        stripeSessionId: session.id, // StripeセッションIDを追加
-      });
+        fragranceName,
+        bottleType,
+        originalImageUrl,
+        originalImageSize,
+        originalImageFormat,
+        labelImageUrl,
+        labelImageSize,
+        labelImageFormat,
+        labelSize,
+        stripeSessionId: session.id,
+      })
 
-      return NextResponse.json({ success: true });
+      return NextResponse.json({ received: true })
     } catch (error) {
-      console.error('Error processing webhook:', error);
-      return NextResponse.json(
-        { error: 'Failed to process webhook' },
-        { status: 500 }
-      );
+      console.error('❌ Webhook 処理エラー:', error)
+      // Stripeに「処理済み」と返して再送を防ぐ
+      return NextResponse.json({ received: true })
     }
   }
 
-  return NextResponse.json({ success: true });
-} 
+  return NextResponse.json({ received: true })
+}

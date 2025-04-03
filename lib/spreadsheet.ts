@@ -123,81 +123,73 @@ async function createNewSheet(sheetName: string) {
   }
 }
 
-export async function appendOrderToSpreadsheet(orderData: {
-  fragranceName: string;
-  bottleType: string;
-  originalImageUrl: string;
+export async function appendSpreadsheetRow(values: Array<string | number | undefined | null>) {
+  try {
+    const response = await sheets.spreadsheets.values.append({
+      spreadsheetId,
+      range: 'Orders!A:I', // シート名と範囲を指定
+      valueInputOption: 'USER_ENTERED',
+      requestBody: {
+        values: [values.map(value => {
+          if (value === null || value === undefined) return '';
+          return value.toString();
+        })],
+      },
+    });
+
+    return { success: true, data: response.data };
+  } catch (error) {
+    console.error('Error appending to spreadsheet:', error);
+    return { success: false, error };
+  }
+}
+
+export async function appendOrderToSpreadsheet({
+  fragranceName,
+  bottleType,
+  originalImageUrl,
+  originalImageSize,
+  originalImageFormat,
+  labelImageUrl,
+  labelImageSize,
+  labelImageFormat,
+  labelSize,
+  stripeSessionId,
+}: {
+  fragranceName?: string;
+  bottleType?: string;
+  originalImageUrl?: string;
   originalImageSize?: string;
   originalImageFormat?: string;
-  labelImageUrl: string;
+  labelImageUrl?: string;
   labelImageSize?: string;
   labelImageFormat?: string;
   labelSize?: string;
   stripeSessionId: string;
 }) {
-  try {
-    const sheetName = getSheetName();
-    const exists = await checkSheetExists(sheetName);
+  const values = [
+    new Date().toISOString(),
+    stripeSessionId,
+    fragranceName || '',
+    bottleType || '',
+    originalImageUrl || '',
+    originalImageSize || '',
+    originalImageFormat || '',
+    labelImageUrl || '',
+    labelImageSize || '',
+    labelImageFormat || '',
+    labelSize || '',
+  ];
 
-    if (!exists) {
-      await createNewSheet(sheetName);
-    }
-
-    const now = new Date();
-    const timestamp = now.toLocaleString('ja-JP', {
-      timeZone: 'Asia/Tokyo',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-
-    const values = [[
-      timestamp,
-      orderData.fragranceName,
-      orderData.bottleType,
-      orderData.originalImageUrl,
-      `=IMAGE("${orderData.originalImageUrl}")`, // 元画像プレビュー
-      orderData.originalImageSize || '', // 元画像サイズ
-      orderData.originalImageFormat || '', // 元画像形式
-      orderData.labelImageUrl,
-      `=IMAGE("${orderData.labelImageUrl}")`, // ラベル画像プレビュー
-      orderData.labelImageSize || '', // ラベル画像サイズ
-      orderData.labelImageFormat || '', // ラベル画像形式
-      'FALSE', // 注文完了（チェックボックス）
-      'FALSE', // 発送完了（チェックボックス）
-      '', // 発送日（空）
-      '', // 備考（空）
-      orderData.labelSize || '中', // ラベルサイズ
-      orderData.stripeSessionId,
-    ]];
-
-    await sheets.spreadsheets.values.append({
-      spreadsheetId,
-      range: `${sheetName}!A:Q`,
-      valueInputOption: 'RAW',
-      requestBody: {
-        values,
-      },
-    });
-
-    return true;
-  } catch (error) {
-    console.error('Error appending to spreadsheet:', error);
-    return false;
-  }
+  return appendSpreadsheetRow(values);
 }
 
 // スプレッドシートの注文ステータスを更新する関数
 export async function updateOrderStatus(orderId: string, newStatus: string) {
   try {
-    const auth = await getAuth();
-    const sheets = google.sheets({ version: 'v4', auth });
-
     // まず、orderIdに一致する行を検索
     const response = await sheets.spreadsheets.values.get({
-      spreadsheetId: process.env.GOOGLE_SPREADSHEET_ID,
+      spreadsheetId,
       range: 'Sheet1!A:A',
     });
 
@@ -214,7 +206,7 @@ export async function updateOrderStatus(orderId: string, newStatus: string) {
 
     // ステータスを更新（H列）
     await sheets.spreadsheets.values.update({
-      spreadsheetId: process.env.GOOGLE_SPREADSHEET_ID,
+      spreadsheetId,
       range: `Sheet1!H${rowIndex + 1}`,
       valueInputOption: 'USER_ENTERED',
       requestBody: {
