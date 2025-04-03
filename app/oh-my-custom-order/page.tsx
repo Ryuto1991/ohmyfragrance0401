@@ -970,7 +970,15 @@ export default function PerfumeOrderingPage() {
                 ref={previewRef}
                 className="aspect-[4/3] bg-gray-50 rounded-lg relative overflow-hidden preview-container"
               >
-                <div id="label-preview">
+                <div 
+                  id="label-preview"
+                  className="w-full h-full flex items-center justify-center overflow-hidden"
+                  style={{
+                    backgroundColor: 'white',
+                    padding: '0',
+                    margin: '0'
+                  }}
+                >
                   {selectedBottle && (
                     <div className="absolute inset-0 p-2 sm:p-8">
                       <img

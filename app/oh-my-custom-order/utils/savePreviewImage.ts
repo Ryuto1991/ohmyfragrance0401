@@ -7,7 +7,20 @@ export async function savePreviewImage(labelId: string): Promise<string> {
   console.log('DOM要素を取得:', node);
   alert('画像生成を開始します');
 
-  const blob = await domtoimage.toBlob(node);
+  // キャプチャ時のスタイルを設定
+  const style = {
+    width: '100%',
+    height: '100%',
+    backgroundColor: 'white',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    padding: '0',
+    margin: '0'
+  };
+
+  const blob = await domtoimage.toBlob(node, { style });
   console.log('生成されたBlob:', blob);
   console.log('Blobサイズ:', blob.size, 'bytes');
   console.log('Blobタイプ:', blob.type);
