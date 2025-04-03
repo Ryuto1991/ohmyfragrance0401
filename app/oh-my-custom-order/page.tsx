@@ -18,7 +18,8 @@ import { loadStripe } from '@stripe/stripe-js'
 import { uploadImage } from './actions'
 import { toast } from "@/components/ui/use-toast"
 import { savePreviewImage } from './utils/savePreviewImage'
-import { supabase } from '@/lib/supabase'
+import { createClient } from '@supabase/supabase-js'
+
 
 const ImageEditorComponent = dynamic(() => import("../components/image-editor"), {
   ssr: false,
