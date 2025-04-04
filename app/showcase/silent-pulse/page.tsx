@@ -182,7 +182,7 @@ Re:Noirが紡ぐ繊細な旋律と感情を香りで再構成。
                   </p>
                   <p className="font-medium text-gray-800 font-zen mt-3">5,980円（税込）〜</p>
                   <div className="text-center mt-6">
-                    <Link href="/Fragrance-Lab">
+                    <Link href="/fragrance-lab">
                       <Button className="rounded-full bg-black text-white px-6 py-2 text-sm hover:bg-gray-800 transition w-full md:w-auto">
                         AIと香りをつくる
                       </Button>

@@ -799,7 +799,7 @@ export default function ShowcaseDetailPage() {
                 whileTap={{ scale: 0.95 }}
                 transition={{ type: "spring", stiffness: 400, damping: 10 }}
               >
-                <Link href="/Fragrance-Lab">
+                <Link href="/fragrance-lab">
                   <Button className="bg-gray-800 hover:bg-gray-900 text-white rounded-full px-6 py-2 font-montserrat relative overflow-hidden group">
                     <span className="absolute w-0 h-0 transition-all duration-300 ease-out bg-white rounded-full group-hover:w-32 group-hover:h-32 opacity-10"></span>
                     <span className="relative">AIと香りをつくる</span>

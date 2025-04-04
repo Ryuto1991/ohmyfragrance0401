@@ -72,7 +72,7 @@ export default function SiteHeader() {
           transition={{ duration: 0.5, delay: 0.2 }}
         >
           <Link
-            href="/Fragrance-Lab"
+            href="/fragrance-lab"
             className="text-sm text-secondary-foreground hover:opacity-70 transition-opacity font-montserrat"
           >
             Fragrance Lab
@@ -179,7 +179,7 @@ export default function SiteHeader() {
               <nav className="flex flex-col space-y-4 mt-8">
                 <SheetClose asChild>
                   <Link
-                    href="/Fragrance-Lab"
+                    href="/fragrance-lab"
                     className="text-sm text-secondary-foreground hover:opacity-70 transition-opacity font-montserrat"
                   >
                     Fragrance Lab

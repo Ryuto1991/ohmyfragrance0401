@@ -21,7 +21,7 @@ type Message = {
   options?: string[]
 }
 
-type Step = "intro" | "themeSelected" | "top" | "middle" | "base" | "finalized" | "complete"
+type Step = 'intro' | 'themeSelected' | 'top' | 'middle' | 'base' | 'finalized' | 'complete' | 'generator'
 
 interface FragranceRecipe {
   top_notes: string[]
@@ -177,6 +177,60 @@ export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
       case 'middle': return getOptionsFromOilData('middle')
       case 'base': return getOptionsFromOilData('base')
       default: return undefined
+    }
+  }
+
+  const processInitialQuery = async () => {
+    if (initialQuery && !hasProcessedInitialQuery && isInitialized) {
+      setHasProcessedInitialQuery(true)
+      setIsLoading(true)
+
+      // 入力文に「一発」「すぐに」などが含まれるかで判定
+      const isOneShot = /一発|すぐに|パッと|一気に|ざっくり|完成|生成/.test(initialQuery)
+
+      const newMessages = isOneShot
+        ? [createMessage('user', initialQuery)]
+        : [
+            createMessage('assistant', 'なるほど、新しいアイデアをいただきましたね。それでは、その観点からも考えてみましょう。'),
+            createMessage('user', initialQuery)
+          ]
+
+      setMessages(newMessages)
+      await processMessage(newMessages)
+      setIsLoading(false)
+
+      // ステップ変更
+      setCurrentStep(isOneShot ? 'generator' : 'themeSelected')
+    }
+  }
+
+  const processMessage = async (messages: Message[]) => {
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ messages }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to send message')
+      }
+
+      const data = await response.json()
+      const recipe = extractRecipeFromText(data.result)
+      
+      if (recipe) {
+        // レシピが生成された場合、custom-orderページに遷移
+        router.push(`/custom-order?mode=lab&recipe=${encodeURIComponent(JSON.stringify(recipe))}`)
+        return
+      }
+
+      return data.result
+    } catch (error) {
+      console.error('Error in processMessage:', error)
+      return '申し訳ありません。エラーが発生しました。もう一度お試しください。'
     }
   }
 

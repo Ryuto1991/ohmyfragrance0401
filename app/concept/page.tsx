@@ -326,7 +326,7 @@ export default function ConceptPage() {
                     whileTap={{ scale: 0.95 }}
                     transition={{ type: "spring", stiffness: 400, damping: 10 }}
                   >
-                    <Link href="/Fragrance-Lab" replace>
+                    <Link href="/fragrance-lab" replace>
                       <Button className="bg-accent-light hover:bg-accent-light/90 text-white rounded-full px-6 py-2 font-montserrat relative overflow-hidden group">
                         <span className="absolute w-0 h-0 transition-all duration-300 ease-out bg-white rounded-full group-hover:w-32 group-hover:h-32 opacity-10"></span>
                         <span className="relative">AIと一緒に香りをつくる</span>

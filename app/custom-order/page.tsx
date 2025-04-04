@@ -21,6 +21,9 @@ import { savePreviewImage } from './utils/savePreviewImage'
 import { createClient } from '@supabase/supabase-js'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import SiteHeader from "@/components/site-header"
+import SiteFooter from "@/components/site-footer"
+import { Badge } from "@/components/ui/badge"
 
 // インターフェースの定義
 interface Fragrance {
@@ -43,6 +46,15 @@ interface Bottle {
   price: number
 }
 
+interface Recipe {
+  name: string
+  description: string
+  top_notes: string[]
+  middle_notes: string[]
+  base_notes: string[]
+  mode: 'generator' | 'chat' | 'custom'
+}
+
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
 
 const ImageEditorComponent = dynamic(() => import("@/app/components/image-editor"), {
@@ -53,27 +65,82 @@ const ImageEditorComponent = dynamic(() => import("@/app/components/image-editor
 export default function PerfumeOrderingPage() {
   const searchParams = useSearchParams()
   const mode = searchParams.get('mode') || 'custom'
+  const recipeParam = searchParams.get('recipe')
   const [aiGeneratedFragrance, setAiGeneratedFragrance] = useState<Fragrance | null>(null)
+  const [recipe, setRecipe] = useState<Recipe | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   // AIで生成された香りのデータを取得
   useEffect(() => {
     console.log('Current mode:', mode);
-    if (mode === 'lab') {
-      // テスト用のデータを直接設定
-      const testFragrance = {
-        id: 'ai-generated-test',
-        name: 'AIブレンド',
+    if (mode === 'lab' && recipe) {
+      // レシピデータから香りのデータを生成
+      const labFragrance = {
+        id: 'lab-generated',
+        name: recipe.name,
         category: 'AIブレンド系',
-        emoji: '🤖',
-        description: 'AIが生成したカスタムブレンドの香り',
+        emoji: '✨',
+        description: recipe.description,
         notes: {
-          top: ['レモン', 'ベルガモット'],
-          middle: ['ローズ', 'ジャスミン'],
-          last: ['サンダルウッド', 'バニラ']
+          top: recipe.top_notes,
+          middle: recipe.middle_notes,
+          last: recipe.base_notes
         }
       };
-      setAiGeneratedFragrance(testFragrance);
-      setSelectedFragrance(testFragrance.id);
+      setAiGeneratedFragrance(labFragrance);
+      setSelectedFragrance(labFragrance.id);
+    }
+  }, [mode, recipe])
+
+  // レシピデータの初期化
+  useEffect(() => {
+    if (mode === 'lab' && recipeParam) {
+      try {
+        const recipe = JSON.parse(decodeURIComponent(recipeParam))
+        // レシピデータから香水を選択
+        const matchingFragrance = fragrances.find(f => 
+          f.notes.top.some(note => recipe.top_notes.includes(note)) &&
+          f.notes.middle.some(note => recipe.middle_notes.includes(note)) &&
+          f.notes.last.some(note => recipe.base_notes.includes(note))
+        )
+        if (matchingFragrance) {
+          setSelectedFragrance(matchingFragrance.id)
+          setExpandedSection(2) // ボトル選択セクションを開く
+        }
+      } catch (error) {
+        console.error('Error parsing recipe:', error)
+      }
+    }
+  }, [mode, recipeParam])
+
+  useEffect(() => {
+    try {
+      // カスタムモードの場合はlocalStorageのチェックをスキップ
+      if (mode === 'custom') {
+        setRecipe({
+          name: '',
+          description: '',
+          top_notes: [],
+          middle_notes: [],
+          base_notes: [],
+          mode: 'custom'
+        })
+        return
+      }
+
+      const saved = localStorage.getItem('selected_recipe')
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        setRecipe({
+          ...parsed,
+          mode: mode as 'generator' | 'chat' | 'custom'
+        })
+      } else {
+        setError('レシピデータが見つかりません。')
+      }
+    } catch (error) {
+      console.error('Error loading recipe:', error)
+      setError('レシピデータの読み込みに失敗しました。')
     }
   }, [mode])
 
@@ -621,6 +688,34 @@ export default function PerfumeOrderingPage() {
 
   // 注文ボタンの条件を更新
   const isOrderButtonDisabled = !selectedFragrance || !selectedBottle || !uploadedImage || isLoading;
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-secondary flex flex-col">
+        <SiteHeader />
+        <main className="flex-1 container mx-auto px-4 py-8">
+          <div className="max-w-xl mx-auto text-center">
+            <p className="text-destructive">{error}</p>
+          </div>
+        </main>
+        <SiteFooter />
+      </div>
+    )
+  }
+
+  if (!recipe) {
+    return (
+      <div className="min-h-screen bg-secondary flex flex-col">
+        <SiteHeader />
+        <main className="flex-1 container mx-auto px-4 py-8">
+          <div className="max-w-xl mx-auto text-center">
+            <p>読み込み中...</p>
+          </div>
+        </main>
+        <SiteFooter />
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-[#F5F5F5]">

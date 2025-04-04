@@ -213,7 +213,7 @@ export default function ShowcasePage() {
                   className="mt-12 bg-accent-light hover:bg-accent-light/90 text-white rounded-full px-8 py-3 font-montserrat text-lg relative overflow-hidden group"
                   asChild
                 >
-                  <Link href="/Fragrance-Lab">
+                  <Link href="/fragrance-lab">
                     <span className="absolute w-0 h-0 transition-all duration-300 ease-out bg-white rounded-full group-hover:w-32 group-hover:h-32 opacity-10"></span>
                     <span className="relative">Fragrance Labを体験する</span>
                   </Link>

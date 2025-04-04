@@ -52,7 +52,7 @@ export default function SiteFooter() {
             <ul className="space-y-2">
               <li>
                 <Link
-                  href="/Fragrance-Lab"
+                  href="/fragrance-lab"
                   className="text-sm text-secondary-foreground/70 hover:text-secondary-foreground transition-colors"
                 >
                   Fragrance Lab

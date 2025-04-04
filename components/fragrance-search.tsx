@@ -102,17 +102,16 @@ export default function FragranceSearch({ placeholder }: FragranceSearchProps) {
     setRandomExample(exampleList[randomIndex])
   }, [isMobile])
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
-    // ナビゲーションパスを修正
-    router.push(`/Fragrance-Lab${searchQuery ? `?query=${encodeURIComponent(searchQuery)}` : ""}`)
+    router.push(`/fragrance-lab?query=${encodeURIComponent(searchQuery)}`)
   }
 
   // placeholderを決定
   const finalPlaceholder = placeholder || `今日はどんな香りをつくる？（例： ${randomExample}）`
 
   return (
-    <form onSubmit={handleSubmit} className="flex w-full max-w-xl">
+    <form onSubmit={handleSearch} className="flex w-full max-w-xl">
       <div className="relative flex-grow">
         <Input
           type="text"
