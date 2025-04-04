@@ -109,6 +109,9 @@ export default function TermsPage() {
                 <p className="text-secondary-foreground/70 font-zen mt-2">
                   登録情報と一致してログインされた場合、当社は当該ユーザー自身による利用とみなします。
                 </p>
+                <p className="text-xs text-muted-foreground mt-3">
+                ※現在、本サービスはMVP（最小限の実用バージョン）として提供されており、一部機能は今後順次追加予定です。
+                </p>
               </div>
 
               <div>
@@ -149,9 +152,34 @@ export default function TermsPage() {
                   香料成分に対し過敏な体質の方は、ご使用前に必ずパッチテストを行い、異常が現れた場合は使用を中止の上、速やかに医師にご相談ください。
                 </p>
                 <p className="text-secondary-foreground/70 font-zen mt-2">
-                  当社は、ユーザーが本サービスで作成したオーダーメイドの香り（AI
-                  Blend）について、ユーザー固有の入力に基づいて生成しておりますが、他のユーザーと香りが完全に異なることを保証するものではありません。
+                  当社は、ユーザーが本サービスで作成したオーダーメイドの香り（Fragrance
+                  Lab）について、ユーザー固有の入力に基づいて生成しておりますが、他のユーザーと香りが完全に異なることを保証するものではありません。
                 </p>
+              </div>
+
+              <div>
+                <h2 className="text-xl font-medium mb-4 text-secondary-foreground font-zen">
+                  第5条の3（アップロード画像の著作権等）
+                </h2>
+                <p className="text-secondary-foreground/70 font-zen">
+                  ユーザーは、本サービスを通じてアップロードする画像について、以下を遵守するものとします。
+                </p>
+                <ul className="list-disc pl-6 mt-2 text-secondary-foreground/70 font-zen">
+                  <li>第三者の著作権、商標権、肖像権、パブリシティ権その他一切の権利を侵害しないこと。</li>
+                  <li>法令または公序良俗に反する内容、または第三者に不快感を与えるおそれのある画像を使用しないこと。</li>
+                </ul>
+                <p className="text-secondary-foreground/70 font-zen mt-2">
+                  ユーザーがアップロードした画像に関する権利問題について、当社は一切の責任を負いません。
+                </p>
+                <p className="text-secondary-foreground/70 font-zen mt-2">
+                  ユーザーが本項に違反したことにより、当社または第三者に損害が発生した場合、ユーザーはその一切の責任を負うものとします。
+                </p>
+                <p className="text-secondary-foreground/70 font-zen mt-2">
+  当社は、ユーザーが本項に違反している、またはそのおそれがあると判断した場合、該当する画像の削除、注文のキャンセル・停止、アカウントの利用制限等の措置を講じることができるものとします。
+  これによりユーザーに損害が生じた場合でも、当社は一切の責任を負いません。
+</p>
+
+
               </div>
 
               <div>
@@ -277,7 +305,7 @@ export default function TermsPage() {
 
               <div className="text-right">
                 <p className="text-secondary-foreground/70 font-zen">制定日：2025年3月24日</p>
-                <p className="text-secondary-foreground/70 font-zen">最終更新日：2025年3月24日</p>
+                <p className="text-secondary-foreground/70 font-zen">最終更新日：2025年4月4日</p>
               </div>
             </div>
           </div>

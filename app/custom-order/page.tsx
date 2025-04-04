@@ -18,12 +18,13 @@ import { loadStripe } from '@stripe/stripe-js'
 import { uploadImage } from './actions'
 import { toast } from "@/components/ui/use-toast"
 import { savePreviewImage } from './utils/savePreviewImage'
-import { createClient } from '@supabase/supabase-js'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import SiteHeader from "@/components/site-header"
 import SiteFooter from "@/components/site-footer"
 import { Badge } from "@/components/ui/badge"
+import { compressImage, validateImageType, validateFileSize, getImageDimensions } from './utils/imageCompression'
 
 // インターフェースの定義
 interface Fragrance {
@@ -62,6 +63,9 @@ const ImageEditorComponent = dynamic(() => import("@/app/components/image-editor
   loading: () => <div>Loading...</div>
 })
 
+// Supabaseクライアントをグローバルに初期化
+const supabase = createClientComponentClient()
+
 export default function PerfumeOrderingPage() {
   const searchParams = useSearchParams()
   const mode = searchParams.get('mode') || 'custom'
@@ -69,6 +73,7 @@ export default function PerfumeOrderingPage() {
   const [aiGeneratedFragrance, setAiGeneratedFragrance] = useState<Fragrance | null>(null)
   const [recipe, setRecipe] = useState<Recipe | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [isAgreed, setIsAgreed] = useState(false)
 
   // AIで生成された香りのデータを取得
   useEffect(() => {
@@ -78,7 +83,7 @@ export default function PerfumeOrderingPage() {
       const labFragrance = {
         id: 'lab-generated',
         name: recipe.name,
-        category: 'AIブレンド系',
+        category: 'Fragrance Lab',
         emoji: '✨',
         description: recipe.description,
         notes: {
@@ -113,6 +118,44 @@ export default function PerfumeOrderingPage() {
     }
   }, [mode, recipeParam])
 
+  const saveRecipeToSupabase = async (recipeData: Recipe) => {
+    try {
+      const { error } = await supabase
+        .from('recipes')
+        .insert([
+          {
+            name: recipeData.name,
+            description: recipeData.description,
+            top_notes: recipeData.top_notes,
+            middle_notes: recipeData.middle_notes,
+            base_notes: recipeData.base_notes,
+            mode: recipeData.mode
+          }
+        ]);
+
+      if (error) {
+        console.error('Error saving to Supabase:', error);
+        toast({
+          title: "レシピの保存に失敗しました",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "レシピを保存しました",
+          description: "香りのレシピがデータベースに保存されました",
+        });
+      }
+    } catch (error) {
+      console.error('Error in Supabase operation:', error);
+      toast({
+        title: "エラーが発生しました",
+        description: "レシピの保存中にエラーが発生しました",
+        variant: "destructive",
+      });
+    }
+  };
+
   useEffect(() => {
     try {
       // カスタムモードの場合はlocalStorageのチェックをスキップ
@@ -131,10 +174,13 @@ export default function PerfumeOrderingPage() {
       const saved = localStorage.getItem('selected_recipe')
       if (saved) {
         const parsed = JSON.parse(saved)
-        setRecipe({
+        const recipeData = {
           ...parsed,
           mode: mode as 'generator' | 'chat' | 'custom'
-        })
+        };
+        setRecipe(recipeData);
+        // Supabaseにも保存
+        saveRecipeToSupabase(recipeData);
       } else {
         setError('レシピデータが見つかりません。')
       }
@@ -363,29 +409,63 @@ export default function PerfumeOrderingPage() {
   }
 
   // Handle file upload
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      try {
-        const result = await uploadImage(file);
-        if (result.success) {
-          setImageKey(result.imageKey!);
-          setFinalImageKey(result.finalKey!);
-          setUploadedImage(result.publicUrl!);
-          setUseTemplate(false);
-          setSelectLater(false);
-          setImageTransform({
-            x: 0,
-            y: 0,
-            scale: 1,
-            rotation: 0,
-          });
-        } else {
-          console.error('Image upload failed:', result.error);
-        }
-      } catch (error) {
-        console.error('Error uploading image:', error);
+  const handleFileUpload = async (file: File) => {
+    try {
+      setIsLoading(true);
+
+      // ファイルの検証
+      if (!validateImageType(file)) {
+        toast({
+          title: "対応していないファイル形式です",
+          description: "JPG、PNG、またはWEBP形式の画像のみアップロード可能です",
+          variant: "destructive",
+        });
+        return;
       }
+
+      if (!validateFileSize(file)) {
+        toast({
+          title: "ファイルサイズが大きすぎます",
+          description: "ファイルサイズは5MB以下にしてください",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // 画像の圧縮
+      const compressedFile = await compressImage(file);
+      
+      // プレビュー用のURL生成
+      const previewUrl = URL.createObjectURL(compressedFile);
+      setUploadedImage(previewUrl);
+
+      // 画像のサイズを取得
+      const dimensions = await getImageDimensions(compressedFile);
+      setInitialImageSize(dimensions);
+
+      // Supabaseへのアップロード
+      const result = await uploadImage(compressedFile);
+
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+
+      // アップロード成功時の処理
+      setImageKey(result.imageKey || null);
+      toast({
+        title: "アップロード完了",
+        description: "画像が正常にアップロードされました",
+      });
+
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast({
+        title: "エラーが発生しました",
+        description: "画像のアップロードに失敗しました",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -404,27 +484,59 @@ export default function PerfumeOrderingPage() {
     setIsDragging(false);
 
     const file = e.dataTransfer.files?.[0];
-    if (file) {
-      try {
-        const result = await uploadImage(file);
-        if (result.success) {
-          setImageKey(result.imageKey!);
-          setFinalImageKey(result.finalKey!);
-          setUploadedImage(result.publicUrl!);
-          setUseTemplate(false);
-          setSelectLater(false);
-          setImageTransform({
-            x: 0,
-            y: 0,
-            scale: 1,
-            rotation: 0,
-          });
-        } else {
-          console.error('Image upload failed:', result.error);
-        }
-      } catch (error) {
-        console.error('Error uploading image:', error);
+    if (!file) {
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+
+      // ファイルサイズチェック (5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: "ファイルサイズが大きすぎます",
+          description: "5MB以下の画像を選択してください。",
+          variant: "destructive",
+        })
+        return;
       }
+
+      // ファイル形式チェック
+      if (!['image/jpeg', 'image/png'].includes(file.type)) {
+        toast({
+          title: "対応していないファイル形式です",
+          description: "PNG、JPG形式の画像を選択してください。",
+          variant: "destructive",
+        })
+        return;
+      }
+
+      const result = await uploadImage(file);
+      if (!result.success) {
+        throw new Error(result.error || "アップロードに失敗しました");
+      }
+
+      setImageKey(result.imageKey!);
+      setFinalImageKey(result.finalKey!);
+      setUploadedImage(result.publicUrl!);
+      setUseTemplate(false);
+      setSelectLater(false);
+      setImageTransform({
+        x: 0,
+        y: 0,
+        scale: 1,
+        rotation: 0,
+      });
+
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      toast({
+        title: "エラーが発生しました",
+        description: error instanceof Error ? error.message : "画像のアップロードに失敗しました。時間をおいて再度お試しください。",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -502,6 +614,14 @@ export default function PerfumeOrderingPage() {
 
   // Handle template selection
   const handleTemplateSelect = () => {
+    if (!isAgreed) {
+      toast({
+        title: "画像利用の同意が必要です",
+        description: "著作権に関する注意事項に同意してください。",
+        variant: "destructive",
+      })
+      return
+    }
     setUseTemplate(true)
     setUploadedImage(defaultLabelImage)
     setImageTransform({
@@ -631,22 +751,18 @@ export default function PerfumeOrderingPage() {
         throw new Error('ラベル画像をアップロードしてください');
       }
 
-      const selectedFragranceData = fragrances.find(f => f.id === selectedFragrance);
+      const selectedFragranceData = mode === 'lab' ? aiGeneratedFragrance : fragrances.find(f => f.id === selectedFragrance);
       const selectedBottleData = bottles.find(b => b.id === selectedBottle);
 
       if (!selectedFragranceData || !selectedBottleData) {
         throw new Error('選択された商品が見つかりません');
       }
 
-      // カスタム商品のIDを生成
       const customProductId = generateCustomProductId(selectedFragrance, selectedBottle);
-
-      // プレビュー画像を保存
       await savePreviewImage(customProductId);
 
-      // カートに商品を追加
       const cartItem = {
-        priceId: 'price_1R9QuLE0t3PGpOQ5VMQyu3po',  // 更新されたStripe価格ID
+        priceId: mode === 'lab' ? 'price_1R8bHVE0t3PGpOQ5Mbc0MzFd' : 'price_1R9QuLE0t3PGpOQ5VMQyu3po',
         customProductId,
         name: `${selectedFragranceData.name} - ${selectedBottleData.name}`,
         price: selectedBottleData.price,
@@ -668,10 +784,7 @@ export default function PerfumeOrderingPage() {
         }
       };
 
-      console.log('Adding item to cart:', cartItem);
       addToCart(cartItem);
-
-      // カートドロワーを開く
       setIsCartOpen(true);
 
     } catch (error) {
@@ -792,6 +905,20 @@ export default function PerfumeOrderingPage() {
                               <span className="text-xs text-gray-500">({aiGeneratedFragrance.category})</span>
                             </div>
                             <p className="text-xs text-gray-600">{aiGeneratedFragrance.description}</p>
+                            <div className="mt-2 space-y-1">
+                              <p className="text-xs text-gray-600">
+                                <span className="font-medium">トップノート：</span>
+                                {aiGeneratedFragrance.notes.top.join('、')}
+                              </p>
+                              <p className="text-xs text-gray-600">
+                                <span className="font-medium">ミドルノート：</span>
+                                {aiGeneratedFragrance.notes.middle.join('、')}
+                              </p>
+                              <p className="text-xs text-gray-600">
+                                <span className="font-medium">ラストノート：</span>
+                                {aiGeneratedFragrance.notes.last.join('、')}
+                              </p>
+                            </div>
                           </div>
                           <Popover>
                             <PopoverTrigger asChild>
@@ -844,6 +971,20 @@ export default function PerfumeOrderingPage() {
                                 <span className="text-xs text-gray-500">({fragrance.category})</span>
                               </div>
                               <p className="text-xs text-gray-600">{fragrance.description}</p>
+                              <div className="mt-2 space-y-1">
+                                <p className="text-xs text-gray-600">
+                                  <span className="font-medium">トップノート：</span>
+                                  {fragrance.notes.top.join('、')}
+                                </p>
+                                <p className="text-xs text-gray-600">
+                                  <span className="font-medium">ミドルノート：</span>
+                                  {fragrance.notes.middle.join('、')}
+                                </p>
+                                <p className="text-xs text-gray-600">
+                                  <span className="font-medium">ラストノート：</span>
+                                  {fragrance.notes.last.join('、')}
+                                </p>
+                              </div>
                             </div>
                             <Popover>
                               <PopoverTrigger asChild>
@@ -1021,58 +1162,120 @@ export default function PerfumeOrderingPage() {
 
               {expandedSection === 4 && (
                 <div className="p-3">
-                  <div
-                    className={cn(
-                      "border-2 border-dashed rounded-lg p-4 sm:p-6 transition-colors mb-4",
-                      isDragging ? "border-[#FF6B6B] bg-[#FF6B6B]/5" : "border-gray-300",
-                      "hover:border-[#FF6B6B] hover:bg-[#FF6B6B]/5",
-                    )}
-                    onDragOver={handleDragOver}
-                    onDragLeave={handleDragLeave}
-                    onDrop={handleDrop}
-                  >
-                    <div className="text-center">
-                      <div className="mb-4">
-                        <div className="w-12 h-12 rounded-full bg-gray-50 mx-auto flex items-center justify-center">
-                          <Upload className="h-6 w-6 text-gray-400" />
+                  <div className="space-y-4">
+                    <div
+                      className={cn(
+                        "border-2 border-dashed rounded-lg p-4 sm:p-6 transition-colors",
+                        isDragging ? "border-[#FF6B6B] bg-[#FF6B6B]/5" : "border-gray-300",
+                        "hover:border-[#FF6B6B] hover:bg-[#FF6B6B]/5",
+                        !isAgreed && "opacity-50 cursor-not-allowed"
+                      )}
+                      onDragOver={(e) => {
+                        if (!isAgreed) {
+                          e.preventDefault()
+                          return
+                        }
+                        handleDragOver(e)
+                      }}
+                      onDragLeave={() => {
+                        if (!isAgreed) return
+                        handleDragLeave()
+                      }}
+                      onDrop={(e) => {
+                        if (!isAgreed) {
+                          e.preventDefault()
+                          toast({
+                            title: "画像利用の同意が必要です",
+                            description: "著作権に関する注意事項に同意してください。",
+                            variant: "destructive",
+                          })
+                          return
+                        }
+                        handleDrop(e)
+                      }}
+                    >
+                      <div className="text-center">
+                        <div className="mb-4">
+                          <div className="w-12 h-12 rounded-full bg-gray-50 mx-auto flex items-center justify-center">
+                            <Upload className="h-6 w-6 text-gray-400" />
+                          </div>
+                        </div>
+                        <div className="text-sm text-gray-600 mb-4">
+                          <p className="font-medium mb-2">推奨サイズ: 600 × 480 px以上</p>
+                          <p className="text-xs mb-2">対応フォーマット: PNG, JPG（300dpi）</p>
+                          <p className="text-xs mb-2">ファイルサイズ制限: 5MBまで</p>
+                          <p className="text-xs text-gray-500">
+                            ここにファイルをドラッグ＆ドロップ
+                            <br />
+                            または
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            className="flex-1"
+                            onClick={() => {
+                              if (!isAgreed) {
+                                toast({
+                                  title: "画像利用の同意が必要です",
+                                  description: "著作権に関する注意事項に同意してください。",
+                                  variant: "destructive",
+                                })
+                                return
+                              }
+                              fileInputRef.current?.click()
+                            }}
+                            disabled={!isAgreed}
+                          >
+                            {uploadedImage ? '画像を変更' : '画像をアップロード'}
+                          </Button>
+                          <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              if (e.target.files) {
+                                handleFileUpload(e.target.files[0]);
+                              }
+                            }}
+                            disabled={!isAgreed}
+                          />
                         </div>
                       </div>
-                      <div className="text-sm text-gray-600 mb-4">
-                        <p className="font-medium mb-2">推奨サイズ: 600 × 480 px以上</p>
-                        <p className="text-xs mb-2">対応フォーマット: PNG, JPG（300dpi）</p>
-                        <p className="text-xs text-gray-500">
-                          ここにファイルをドラッグ＆ドロップ
-                          <br />
-                          または
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          className="flex-1"
-                          onClick={() => fileInputRef.current?.click()}
-                        >
-                          {uploadedImage ? '画像を変更' : '画像をアップロード'}
-                        </Button>
-                        <input
-                          ref={fileInputRef}
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={handleFileUpload}
-                        />
-                      </div>
                     </div>
-                  </div>
 
-                  <div className="flex flex-col sm:flex-row justify-center gap-4 mb-8">
-                    <Button
-                      variant="outline"
-                      className="w-full"
-                      onClick={handleTemplateSelect}
-                    >
-                      テンプレートを選択
-                    </Button>
+                    <div className="flex flex-col sm:flex-row justify-center gap-4">
+                      <Button
+                        variant="outline"
+                        className="w-full"
+                        onClick={handleTemplateSelect}
+                      >
+                        テンプレートを選択
+                      </Button>
+                    </div>
+
+                    {/* 著作権に関する注意書き */}
+                    <p className="text-xs text-gray-500 mt-2">
+                      ※ 著作権を侵害する画像（アニメキャラ、芸能人、ブランドロゴ等）の使用は禁止されています。
+                      <br />
+                      ※ 利用規約に違反する画像を使った注文は、キャンセルさせていただくことがあります。
+                    </p>
+
+                    {/* 同意チェックボックス */}
+                    <div className="flex items-start mt-4">
+                      <input
+                        type="checkbox"
+                        id="copyright-agree"
+                        className="mr-2 mt-1 h-4 w-4 accent-red-500 border-2 border-red-500"
+                        required
+                        checked={isAgreed}
+                        onChange={() => setIsAgreed(!isAgreed)}
+                      />
+                      <label htmlFor="copyright-agree" className="text-sm text-red-500 font-medium">
+                        アップロードする画像が第三者の権利を侵害していないことを確認しました
+                      </label>
+                    </div>
                   </div>
                 </div>
               )}

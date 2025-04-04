@@ -108,11 +108,7 @@ export default function CompanyPage() {
               <div>
                 <h3 className="text-base font-medium mb-2 text-secondary-foreground font-zen">送料</h3>
                 <p className="text-secondary-foreground/70 font-zen">
-                  全国一律 550円（税込）
-                  <br />
-                  ※5,500円（税込）以上のご購入で送料無料
-                  <br />
-                  ※一部地域（沖縄、離島など）は別途送料がかかる場合があります。
+                  ゆうパケット（送料無料）・宅急便コンパクト（550円）
                 </p>
               </div>
 
@@ -171,6 +167,17 @@ export default function CompanyPage() {
                 <h3 className="text-base font-medium mb-2 text-secondary-foreground font-zen">ページの表示</h3>
                 <p className="text-secondary-foreground/70 font-zen">
                   商品の色味や質感は、お客様のモニター設定やご利用環境により実際の商品と異なって見える場合があります。
+                </p>
+              </div>
+
+              <div>
+                <h3 className="text-base font-medium mb-2 text-secondary-foreground font-zen">知的財産権に関するご注意</h3>
+                <p className="text-secondary-foreground/70 font-zen">
+                  ユーザーが本サービスにアップロードまたは送信した画像・デザイン等について、当社はその権利の適法性を確認しておりません。
+                  <br />
+                  これらのコンテンツに第三者の著作権・商標権・肖像権などの権利侵害があった場合でも、当社は一切の責任を負いかねます。
+                  <br />
+                  また、当該コンテンツの利用により当社または第三者に損害が生じた場合、ユーザーはその責任を負うものとします。
                 </p>
               </div>
             </div>

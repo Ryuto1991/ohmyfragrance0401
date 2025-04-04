@@ -30,11 +30,12 @@ export type MoveResult = {
 
 export async function uploadImage(file: File): Promise<UploadResult> {
   try {
-    // ファイルサイズチェック（3MB以下）
-    if (file.size > 3 * 1024 * 1024) {
+    // Check file size (5MB limit)
+    const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB in bytes
+    if (file.size > MAX_FILE_SIZE) {
       return {
         success: false,
-        error: 'ファイルサイズは3MB以下にしてください'
+        error: 'ファイルサイズは5MB以下にしてください。'
       };
     }
 

@@ -10,12 +10,21 @@ import { v4 as uuidv4 } from "uuid"
 import SiteHeader from "@/components/site-header"
 import SiteFooter from "@/components/site-footer"
 import { createClient } from '@supabase/supabase-js'
+import { ChoiceButtons } from './components/ChoiceButtons'
+import Image from "next/image"
+import { useChatFlow } from './hooks/useChatFlow'
 
-// 型定義
+interface Choice {
+  name: string;
+  description?: string;
+}
+
+// 型定義を更新
 interface Message {
   id: string
   role: "user" | "assistant"
   content: string
+  choices?: string[]
   options?: {
     showConfirmButton?: boolean
     isJson?: boolean
@@ -44,10 +53,17 @@ export default function FragranceLabChat() {
   const searchParams = useSearchParams()
   const initialQuery = searchParams.get("query") ?? ""
 
-  const [messages, setMessages] = useState<Message[]>([])
+  const {
+    messages,
+    setMessages,
+    isLoading,
+    setIsLoading,
+    addMessage,
+    addSplitMessages
+  } = useChatFlow()
+
   const [input, setInput] = useState("")
   const [currentStep, setCurrentStep] = useState(0)
-  const [isLoading, setIsLoading] = useState(false)
   const [hasProcessedInitialQuery, setHasProcessedInitialQuery] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
   const [recipe, setRecipe] = useState<FragranceRecipe | null>(null)
@@ -64,27 +80,9 @@ export default function FragranceLabChat() {
     }
   }
 
-  const addMessage = (role: "user" | "assistant", content: string, options?: Message["options"]) => {
-    // JSONかどうかを判定
-    const isJson = content.trim().startsWith('{') && content.trim().endsWith('}')
-    
-    setMessages((prev) => [
-      ...prev,
-      { 
-        id: uuidv4(), 
-        role, 
-        content,
-        options: {
-          ...options,
-          isJson: isJson
-        }
-      }
-    ])
-  }
-
   const handleSend = async () => {
     if (!input.trim()) return
-    const userMessage: Message = { id: uuidv4(), role: "user", content: input }
+    const userMessage = { id: uuidv4(), role: "user" as const, content: input }
     setMessages((prev) => [...prev, userMessage])
     setInput("")
     setIsLoading(true)
@@ -101,13 +99,43 @@ export default function FragranceLabChat() {
         })
       })
       const data = await res.json()
-      // レシピ確認のメッセージかどうかを判定
-      const isRecipeConfirmation = data.result.includes("この香りで本当にいいかな？") ||
-                                 data.result.includes("OKだったら『はい』って送ってくれたら")
       
-      addMessage("assistant", data.result, {
-        showConfirmButton: isRecipeConfirmation
-      })
+      // レシピ確認のメッセージかどうかを判定
+      const isRecipeConfirmation = data.recipe !== undefined
+
+      // メッセージを分割して表示
+      if (data.content) {
+        const splitContents = data.content
+          .split('\n\n')
+          .filter(Boolean)
+          .map((content: string) => {
+            if (content.includes('"json') || content.includes('```json')) {
+              return '選択肢から香りをお選びください：'
+            }
+            return content
+          })
+        
+        // 選択肢がある場合は、説明文を解析
+        const choices: string[] = []
+        if (data.choices && Array.isArray(data.choices)) {
+          data.choices.forEach((choice: string) => {
+            choices.push(choice)
+          })
+        }
+
+        await addSplitMessages(
+          splitContents,
+          choices,
+          {
+            showConfirmButton: isRecipeConfirmation
+          }
+        )
+      }
+
+      if (data.recipe) {
+        setRecipe(data.recipe)
+      }
+
       setCurrentStep((prev) => Math.min(prev + 1, STEPS.length - 1))
       scrollToBottom()
     } catch (error) {
@@ -199,7 +227,24 @@ export default function FragranceLabChat() {
             })
           })
           const data = await res.json()
-          addMessage("assistant", data.result)
+          
+          // レシピ確認のメッセージかどうかを判定
+          const isRecipeConfirmation = data.recipe !== undefined
+
+          // 新しいメッセージを追加
+          addMessage(
+            "assistant",
+            data.content || "申し訳ありません。エラーが発生しました。",
+            {
+              showConfirmButton: isRecipeConfirmation
+            },
+            data.choices || []
+          )
+
+          if (data.recipe) {
+            setRecipe(data.recipe)
+          }
+
           setCurrentStep((prev) => Math.min(prev + 1, STEPS.length - 1))
         } catch (error) {
           console.error("Error:", error)
@@ -218,7 +263,7 @@ export default function FragranceLabChat() {
         content: "こんにちは！香りのカスタムを始めましょう。どんなイメージがありますか？" 
       }])
     }
-  }, [initialQuery, hasProcessedInitialQuery, addMessage])
+  }, [initialQuery, hasProcessedInitialQuery])
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -227,76 +272,134 @@ export default function FragranceLabChat() {
   }, [messages])
 
   return (
-    <div className="min-h-screen bg-secondary flex flex-col">
+    <div className="flex flex-col min-h-screen bg-background">
       <SiteHeader />
-      <main className="flex-1">
-        <div className="container mx-auto px-4 py-8">
-          <div className="max-w-2xl mx-auto">
-            <div className="mb-4 text-center">
-              <h1 className="text-2xl font-bold mb-2">💬 チャットでつくる</h1>
-              <p className="text-sm text-muted-foreground">
-                ステップ：{STEPS[currentStep]}
-              </p>
+      <main className="flex-1 container max-w-4xl mx-auto px-4 py-8">
+        <div className="mb-4 flex items-center space-x-2">
+          {STEPS.map((step, index) => (
+            <div
+              key={step}
+              className={`px-3 py-1 rounded-full text-sm ${
+                index === currentStep
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted"
+              }`}
+            >
+              {step}
             </div>
-
-            <div className="bg-white rounded-lg shadow-md p-4">
-              <ScrollArea ref={scrollRef} className="h-[60vh] space-y-4 pr-4">
-                {messages.map((m) => (
-                  <div 
-                    key={m.id} 
-                    className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}
-                  >
-                    <div 
-                      className={`max-w-[75%] rounded-lg p-3 ${
-                        m.role === "user" 
-                          ? "bg-primary text-white" 
-                          : "bg-muted text-black"
-                      }`}
-                    >
-                      {m.options?.isJson ? (
-                        <pre className="whitespace-pre-wrap text-sm font-mono bg-black/5 p-2 rounded">
-                          {JSON.stringify(JSON.parse(m.content), null, 2)}
-                        </pre>
-                      ) : (
-                        <p className="whitespace-pre-wrap">{m.content}</p>
-                      )}
-                      {m.options?.showConfirmButton && (
-                        <div className="mt-2 flex justify-end">
-                          <Button 
-                            variant="secondary" 
-                            size="sm"
-                            onClick={handleConfirmClick}
-                          >
-                            はい
-                          </Button>
-                        </div>
-                      )}
-                    </div>
+          ))}
+        </div>
+        <ScrollArea className="h-[60vh] rounded-md border p-4" ref={scrollRef}>
+          <div className="space-y-4">
+            {messages.map((m) => (
+              <div
+                key={m.id}
+                className={`flex ${
+                  m.role === "assistant" ? "flex-row" : "flex-row-reverse"
+                } items-start gap-3 text-sm`}
+              >
+                {m.role === "assistant" ? (
+                  <div className="w-8 h-8 rounded-full overflow-hidden bg-primary/10 flex items-center justify-center flex-shrink-0">
+                    <Image
+                      src="/images/Fragrance Lab.png"
+                      alt="Fragrance Lab"
+                      width={24}
+                      height={24}
+                      className="object-cover"
+                    />
                   </div>
-                ))}
-                {isLoading && (
-                  <div className="flex justify-start">
-                    <div className="bg-muted rounded-lg p-3">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    </div>
+                ) : (
+                  <div className="w-8 h-8 rounded-full overflow-hidden bg-primary/10 flex items-center justify-center flex-shrink-0">
+                    <Image
+                      src="/images/User.png"
+                      alt="User"
+                      width={24}
+                      height={24}
+                      className="object-cover"
+                    />
                   </div>
                 )}
-              </ScrollArea>
-
-              <div className="flex gap-2 mt-4">
-                <Input
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
-                  placeholder="香りのイメージを入力..."
-                  className="flex-1"
-                />
-                <Button onClick={handleSend} disabled={isLoading}>
-                  送信
-                </Button>
+                <div
+                  className={`flex flex-col space-y-2 ${
+                    m.role === "assistant"
+                      ? "items-start"
+                      : "items-end"
+                  }`}
+                >
+                  <div
+                    className={`rounded-lg px-4 py-2 max-w-[80%] ${
+                      m.role === "assistant"
+                        ? "bg-muted"
+                        : "bg-primary text-primary-foreground"
+                    }`}
+                  >
+                    {m.content}
+                  </div>
+                  {m.choices && m.choices.length > 0 && (
+                    <div className="w-full max-w-sm">
+                      <ChoiceButtons
+                        choices={m.choices.map(choice => ({
+                          name: choice,
+                          description: ''
+                        }))}
+                        onSelect={(choice) => {
+                          setInput(choice)
+                          handleSend()
+                        }}
+                      />
+                    </div>
+                  )}
+                  {m.options?.showConfirmButton && (
+                    <Button
+                      variant="outline"
+                      className="mt-2"
+                      onClick={handleConfirmClick}
+                    >
+                      次に進む
+                    </Button>
+                  )}
+                </div>
               </div>
-            </div>
+            ))}
+            {isLoading && (
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full overflow-hidden bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  <Image
+                    src="/images/Fragrance Lab.png"
+                    alt="Fragrance Lab"
+                    width={24}
+                    height={24}
+                    className="object-cover"
+                  />
+                </div>
+                <div className="bg-muted rounded-lg px-4 py-2">
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>考え中...</span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
+        </ScrollArea>
+        <div className="mt-4">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault()
+              handleSend()
+            }}
+            className="flex space-x-2"
+          >
+            <Input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="香りのイメージを入力..."
+              className="flex-1"
+            />
+            <Button type="submit" disabled={isLoading}>
+              送信
+            </Button>
+          </form>
         </div>
       </main>
       <SiteFooter />

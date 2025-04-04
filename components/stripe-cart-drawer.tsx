@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import React, { useState } from 'react';
 import Image from 'next/image';
@@ -54,17 +54,22 @@ export default function StripeCartDrawer({ open, onOpenChange }: StripeCartDrawe
       const orderDetails = cartItems
         .filter(item => item.customProductId)
         .map(item => ({
-          id: item.customProductId,
+          i: item.customProductId,
           f: item.customDetails?.fragranceId || '',
-          fn: item.customDetails?.fragranceName || '',
+          n: item.customDetails?.fragranceName || '',
           b: item.customDetails?.bottleId || '',
           bn: item.customDetails?.bottleName || '',
-          ls: item.customDetails?.labelSize || '',
-          lt: item.customDetails?.labelType || '',
-          li: item.customDetails?.labelImageUrl || '',
+          s: item.customDetails?.labelSize || '',
+          t: item.customDetails?.labelType || '',
+          u: item.customDetails?.labelImageUrl || '',
           q: item.quantity,
           ...(item.customDetails?.imageTransform && {
-            t: item.customDetails.imageTransform
+            tr: {
+              x: item.customDetails.imageTransform.x,
+              y: item.customDetails.imageTransform.y,
+              s: item.customDetails.imageTransform.scale,
+              r: item.customDetails.imageTransform.rotation
+            }
           })
         }));
 
@@ -94,7 +99,7 @@ export default function StripeCartDrawer({ open, onOpenChange }: StripeCartDrawe
         const firstOrder = orderDetails[0];
         
         // 必須パラメータの検証
-        if (!firstOrder.fn || !firstOrder.bn || !firstOrder.li) {
+        if (!firstOrder.n || !firstOrder.bn || !firstOrder.u) {
           throw new Error('カスタム商品の必須情報が不足しています');
         }
 
@@ -106,10 +111,10 @@ export default function StripeCartDrawer({ open, onOpenChange }: StripeCartDrawe
           body: JSON.stringify({
             line_items: lineItems,
             orderDetails: orderDetails,
-            fragranceName: firstOrder.fn,
+            fragranceName: firstOrder.n,
             bottleType: firstOrder.bn,
-            imageKey: firstOrder.li,
-            finalImageKey: firstOrder.li,
+            imageKey: firstOrder.u,
+            finalImageKey: firstOrder.u,
             userId: userId,
             anonymousId: !userId ? anonymousId : undefined,
             customer_email: 'required',

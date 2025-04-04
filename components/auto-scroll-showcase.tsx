@@ -77,6 +77,8 @@ export default function AutoScrollShowcase() {
                     src={item.image || "/placeholder.svg"}
                     alt={item.name}
                     fill
+                    sizes="(max-width: 768px) 280px, 320px"
+                    priority={item.id === 1}
                     className="object-contain p-4 transition-transform duration-700 group-hover:scale-105"
                   />
                 </div>
