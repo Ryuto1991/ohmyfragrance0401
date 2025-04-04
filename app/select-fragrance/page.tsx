@@ -101,7 +101,7 @@ export default function SelectFragrancePage() {
       id: 4,
       title: "Erina Grace",
       description: "凛とした佇まいと、どこか儚げな微笑み。触れれば消えてしまいそうな透明感と、心に残る芯の強さ。",
-      image: "/images/erina-grace.png",
+      image: "/images/erina-grace.webp",
       category: "コンテンツコラボ",
       slug: "erina-grace",
     },
@@ -109,7 +109,7 @@ export default function SelectFragrancePage() {
       id: 3,
       title: "Eternal Smoke",
       description: "ネオンの残光、路地裏の静寂、その空気ごとまとうような、深く長いスモーキーな香り。",
-      image: "/images/eternal-smoke.png",
+      image: "/images/eternal-smoke.webp",
       category: "アーティストコラボ",
       slug: "eternal-smoke",
     },
@@ -117,7 +117,7 @@ export default function SelectFragrancePage() {
       id: 5,
       title: "Bloom Whisper",
       description: "花々の囁きに耳を傾ける。春の訪れを告げる、優しく華やかな香り。",
-      image: "/images/bloom-whisper.png",
+      image: "/images/bloom-whisper.webp",
       category: "アーティストコラボ",
       slug: "bloom-whisper",
     },
@@ -248,7 +248,7 @@ export default function SelectFragrancePage() {
             <div className="flex justify-center mb-8">
               <div className="w-full max-w-4xl">
                 <Image
-                  src="/images/fragrance-order-flow.png"
+                  src="/images/fragrance-order-flow.webp"
                   alt="セレクト香水の注文の流れ"
                   width={1000}
                   height={600}
@@ -333,7 +333,7 @@ export default function SelectFragrancePage() {
                 </div>
                 <div>
                   <div className="relative h-[300px]">
-                    <Image src="/images/gift-box.png" alt="ギフトボックス" fill className="object-contain" />
+                    <Image src="/images/gift-box.webp" alt="ギフトボックス" fill className="object-contain" />
                   </div>
                 </div>
               </div>

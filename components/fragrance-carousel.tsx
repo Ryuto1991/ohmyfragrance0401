@@ -28,7 +28,7 @@ const fragrances = [
     id: 3,
     name: "Eternal Smoke",
     description: "ラッパー「YuruFlex」とつくる香りの余韻",
-    image: "/images/eternal-smoke.png",
+    image: "/images/eternal-smoke.webp",
   },
   {
     id: 4,

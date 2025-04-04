@@ -38,7 +38,7 @@ YuruFlexが歩いてきた夜の軌跡を、香りで閉じ込めた一本。
 
 神聖でありながら、どこか孤独。
 その"余韻"こそが、彼の本質。`,
-    image: "/images/eternal-smoke.png",
+    image: "/images/eternal-smoke.webp",
     category: "アーティストコラボ",
     slug: "eternal-smoke",
     price: "5,500",

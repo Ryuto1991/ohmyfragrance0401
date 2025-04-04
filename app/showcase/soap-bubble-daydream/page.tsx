@@ -40,7 +40,7 @@ export default function SoapBubbleDaydreamPage() {
 この香水はケーススタディ作品として開発されました。
 当ブランドでは、10本からの小ロット生産にも対応しております。
 アーティスト・クリエイター・ブランド様向けに、世界観を香りで表現するお手伝いをしています。`,
-    image: "/images/soap-bubble-daydream-new.png",
+    image: "/images/soap-bubble-daydream-new.webp",
     category: "アーティストコラボ",
     slug: "soap-bubble-daydream",
     price: "5,980",

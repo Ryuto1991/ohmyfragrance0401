@@ -19,14 +19,14 @@ const fragrances = [
     id: 1,
     name: "Eternal Smoke",
     description: "ラッパー「YuruFlex」とつくる香りの余韻",
-    image: "/images/eternal-smoke.png",
+    image: "/images/eternal-smoke.webp",
     link: "/showcase/eternal-smoke",
   },
   {
     id: 2,
     name: "Bloom Whisper",
     description: "アイドル「りり香」とつくる青春の香り",
-    image: "/images/bloom-whisper.png",
+    image: "/images/bloom-whisper.webp",
     link: "/showcase/bloom-whisper",
   },
   {
@@ -40,14 +40,14 @@ const fragrances = [
     id: 4,
     name: "Silent Pulse",
     description: "DJ「Neon」とつくる夜の鼓動",
-    image: "/images/silent-pulse.png",
+    image: "/images/silent-pulse.webp",
     link: "/showcase/silent-pulse",
   },
   {
     id: 5,
     name: "Erina Grace",
     description: "モデル「Erina」とつくる優雅な一日",
-    image: "/images/erina-grace.png",
+    image: "/images/erina-grace.webp",
     link: "/showcase/erina-grace",
   },
 ]

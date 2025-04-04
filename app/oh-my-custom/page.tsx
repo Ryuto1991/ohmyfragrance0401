@@ -188,7 +188,7 @@ export default function OhMyCustomPage() {
       id: 4,
       title: "Erina Grace",
       description: "凛とした佇まいと、どこか儚げな微笑み。触れれば消えてしまいそうな透明感と、心に残る芯の強さ。",
-      image: "/images/erina-grace.png",
+      image: "/images/erina-grace.webp",
       category: "コンテンツコラボ",
       slug: "erina-grace",
     },
@@ -196,7 +196,7 @@ export default function OhMyCustomPage() {
       id: 3,
       title: "Eternal Smoke",
       description: "ネオンの残光、路地裏の静寂、その空気ごとまとうような、深く長いスモーキーな香り。",
-      image: "/images/eternal-smoke.png",
+      image: "/images/eternal-smoke.webp",
       category: "アーティストコラボ",
       slug: "eternal-smoke",
     },
@@ -204,7 +204,7 @@ export default function OhMyCustomPage() {
       id: 5,
       title: "Bloom Whisper",
       description: "花々の囁きに耳を傾ける。春の訪れを告げる、優しく華やかな香り。",
-      image: "/images/bloom-whisper.png",
+      image: "/images/bloom-whisper.webp",
       category: "アーティストコラボ",
       slug: "bloom-whisper",
     },
@@ -276,10 +276,9 @@ export default function OhMyCustomPage() {
                   transition={{ duration: 0.6, delay: 0.3 }}
                   className="mb-6"
                 >
-                  <Link href="/oh-my-custom-order">
-                    <Button className="bg-primary hover:bg-primary/90 text-white rounded-full px-8 py-6 font-zen text-lg shadow-md hover:shadow-lg transition-all">
+                  <Link href="/custom-order?mode=custom">
+                    <Button className="w-full bg-primary hover:bg-primary/90 text-white rounded-full py-6 text-lg font-medium">
                       今すぐ香水を選ぶ
-                      <ArrowRight className="ml-2 h-5 w-5" />
                     </Button>
                   </Link>
                 </motion.div>
@@ -332,7 +331,7 @@ export default function OhMyCustomPage() {
             <div className="flex justify-center mb-8">
               <div className="w-full max-w-2xl">
                 <Image
-                  src="/images/fragrance-order-flow.png"
+                  src="/images/fragrance-order-flow.webp"
                   alt="セレクト香水の注文の流れ"
                   width={1000}
                   height={600}
@@ -447,7 +446,7 @@ export default function OhMyCustomPage() {
                 </div>
                 <div>
                   <div className="relative h-[300px]">
-                    <Image src="/images/gift-box.png" alt="ギフトボックス" fill className="object-contain" />
+                    <Image src="/images/gift-box.webp" alt="ギフトボックス" fill className="object-contain" />
                   </div>
                 </div>
               </div>
@@ -466,7 +465,7 @@ export default function OhMyCustomPage() {
                 4,980円～ギフトや推し香水がつくれます！
               </p>
               <div className="flex justify-center">
-                <Link href="/oh-my-custom-order">
+                <Link href="/custom-order?mode=custom">
                   <Button className="bg-primary hover:bg-primary/90 text-white rounded-full px-8 py-4 text-lg font-zen">
                     今すぐ香りを選ぶ
                     <ArrowRight className="ml-2 h-5 w-5" />

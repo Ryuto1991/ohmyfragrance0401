@@ -158,7 +158,7 @@ YuruFlexが歩いてきた夜の軌跡を、香りで閉じ込めた一本。
 この香水はケーススタディ作品として開発されました。
 当ブランドでは、10本からの小ロット生産にも対応しています。
 アーティスト・クリエイター・ブランド様向けに、世界観を香りで表現するお手伝いをしています。`,
-    image: "/images/eternal-smoke.png",
+    image: "/images/eternal-smoke.webp",
     category: "アーティストコラボ",
     slug: "eternal-smoke",
     price: "5,500",

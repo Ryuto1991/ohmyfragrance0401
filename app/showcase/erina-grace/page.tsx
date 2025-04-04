@@ -38,7 +38,7 @@ export default function ErinaGracePage() {
 透明感あふれるフローラルノートに、
 芯のあるウッディなアクセント。
 気品と情熱が織りなす、優美な香り。`,
-    image: "/images/erina-grace.png",
+    image: "/images/erina-grace.webp",
     category: "アーティストコラボ",
     slug: "erina-grace",
     price: "6,600",

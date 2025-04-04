@@ -56,7 +56,7 @@ export async function POST(request: Request) {
             type: 'custom', 
             custom: 'ご希望やメモ（任意）' 
           },
-          type: 'textarea',
+          type: 'text',
           optional: true
         }
       ],

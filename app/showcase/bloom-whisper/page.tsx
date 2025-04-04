@@ -39,7 +39,7 @@ Bloom（ブルーム）の"春霞"担当、朝凪りりあ。
 春の朝、そっと風に揺れる花のよう。
 心にそっと寄り添い、今日をちょっとだけやさしくしてくれる―― 
 そんな"春のしずく"のような香水です。`,
-    image: "/images/bloom-whisper.png",
+    image: "/images/bloom-whisper.webp",
     category: "コンテンツコラボ",
     slug: "bloom-whisper",
     price: "5,980",

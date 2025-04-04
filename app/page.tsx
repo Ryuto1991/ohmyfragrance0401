@@ -294,7 +294,7 @@ export default function Home() {
                     style={{ willChange: "transform, opacity" }}
                   >
                     <Image
-                      src="/images/fragrance-bottles.png"
+                      src="/images/fragrance-bottles.webp"
                       alt="Oh My Fragranceのラインナップ"
                       fill
                       className="object-cover"

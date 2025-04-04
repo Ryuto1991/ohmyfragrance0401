@@ -91,6 +91,13 @@ export default function StripeCartDrawer({ open, onOpenChange }: StripeCartDrawe
       // カスタム商品が含まれている場合
       if (orderDetails.length > 0) {
         console.log('Processing custom product checkout');
+        const firstOrder = orderDetails[0];
+        
+        // 必須パラメータの検証
+        if (!firstOrder.fn || !firstOrder.bn || !firstOrder.li) {
+          throw new Error('カスタム商品の必須情報が不足しています');
+        }
+
         const checkoutResponse = await fetch('/api/create-checkout-session', {
           method: 'POST',
           headers: {
@@ -99,12 +106,12 @@ export default function StripeCartDrawer({ open, onOpenChange }: StripeCartDrawe
           body: JSON.stringify({
             line_items: lineItems,
             orderDetails: orderDetails,
-            fragranceName: orderDetails[0].fn,
-            bottleType: orderDetails[0].bn,
-            imageKey: orderDetails[0].li,
-            finalImageKey: orderDetails[0].li,
+            fragranceName: firstOrder.fn,
+            bottleType: firstOrder.bn,
+            imageKey: firstOrder.li,
+            finalImageKey: firstOrder.li,
             userId: userId,
-            anonymousId: !userId ? anonymousId : undefined, // 非ログインユーザーの場合のみ送信
+            anonymousId: !userId ? anonymousId : undefined,
             customer_email: 'required',
             billing_address_collection: 'required',
             customer_creation: 'always',

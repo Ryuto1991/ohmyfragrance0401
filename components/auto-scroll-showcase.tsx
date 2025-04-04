@@ -15,31 +15,31 @@ const fragranceShowcases = [
   {
     id: 4,
     name: "Erina Grace",
-    image: "/images/erina-grace.png",
+    image: "/images/erina-grace.webp",
     link: "/showcase/erina-grace",
   },
   {
     id: 5,
     name: "Silent Pulse",
-    image: "/images/silent-pulse.png",
+    image: "/images/silent-pulse.webp",
     link: "/showcase/silent-pulse",
   },
   {
     id: 2,
     name: "Soap Bubble Daydream",
-    image: "/images/soap-bubble-daydream-new.png",
+    image: "/images/soap-bubble-daydream-new.webp",
     link: "/showcase/soap-bubble-daydream",
   },
   {
     id: 3,
     name: "Eternal Smoke",
-    image: "/images/eternal-smoke.png",
+    image: "/images/eternal-smoke.webp",
     link: "/showcase/eternal-smoke",
   },
   {
     id: 6,
     name: "Bloom Whisper",
-    image: "/images/bloom-whisper.png",
+    image: "/images/bloom-whisper.webp",
     link: "/showcase/bloom-whisper",
   },
 ]

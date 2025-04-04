@@ -38,7 +38,7 @@ Re:Noirが紡ぐ繊細な旋律と感情を香りで再構成。
 
 孤独と希望が交差する、
 都会の夜に咲く、静かな鼓動。`,
-    image: "/images/silent-pulse.png",
+    image: "/images/silent-pulse.webp",
     category: "コンテンツコラボ",
     slug: "silent-pulse",
     price: "5,980",
