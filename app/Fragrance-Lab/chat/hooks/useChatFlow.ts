@@ -3,69 +3,93 @@
 import { useState, useCallback } from 'react'
 import { v4 as uuidv4 } from 'uuid'
 
-interface Message {
-  id: string
-  role: "user" | "assistant"
-  content: string
-  choices?: string[]
-  options?: {
-    showConfirmButton?: boolean
-    isJson?: boolean
-  }
+export interface Message {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  choices?: string[];
+  recipe?: any;
+  emotionScores?: {
+    calm: number;
+    refresh: number;
+    romantic: number;
+    spiritual: number;
+    energy: number;
+  };
 }
 
 interface ChatFlowOptions {
   initialDelay?: number
   messageDelay?: number
+  typingDelay?: number
+  onPhaseAdvance?: () => void
 }
 
 export function useChatFlow(options: ChatFlowOptions = {}) {
-  const { initialDelay = 500, messageDelay = 800 } = options
+  const { 
+    initialDelay = 500, 
+    messageDelay = 800,
+    typingDelay = 30,
+    onPhaseAdvance 
+  } = options
+  
   const [messages, setMessages] = useState<Message[]>([])
   const [isLoading, setIsLoading] = useState(false)
 
-  const addMessage = useCallback((
-    role: "user" | "assistant",
-    content: string = "",
-    options?: Message["options"],
-    choices?: string[]
-  ) => {
-    const isJson = content ? content.trim().startsWith('{') && content.trim().endsWith('}') : false
-    
-    setMessages((prev) => [
-      ...prev,
-      { 
-        id: uuidv4(), 
-        role, 
-        content: content || "",
-        choices,
-        options: {
-          ...options,
-          isJson: isJson
-        }
-      }
-    ])
+  const addMessage = useCallback((message: Message) => {
+    setMessages(prev => [...prev, message])
   }, [])
 
-  const addSplitMessages = useCallback(async (
-    contents: string[],
-    choices?: string[],
-    options?: Message["options"]
-  ) => {
-    // 最初のメッセージを即時表示
-    addMessage("assistant", contents[0])
+  const splitContent = (content: string): string[] => {
+    // 句点で分割
+    const sentences = content.split(/([。！？])/g).filter(Boolean)
+    const result: string[] = []
+    let current = ""
 
-    // 残りのメッセージを遅延表示
-    for (let i = 1; i < contents.length; i++) {
-      await new Promise(resolve => setTimeout(resolve, messageDelay))
-      if (i === contents.length - 1) {
-        // 最後のメッセージには選択肢とオプションを付加
-        addMessage("assistant", contents[i], options, choices)
+    for (let i = 0; i < sentences.length; i += 2) {
+      const sentence = sentences[i] + (sentences[i + 1] || "")
+      
+      if (current.length + sentence.length > 100) {
+        if (current) {
+          result.push(current)
+          current = sentence
+        } else {
+          result.push(sentence)
+        }
       } else {
-        addMessage("assistant", contents[i])
+        current += sentence
       }
     }
-  }, [addMessage, messageDelay])
+
+    if (current) {
+      result.push(current)
+    }
+
+    return result
+  }
+
+  const addSplitMessages = useCallback((message: Message) => {
+    const parts = splitContent(message.content)
+    
+    parts.forEach((content, index) => {
+      const isLast = index === parts.length - 1
+      addMessage({
+        ...message,
+        id: uuidv4(),
+        content,
+        choices: isLast ? message.choices : undefined,
+        emotionScores: isLast ? message.emotionScores : undefined
+      })
+    })
+
+    // レシピが完成した場合のみフェーズを進める
+    if (message.recipe && 
+        message.recipe.top_notes && 
+        message.recipe.middle_notes && 
+        message.recipe.base_notes) {
+      onPhaseAdvance?.()
+    }
+  }, [addMessage, onPhaseAdvance])
 
   return {
     messages,

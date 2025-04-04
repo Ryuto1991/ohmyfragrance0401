@@ -1,36 +1,47 @@
 "use client"
 
-import { Button } from '@/components/ui/button'
-
-interface Choice {
-  name: string
-  description?: string
-}
+import { motion } from "framer-motion"
+import { Button } from "@/components/ui/button"
 
 interface ChoiceButtonsProps {
-  choices: Choice[]
-  onSelect: (value: string) => void
+  choices: string[]
+  onSelect: (choice: string) => void
+}
+
+const container = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1
+    }
+  }
+}
+
+const item = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0 }
 }
 
 export function ChoiceButtons({ choices, onSelect }: ChoiceButtonsProps) {
   return (
-    <div className="space-y-2">
-      {choices.map((choice, idx) => (
-        <div key={idx} className="flex flex-col gap-1">
+    <motion.div
+      variants={container}
+      initial="hidden"
+      animate="show"
+      className="flex flex-col gap-2 w-full"
+    >
+      {choices.map((choice, index) => (
+        <motion.div key={index} variants={item}>
           <Button
             variant="outline"
-            onClick={() => onSelect(choice.name)}
-            className="w-full text-left font-zen justify-start"
+            className="w-full text-left justify-start hover:bg-primary/5 transition-colors"
+            onClick={() => onSelect(choice)}
           >
-            {choice.name}
+            {choice}
           </Button>
-          {choice.description && (
-            <p className="text-sm text-muted-foreground pl-2">
-              {choice.description}
-            </p>
-          )}
-        </div>
+        </motion.div>
       ))}
-    </div>
+    </motion.div>
   )
 } 

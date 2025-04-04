@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { openai } from '@/lib/openai'
+import essentialOilsData from '@/components/chat/essential-oils.json'
 
 export async function POST(req: Request) {
   try {
@@ -13,11 +14,14 @@ export async function POST(req: Request) {
     }
 
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4',
+      model: 'gpt-4o-mini',
       messages: [
         {
           role: 'system',
           content: `あなたは香水の専門家です。ユーザーが入力したキーワードに基づいて、オリジナルの香水レシピを生成してください。
+          以下の香り成分のみを使用してください：
+          ${JSON.stringify(essentialOilsData.perfumeNotes, null, 2)}
+
           以下のJSON形式で返してください：
           {
             "title": "香水のタイトル",
@@ -55,7 +59,17 @@ export async function POST(req: Request) {
         throw new Error("ノートの形式が正しくありません。")
       }
 
-      return NextResponse.json(recipe)
+      // ノートの形式を変換
+      const formattedRecipe = {
+        ...recipe,
+        notes: {
+          top: recipe.notes.top.map((name: string) => ({ name, amount: 1 })),
+          middle: recipe.notes.middle.map((name: string) => ({ name, amount: 1 })),
+          base: recipe.notes.base.map((name: string) => ({ name, amount: 1 }))
+        }
+      }
+
+      return NextResponse.json(formattedRecipe)
     } catch (parseError) {
       console.error("JSON parse error:", parseError)
       return NextResponse.json(

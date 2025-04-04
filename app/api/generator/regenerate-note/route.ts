@@ -35,7 +35,7 @@ export async function POST(req: Request) {
 ユーザーの要望: ${query}`
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4-turbo-preview",
+      model: "gpt-4o-mini",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: "新しいノートを提案してください" }
