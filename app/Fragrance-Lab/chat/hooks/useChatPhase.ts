@@ -1,63 +1,78 @@
-import { useState, useCallback } from "react"
-import { ChatPhase } from "../components/ChatProgressSteps"
+import { useState, useCallback, useRef, useMemo } from "react"
+import { ChatPhase } from "../types"
+
+const PHASE_ORDER: ChatPhase[] = [
+  "welcome",
+  "purpose",
+  "personality",
+  "preferences",
+  "emotions",
+  "result"
+]
+
+const PHASE_LABELS: Record<ChatPhase, string> = {
+  "welcome": "イメージ入力",
+  "purpose": "トップノート選択",
+  "personality": "ミドルノート選択",
+  "preferences": "ベースノート選択",
+  "emotions": "感情分析",
+  "result": "レシピ確認"
+}
 
 export function useChatPhase() {
-  const [phase, setPhase] = useState<ChatPhase>(1)
+  const [phase, setPhase] = useState<ChatPhase>("welcome")
+  const phaseHistoryRef = useRef<ChatPhase[]>([])
 
   const nextPhase = useCallback(() => {
     setPhase((current) => {
-      if (current < 5) {
-        return ((current + 1) as ChatPhase)
+      const currentIndex = PHASE_ORDER.indexOf(current)
+      if (currentIndex === -1 || currentIndex === PHASE_ORDER.length - 1) {
+        return current
       }
-      return current
+      const next = PHASE_ORDER[currentIndex + 1]
+      phaseHistoryRef.current.push(current)
+      return next
     })
   }, [])
 
   const previousPhase = useCallback(() => {
     setPhase((current) => {
-      if (current > 1) {
-        return ((current - 1) as ChatPhase)
-      }
-      return current
+      const previous = phaseHistoryRef.current.pop()
+      return previous || current
     })
   }, [])
 
   const resetPhase = useCallback(() => {
-    setPhase(1)
+    setPhase("welcome")
+    phaseHistoryRef.current = []
   }, [])
 
   const setSpecificPhase = useCallback((newPhase: ChatPhase) => {
-    if (newPhase >= 1 && newPhase <= 5) {
+    if (PHASE_ORDER.includes(newPhase)) {
       setPhase(newPhase)
+      phaseHistoryRef.current.push(newPhase)
     }
   }, [])
 
   const getPhaseLabel = useCallback(() => {
-    switch (phase) {
-      case 1:
-        return "イメージ入力"
-      case 2:
-        return "トップノート選択"
-      case 3:
-        return "ミドルノート選択"
-      case 4:
-        return "ベースノート選択"
-      case 5:
-        return "レシピ確認"
-      default:
-        return ""
-    }
+    return PHASE_LABELS[phase] || ""
   }, [phase])
+
+  const isLastPhase = useMemo(() => phase === "result", [phase])
+  const isFirstPhase = useMemo(() => phase === "welcome", [phase])
+  const currentPhaseIndex = useMemo(() => PHASE_ORDER.indexOf(phase), [phase])
+  const totalPhases = useMemo(() => PHASE_ORDER.length, [])
 
   return {
     phase,
-    setPhase,
     nextPhase,
     previousPhase,
     resetPhase,
     setSpecificPhase,
     getPhaseLabel,
-    isFirstPhase: phase === 1,
-    isLastPhase: phase === 5,
+    isLastPhase,
+    isFirstPhase,
+    currentPhaseIndex,
+    totalPhases
   }
 } 

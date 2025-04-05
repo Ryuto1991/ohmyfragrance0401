@@ -18,17 +18,9 @@ import { TypewriterText } from "./components/TypewriterText"
 import { ChatMessage } from "./components/ChatMessage"
 import { motion } from "framer-motion"
 import { ChatPhase as StepPhase } from "./components/ChatProgressSteps"
-import { systemPrompt } from "@/app/api/chat/route"
-
-interface FragranceRecipe {
-  title: string
-  description: string
-  notes: {
-    top: string[]
-    middle: string[]
-    base: string[]
-  }
-}
+import { sendChatMessage, ChatAPIError } from '@/lib/api/chat'
+import { FragranceRecipe } from './types'
+import { getDefaultChoices, getChoiceDescription } from './utils/essential-oils'
 
 // シングルトンパターンでSupabaseクライアントを管理
 let supabaseInstance: any = null
@@ -63,6 +55,9 @@ export default function ChatPage() {
     onPhaseAdvance: nextPhase
   })
 
+  // 初期メッセージの追加を制御するための状態を追加
+  const [hasInitialized, setHasInitialized] = useState(false)
+
   const scrollToBottom = useCallback(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTo({
@@ -84,21 +79,22 @@ export default function ChatPage() {
   }, [messages])
 
   useEffect(() => {
-    const welcomeMessage: Message = {
-      id: uuidv4(),
-      role: "assistant",
-      content: "こんにちは！香りのカスタムを始めましょう。どんなイメージがありますか？🌸"
-    }
-    if (messages.length === 0) {
+    if (!hasInitialized && messages.length === 0) {
+      const welcomeMessage: Message = {
+        id: uuidv4(),
+        role: "assistant",
+        content: "こんにちは！香りのカスタムを始めましょう。どんなイメージがありますか？🌸"
+      }
       addMessage(welcomeMessage)
+      setHasInitialized(true)
     }
-  }, [messages.length, addMessage])
+  }, [hasInitialized, messages.length, addMessage])
 
   useEffect(() => {
-    if (initialQuery && messages.length === 0) {
+    if (initialQuery && messages.length === 0 && hasInitialized) {
       handleSend(initialQuery)
     }
-  }, [initialQuery])
+  }, [initialQuery, messages.length, hasInitialized])
 
   const handleChoiceSelect = useCallback((choice: string) => {
     handleSend(choice)
@@ -126,50 +122,44 @@ export default function ChatPage() {
     try {
       setIsLoading(true)
       const userMessage: Message = {
+        id: uuidv4(),
         role: 'user',
         content: message
       }
       addMessage(userMessage)
 
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          messages: [...messages, userMessage]
-        }),
-      })
+      const response = await sendChatMessage([...messages, userMessage], phase)
 
-      if (!response.ok) {
-        const errorData = await response.json()
-        if (response.status === 429) {
-          throw new Error('OpenAI APIの利用制限に達しました。しばらく時間をおいてから再度お試しください。')
-        }
-        throw new Error(errorData.error || 'APIリクエストに失敗しました')
-      }
-
-      const data = await response.json()
-      
-      if (data.error) {
-        throw new Error(data.error)
-      }
+      const defaultChoices = getDefaultChoices(phase)
+      const choicesDescriptions = defaultChoices.reduce((acc, choice) => {
+        acc[choice] = getChoiceDescription(choice)
+        return acc
+      }, {} as { [key: string]: string })
 
       const assistantMessage: Message = {
+        id: uuidv4(),
         role: 'assistant',
-        content: data.content,
-        choices: data.choices,
-        choices_descriptions: data.choices_descriptions,
-        recipe: data.recipe,
-        emotionScores: data.emotionScores
+        content: response.message.content,
+        choices: defaultChoices,
+        choices_descriptions: choicesDescriptions,
+        recipe: response.message.recipe,
+        emotionScores: response.message.emotionScores
       }
       addMessage(assistantMessage)
     } catch (error) {
       console.error('Error in handleSend:', error)
+      const defaultChoices = getDefaultChoices(phase)
+      const choicesDescriptions = defaultChoices.reduce((acc, choice) => {
+        acc[choice] = getChoiceDescription(choice)
+        return acc
+      }, {} as { [key: string]: string })
+
       const errorMessage: Message = {
+        id: uuidv4(),
         role: 'assistant',
-        content: error instanceof Error ? error.message : 'エラーが発生しました。もう一度お試しください。',
-        choices: ["レモン", "ベルガモット", "ペパーミント"]
+        content: error instanceof ChatAPIError ? error.message : 'エラーが発生しました。もう一度お試しください。',
+        choices: defaultChoices,
+        choices_descriptions: choicesDescriptions
       }
       addMessage(errorMessage)
     } finally {
@@ -233,18 +223,18 @@ export default function ChatPage() {
           {messages.map((message, index) => (
             <ChatMessage
               key={`${message.role}-${index}`}
-              role={message.role}
-              content={message.content}
-              choices={message.choices}
-              emotionScores={message.emotionScores}
+              message={message}
               onSelect={message.role === "assistant" ? handleChoiceSelect : undefined}
             />
           ))}
           {isLoading && (
             <ChatMessage
               key="loading"
-              role="assistant"
-              content="考え中...✨"
+              message={{
+                id: "loading",
+                role: "assistant",
+                content: "考え中...✨"
+              }}
             />
           )}
         </div>

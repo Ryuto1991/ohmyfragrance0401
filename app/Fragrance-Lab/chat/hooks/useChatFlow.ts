@@ -1,47 +1,43 @@
 "use client"
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef, useMemo } from 'react'
 import { v4 as uuidv4 } from 'uuid'
+import { Message as MessageType, ChatFlowOptions } from '../types'
+import { ChatAPIError } from '@/lib/api/chat'
 
-export interface Message {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
-  choices?: string[];
-  recipe?: any;
-  emotionScores?: {
-    calm: number;
-    refresh: number;
-    romantic: number;
-    spiritual: number;
-    energy: number;
-  };
-}
-
-interface ChatFlowOptions {
-  initialDelay?: number
-  messageDelay?: number
-  typingDelay?: number
-  onPhaseAdvance?: () => void
-}
+export type Message = MessageType
 
 export function useChatFlow(options: ChatFlowOptions = {}) {
   const { 
-    initialDelay = 500, 
-    messageDelay = 800,
-    typingDelay = 30,
+    initialDelay = 1000, 
+    messageDelay = 1000,
+    typingDelay = 50,
     onPhaseAdvance 
   } = options
   
   const [messages, setMessages] = useState<Message[]>([])
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const messageQueueRef = useRef<Message[]>([])
+  const isProcessingRef = useRef(false)
 
   const addMessage = useCallback((message: Message) => {
     setMessages(prev => [...prev, message])
+    setError(null)
   }, [])
 
-  const splitContent = (content: string): string[] => {
-    // 句点で分割
+  const addMessages = useCallback((newMessages: Message[]) => {
+    setMessages(prev => [...prev, ...newMessages])
+    setError(null)
+  }, [])
+
+  const clearMessages = useCallback(() => {
+    setMessages([])
+    messageQueueRef.current = []
+    setError(null)
+  }, [])
+
+  const splitContent = useCallback((content: string): string[] => {
     const sentences = content.split(/([。！？])/g).filter(Boolean)
     const result: string[] = []
     let current = ""
@@ -66,37 +62,62 @@ export function useChatFlow(options: ChatFlowOptions = {}) {
     }
 
     return result
-  }
+  }, [])
 
   const addSplitMessages = useCallback((message: Message) => {
+    if (isProcessingRef.current) {
+      messageQueueRef.current.push(message)
+      return
+    }
+
+    isProcessingRef.current = true
     const parts = splitContent(message.content)
+    const newMessages: Message[] = []
     
     parts.forEach((content, index) => {
       const isLast = index === parts.length - 1
-      addMessage({
+      newMessages.push({
         ...message,
         id: uuidv4(),
         content,
         choices: isLast ? message.choices : undefined,
-        emotionScores: isLast ? message.emotionScores : undefined
+        choices_descriptions: isLast ? message.choices_descriptions : undefined,
+        emotionScores: isLast ? message.emotionScores : undefined,
+        recipe: isLast ? message.recipe : undefined
       })
     })
 
-    // レシピが完成した場合のみフェーズを進める
+    addMessages(newMessages)
+
     if (message.recipe && 
-        message.recipe.top_notes && 
-        message.recipe.middle_notes && 
-        message.recipe.base_notes) {
+        message.recipe.notes.top && 
+        message.recipe.notes.middle && 
+        message.recipe.notes.base) {
       onPhaseAdvance?.()
     }
-  }, [addMessage, onPhaseAdvance])
+
+    isProcessingRef.current = false
+    if (messageQueueRef.current.length > 0) {
+      const nextMessage = messageQueueRef.current.shift()
+      if (nextMessage) {
+        addSplitMessages(nextMessage)
+      }
+    }
+  }, [addMessages, onPhaseAdvance, splitContent])
+
+  const messageCount = useMemo(() => messages.length, [messages])
 
   return {
     messages,
+    messageCount,
     setMessages,
     isLoading,
     setIsLoading,
+    error,
+    setError,
     addMessage,
-    addSplitMessages
+    addMessages,
+    addSplitMessages,
+    clearMessages
   }
 } 

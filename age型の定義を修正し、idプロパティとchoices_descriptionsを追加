@@ -1,0 +1,40 @@
+[1mdiff --git a/app/Fragrance-Lab/chat/hooks/useChatFlow.ts b/app/Fragrance-Lab/chat/hooks/useChatFlow.ts[m
+[1mindex 134122b..25e91fc 100644[m
+[1m--- a/app/Fragrance-Lab/chat/hooks/useChatFlow.ts[m
+[1m+++ b/app/Fragrance-Lab/chat/hooks/useChatFlow.ts[m
+[36m@@ -8,6 +8,7 @@[m [mexport interface Message {[m
+   role: "user" | "assistant";[m
+   content: string;[m
+   choices?: string[];[m
+[32m+[m[32m  choices_descriptions?: { [key: string]: string };[m
+   recipe?: any;[m
+   emotionScores?: {[m
+     calm: number;[m
+[1mdiff --git a/app/Fragrance-Lab/chat/page.tsx b/app/Fragrance-Lab/chat/page.tsx[m
+[1mindex ca308e5..6c6b879 100644[m
+[1m--- a/app/Fragrance-Lab/chat/page.tsx[m
+[1m+++ b/app/Fragrance-Lab/chat/page.tsx[m
+[36m@@ -126,6 +126,7 @@[m [mexport default function ChatPage() {[m
+     try {[m
+       setIsLoading(true)[m
+       const userMessage: Message = {[m
+[32m+[m[32m        id: uuidv4(),[m
+         role: 'user',[m
+         content: message[m
+       }[m
+[36m@@ -156,6 +157,7 @@[m [mexport default function ChatPage() {[m
+       }[m
+ [m
+       const assistantMessage: Message = {[m
+[32m+[m[32m        id: uuidv4(),[m
+         role: 'assistant',[m
+         content: data.content,[m
+         choices: data.choices,[m
+[36m@@ -167,6 +169,7 @@[m [mexport default function ChatPage() {[m
+     } catch (error) {[m
+       console.error('Error in handleSend:', error)[m
+       const errorMessage: Message = {[m
+[32m+[m[32m        id: uuidv4(),[m
+         role: 'assistant',[m
+         content: error instanceof Error ? error.message : 'エラーが発生しました。もう一度お試しください。',[m
+         choices: ["レモン", "ベルガモット", "ペパーミント"][m

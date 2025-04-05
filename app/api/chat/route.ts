@@ -1,14 +1,8 @@
 export const runtime = 'nodejs'
 
 import { NextResponse } from 'next/server'
-import { openai } from '@/lib/openai'
-import essentialOilsData from '@/components/chat/essential-oils.json'
-import fragranceNotesData from '@/components/chat/fragrance_notes.json'
-
-type ChatMessage = {
-  role: 'user' | 'assistant' | 'system'
-  content: string
-}
+import { sendChatMessage, ChatAPIError } from '@/lib/api/chat'
+import { Message } from '@/app/fragrance-lab/chat/types'
 
 export const systemPrompt = `
 あなたは香水を一緒に考える調香師『Fragrance Lab』です。  
@@ -98,117 +92,29 @@ export const systemPrompt = `
 
 export async function POST(req: Request) {
   try {
-    const { messages }: { messages: ChatMessage[] } = await req.json()
+    const { messages, phase } = await req.json()
 
-    const latestUserMessage =
-      [...messages].reverse().find((m) => m.role === 'user')?.content || ''
-
-    const dynamicInstruction =
-      latestUserMessage.length < 20
-        ? 'ユーザーの発言が短いので、返答も軽めで短く。必ず選択肢を提示してください。'
-        : 'ユーザーの発言が長めなので、丁寧に少し長く応答してください。必ず選択肢を提示してください。'
-
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [
-        {
-          role: 'system',
-          content: `${systemPrompt}\n\n${dynamicInstruction}`,
-        },
-        ...messages,
-      ],
-      temperature: 0.7,
-    })
-
-    const result = completion.choices[0]?.message?.content
-
-    if (!result) {
-      return NextResponse.json({
-        content: '申し訳ありません。応答の取得に失敗しました。',
-        choices: ["レモン", "ベルガモット", "ペパーミント"],
-        recipe: null
-      })
+    if (!messages || !Array.isArray(messages)) {
+      return NextResponse.json(
+        { error: 'Invalid messages format' },
+        { status: 400 }
+      )
     }
 
-    // JSONレスポンスの解析を試みる
-    try {
-      // レスポンスからJSON部分を抽出
-      const jsonMatch = result.match(/```json\n([\s\S]*?)\n```/)
-      const jsonStr = jsonMatch ? jsonMatch[1] : result
-      
-      const jsonResponse = JSON.parse(jsonStr)
-      
-      // 選択肢の説明文を抽出
-      if (jsonResponse.choices && Array.isArray(jsonResponse.choices)) {
-        const choices_descriptions: { [key: string]: string } = {}
-        const lines = ((jsonResponse.content || '') as string).split('\n')
-        
-        for (const line of lines as string[]) {
-          const match = line.match(/^- ([^:]+): (.+)$/)
-          if (match) {
-            const [_, name, description] = match as [string, string, string]
-            choices_descriptions[name] = description
-          }
-        }
-
-        // 説明文を含まない純粋なメッセージ内容を抽出
-        const raw = jsonResponse?.content ?? ''
-        const content = raw
-          .split('\n')
-          .filter((line: string): boolean => {
-            return !line.match(/^- [^:]+: .+$/)
-          })
-          .join('\n')
-          .replace(/```json[\s\S]*?```/g, '') // JSONコードブロックを削除
-          .trim()
-
-        // 選択肢が空の場合はデフォルトの選択肢を設定
-        const choices = jsonResponse.choices?.length > 0 
-          ? jsonResponse.choices 
-          : ["レモン", "ベルガモット", "ペパーミント"]
-
-        return NextResponse.json({
-          content: content || '選択肢から香りをお選びください：',
-          choices: choices,
-          choices_descriptions: choices_descriptions ?? {},
-          recipe: jsonResponse.recipe ?? null,
-          emotionScores: jsonResponse.emotionScores ?? null
-        })
-      }
-      
-      return NextResponse.json({
-        content: jsonResponse.content || '香りを提案できませんでした。もう一度お願いします🫧',
-        choices: jsonResponse.choices ?? ["レモン", "ベルガモット", "ペパーミント"],
-        recipe: jsonResponse.recipe ?? null,
-        emotionScores: jsonResponse.emotionScores ?? null
-      })
-    } catch (error) {
-      console.error('JSON Parse Error:', error)
-      // JSONでない場合は通常のテキストメッセージとして扱う
-      const cleaned = result
-        .replace(/```json[\s\S]*?```/g, '') // JSONブロックを削除
-        .replace(/"json[\s\S]*?}/g, '') // 生のJSONを削除
-        .trim()
-
-      return NextResponse.json({
-        content: cleaned || '香りを提案できませんでした。もう一度お願いします🫧',
-        choices: ["レモン", "ベルガモット", "ペパーミント"]
-      })
-    }
+    const response = await sendChatMessage(messages, phase)
+    return NextResponse.json(response)
   } catch (error) {
-    console.error('Chat API Error:', error)
-    // エラーの詳細情報をログに出力
-    if (error instanceof Error) {
-      console.error('Error details:', {
-        message: error.message,
-        stack: error.stack,
-        name: error.name
-      })
+    if (error instanceof ChatAPIError) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: error.statusCode }
+      )
     }
-    return NextResponse.json({ 
-      content: 'エラーが発生しました。もう一度お試しください。',
-      choices: ["レモン", "ベルガモット", "ペパーミント"],
-      error: error instanceof Error ? error.message : '不明なエラー'
-    }, { status: 500 })
+
+    console.error('Chat API error:', error)
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
   }
 }
