@@ -27,6 +27,41 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
+// 例のリスト
+const EXAMPLE_PHRASES = [
+  "初恋の香り",
+  "放課後の図書室",
+  "雨上がりの空気",
+  "寂しさを癒すバニラ",
+  "旅に出たくなる香り",
+  "目覚めるような柑橘系",
+  "幸せになれるベリー",
+  "推しとすれ違った時",
+  "花火大会の帰り道",
+  "静かな夜のジャスミン",
+  "失恋したあとの香り",
+  "新しい街の風",
+  "寝る前の香り",
+  "淡い桜の記憶",
+  "抱きしめられたい香り",
+  "海沿いドライブ",
+  "映画のラストシーン",
+  "サプライズの香り",
+  "冬の夜のカフェラテ",
+  "夏祭りの金木犀",
+  "髪を乾かす柔軟剤",
+  "好きな人の香り",
+  "胸が高鳴る香り",
+  "自分らしさの香り",
+  "背伸びしたい夜",
+  "おしゃれなカフェ",
+  "憧れの人の香り",
+  "麦わら帽子の記憶",
+  "甘いチョコの誘惑",
+  "大切な人との休日",
+  "二度と戻れない夏",
+]
+
 export default function FragranceGeneratorPage() {
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -164,7 +199,7 @@ export default function FragranceGeneratorPage() {
               <Input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="例：寝る前のリラックス、マツコの香り"
+                placeholder={query ? "" : EXAMPLE_PHRASES[Math.floor(Math.random() * EXAMPLE_PHRASES.length)]}
                 className="flex-1"
               />
               <Button onClick={handleGenerate} disabled={isLoading || !query.trim()}>

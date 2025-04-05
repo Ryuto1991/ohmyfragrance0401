@@ -26,18 +26,29 @@ import SiteFooter from "@/components/site-footer"
 import { Badge } from "@/components/ui/badge"
 import { compressImage, validateImageType, validateFileSize, getImageDimensions } from './utils/imageCompression'
 
-// インターフェースの定義
+interface FormData {
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string;
+  shippingAddress: string;
+  paymentMethod: string;
+  shippingMethod: string;
+  shippingDate: string;
+  giftWrapping: boolean;
+  giftMessage: string;
+}
+
 interface Fragrance {
-  id: string
-  name: string
-  category: string
-  emoji: string
-  description: string
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  emoji: string;
   notes: {
-    top: string[]
-    middle: string[]
-    last: string[]
-  }
+    top: string[];
+    middle: string[];
+    last: string[];
+  };
 }
 
 interface Bottle {
@@ -47,13 +58,39 @@ interface Bottle {
   price: number
 }
 
+type OrderMode = 'lab' | 'custom';
+
 interface Recipe {
   name: string
   description: string
   top_notes: string[]
   middle_notes: string[]
   base_notes: string[]
-  mode: 'generator' | 'chat' | 'custom'
+  mode: OrderMode
+}
+
+interface CartItem {
+  priceId: string;
+  customProductId: string;
+  name: string;
+  price: number;
+  image: string;
+  customDetails: {
+    fragranceId: string;
+    fragranceName: string;
+    bottleId: string;
+    bottleName: string;
+    labelSize: string;
+    labelType: 'template' | 'original';
+    labelImageUrl: string;
+    imageTransform: {
+      x: number;
+      y: number;
+      scale: number;
+      rotation: number;
+    };
+  };
+  quantity?: number;
 }
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
@@ -68,18 +105,38 @@ const supabase = createClientComponentClient()
 
 export default function PerfumeOrderingPage() {
   const searchParams = useSearchParams()
-  const mode = searchParams.get('mode') || 'custom'
+  const initialMode = searchParams.get('mode') || 'custom'
+  const mode: OrderMode = initialMode === 'lab' ? 'lab' : 'custom'
   const recipeParam = searchParams.get('recipe')
   const [aiGeneratedFragrance, setAiGeneratedFragrance] = useState<Fragrance | null>(null)
   const [recipe, setRecipe] = useState<Recipe | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isAgreed, setIsAgreed] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [formData, setFormData] = useState<FormData>({
+    customerName: '',
+    customerEmail: '',
+    customerPhone: '',
+    shippingAddress: '',
+    paymentMethod: '',
+    shippingMethod: '',
+    shippingDate: '',
+    giftWrapping: false,
+    giftMessage: ''
+  })
+  const [selectedFragrance, setSelectedFragrance] = useState<Fragrance | null>(null)
+  const [selectedBottle, setSelectedBottle] = useState<string>('')
+  const [selectedLabelSize, setSelectedLabelSize] = useState<string>('')
+  const [selectedLabelType, setSelectedLabelType] = useState<string>('')
+  const [totalAmount, setTotalAmount] = useState<number>(0)
+  const [uploadedImage, setUploadedImage] = useState<string>('')
+  const [croppedImageUrl, setCroppedImageUrl] = useState<string>('')
+  const [useTemplate, setUseTemplate] = useState(false)
 
   // AIで生成された香りのデータを取得
   useEffect(() => {
     console.log('Current mode:', mode);
     if (mode === 'lab' && recipe) {
-      // レシピデータから香りのデータを生成
       const labFragrance = {
         id: 'lab-generated',
         name: recipe.name,
@@ -93,7 +150,7 @@ export default function PerfumeOrderingPage() {
         }
       };
       setAiGeneratedFragrance(labFragrance);
-      setSelectedFragrance(labFragrance.id);
+      setSelectedFragrance(labFragrance);
     }
   }, [mode, recipe])
 
@@ -109,7 +166,7 @@ export default function PerfumeOrderingPage() {
           f.notes.last.some(note => recipe.base_notes.includes(note))
         )
         if (matchingFragrance) {
-          setSelectedFragrance(matchingFragrance.id)
+          setSelectedFragrance(matchingFragrance)
           setExpandedSection(2) // ボトル選択セクションを開く
         }
       } catch (error) {
@@ -199,12 +256,7 @@ export default function PerfumeOrderingPage() {
 
   // State for selections
   const [expandedSection, setExpandedSection] = useState(1)
-  const [selectedFragrance, setSelectedFragrance] = useState<string | null>(null)
-  const [selectedBottle, setSelectedBottle] = useState<string | null>("clear") // 初期値をクリアガラスに設定
-  const [selectedLabelSize, setSelectedLabelSize] = useState<string | null>("medium") // 初期値を中に設定
-  const [useTemplate, setUseTemplate] = useState(true)
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null)
-  const [uploadedImage, setUploadedImage] = useState<string | null>(defaultLabelImage)
   const [selectLater, setSelectLater] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
   const [activeInfoId, setActiveInfoId] = useState<string | null>(null)
@@ -739,6 +791,17 @@ export default function PerfumeOrderingPage() {
     return `custom_${fragranceId}_${bottleId}_${Date.now()}`;
   };
 
+  const getPriceIdByMode = (mode: OrderMode) => {
+    switch (mode) {
+      case 'lab':
+        return 'price_1R8bHVE0t3PGpOQ5Mbc0MzFd';
+      case 'custom':
+        return 'price_1R9QuLE0t3PGpOQ5VMQyu3po';
+      default:
+        return 'price_1R9QuLE0t3PGpOQ5VMQyu3po';
+    }
+  };
+
   const handleOrder = async () => {
     try {
       setIsLoading(true);
@@ -751,29 +814,29 @@ export default function PerfumeOrderingPage() {
         throw new Error('ラベル画像をアップロードしてください');
       }
 
-      const selectedFragranceData = mode === 'lab' ? aiGeneratedFragrance : fragrances.find(f => f.id === selectedFragrance);
+      const selectedFragranceData = mode === 'lab' ? aiGeneratedFragrance : fragrances.find(f => f.id === selectedFragrance.id);
       const selectedBottleData = bottles.find(b => b.id === selectedBottle);
 
       if (!selectedFragranceData || !selectedBottleData) {
         throw new Error('選択された商品が見つかりません');
       }
 
-      const customProductId = generateCustomProductId(selectedFragrance, selectedBottle);
+      const customProductId = generateCustomProductId(selectedFragrance.id, selectedBottle);
       await savePreviewImage(customProductId);
 
-      const cartItem = {
-        priceId: mode === 'lab' ? 'price_1R8bHVE0t3PGpOQ5Mbc0MzFd' : 'price_1R9QuLE0t3PGpOQ5VMQyu3po',
+      const cartItem: CartItem = {
+        priceId: getPriceIdByMode(mode),
         customProductId,
         name: `${selectedFragranceData.name} - ${selectedBottleData.name}`,
         price: selectedBottleData.price,
         image: uploadedImage,
         customDetails: {
-          fragranceId: selectedFragrance,
+          fragranceId: selectedFragrance.id,
           fragranceName: selectedFragranceData.name,
           bottleId: selectedBottle,
           bottleName: selectedBottleData.name,
           labelSize: selectedLabelSize,
-          labelType: useTemplate ? 'template' as const : 'original' as const,
+          labelType: useTemplate ? 'template' : 'original',
           labelImageUrl: uploadedImage,
           imageTransform: {
             x: imageTransform.x,
@@ -801,6 +864,66 @@ export default function PerfumeOrderingPage() {
 
   // 注文ボタンの条件を更新
   const isOrderButtonDisabled = !selectedFragrance || !selectedBottle || !uploadedImage || isLoading;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    try {
+      if (!selectedFragrance) {
+        throw new Error('香水を選択してください');
+      }
+
+      // 注文データをSupabaseに保存（初期データのみ）
+      const { data: orderData, error: orderError } = await supabase
+        .from('orders')
+        .insert([
+          {
+            product_name: selectedFragrance.name,
+            product_description: selectedFragrance.description,
+            bottle_type: selectedBottle,
+            label_size: selectedLabelSize,
+            label_type: selectedLabelType,
+            total_amount: totalAmount,
+            payment_status: 'pending',
+            original_image_url: uploadedImage,
+            cropped_image_url: croppedImageUrl,
+            mode: mode,
+            order_status: 'pending'  // 注文状態を追加
+          }
+        ])
+        .select()
+        .single();
+
+      if (orderError) throw orderError;
+
+      // Stripe Checkoutセッションを作成
+      const response = await fetch('/api/create-checkout-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          orderId: orderData.id,
+          totalAmount: totalAmount,
+          mode: mode,
+          priceId: getPriceIdByMode(mode)
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create checkout session');
+      }
+
+      const { url } = await response.json();
+      window.location.href = url;
+    } catch (error) {
+      console.error('Error:', error);
+      alert('注文の処理中にエラーが発生しました。もう一度お試しください。');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   if (error) {
     return (
@@ -879,7 +1002,7 @@ export default function PerfumeOrderingPage() {
                 </div>
                 {selectedFragrance && (
                   <div className="text-sm text-gray-600 mr-2">
-                    {fragrances.find((f) => f.id === selectedFragrance)?.name}
+                    {selectedFragrance.name}
                   </div>
                 )}
                 {expandedSection === 1 ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
@@ -951,12 +1074,12 @@ export default function PerfumeOrderingPage() {
                           <div
                             className={cn(
                               "border p-2 flex items-center cursor-pointer rounded-lg transition-colors",
-                              selectedFragrance === fragrance.id ? "border-[#FF6B6B] bg-[#FF6B6B]/5" : "border-gray-200 hover:border-[#FF6B6B]",
+                              selectedFragrance === fragrance ? "border-[#FF6B6B] bg-[#FF6B6B]/5" : "border-gray-200 hover:border-[#FF6B6B]",
                             )}
-                            onClick={() => setSelectedFragrance(fragrance.id)}
+                            onClick={() => setSelectedFragrance(fragrance)}
                           >
                             <div className="flex items-center mr-3">
-                              {selectedFragrance === fragrance.id && (
+                              {selectedFragrance === fragrance && (
                                 <div className="bg-[#FF6B6B] text-white rounded-full p-1 mr-2">
                                   <Check className="h-3 w-3" />
                                 </div>
