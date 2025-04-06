@@ -11,6 +11,7 @@ export async function sendChatMessage(
   timestamp: number;
   choices?: string[];
   choices_descriptions?: string[];
+  should_split?: boolean;
 }> {
   try {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -49,7 +50,8 @@ export async function sendChatMessage(
         timestamp: Date.now(),
         content: parsed.content || '',
         choices: parsed.choices || [],
-        choices_descriptions: parsed.choices_descriptions || []
+        choices_descriptions: parsed.choices_descriptions || [],
+        should_split: parsed.should_split || false
       };
     } catch (error) {
       console.log('JSON解析に失敗しました。通常のテキストとして処理します:', content);
@@ -58,7 +60,8 @@ export async function sendChatMessage(
         id: crypto.randomUUID(),
         role: 'assistant',
         timestamp: Date.now(),
-        content: content
+        content: content,
+        should_split: content.length > 80 // 長文の場合は分割する
       };
     }
   } catch (error) {
