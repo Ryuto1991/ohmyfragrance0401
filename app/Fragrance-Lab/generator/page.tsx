@@ -199,7 +199,7 @@ export default function FragranceGeneratorPage() {
               <Input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder={query ? "" : EXAMPLE_PHRASES[Math.floor(Math.random() * EXAMPLE_PHRASES.length)]}
+                placeholder={query ? "" : `例：${EXAMPLE_PHRASES[Math.floor(Math.random() * EXAMPLE_PHRASES.length)]}`}
                 className="flex-1"
               />
               <Button onClick={handleGenerate} disabled={isLoading || !query.trim()}>

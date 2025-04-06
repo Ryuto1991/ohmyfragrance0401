@@ -40,6 +40,7 @@ export interface Message {
   recipe?: FragranceRecipe
   emotionScores?: EmotionScores
   error?: string
+  should_split?: boolean
 }
 
 // フレグランスレシピの型定義
@@ -92,6 +93,7 @@ export interface ChatResponse {
   choices_descriptions?: string[]
   recipe?: FragranceRecipe
   emotionScores?: EmotionScores
+  should_split?: boolean
 }
 
 // チャットフローのオプション

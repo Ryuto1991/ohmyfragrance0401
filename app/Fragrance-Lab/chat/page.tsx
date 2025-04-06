@@ -8,6 +8,9 @@ import { useChatState } from './hooks/useChatState'
 import SiteHeader from "@/components/site-header"
 import { ChatProgressSteps } from "./components/ChatProgressSteps"
 import { ChatPhaseId } from "./types"
+import { Button } from "@/components/ui/button"
+import { ChevronLeft } from "lucide-react"
+import Link from "next/link"
 
 // カスタム型定義
 interface RecipeData {
@@ -40,18 +43,10 @@ export default function ChatPage() {
   const [error, setError] = useState<string | null>(null)
   
   const { 
-    addMessage, 
     messages, 
     selectedScents,
     currentPhaseId
   } = useChatState()
-
-  useEffect(() => {
-    // クエリパラメータがある場合は初期メッセージとして追加
-    if (query) {
-      addMessage(query)
-    }
-  }, [query, addMessage])
 
   // selectedScentsからレシピ情報を更新
   useEffect(() => {
@@ -124,38 +119,94 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-background overflow-hidden">
+    <div className="h-screen flex flex-col bg-[#fef6f3] overflow-hidden">
       {pathname !== "/fragrance-lab/chat" && <SiteHeader />}
-      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
-        <ChatProgressSteps currentPhaseId={currentPhaseId as ChatPhaseId} />
+      
+      {/* 上部ナビゲーション */}
+      <div className="border-b bg-white/70 backdrop-blur-sm sticky top-0 z-10">
+        <div className="container max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+          <Link href="/" className="flex items-center text-muted-foreground hover:text-foreground transition-colors">
+            <Button variant="ghost" size="sm" className="gap-1">
+              <ChevronLeft className="h-4 w-4" />
+              <span>戻る</span>
+            </Button>
+          </Link>
+          <div className="flex-1 flex justify-center">
+            <ChatProgressSteps currentPhaseId={currentPhaseId} />
+          </div>
+          <div className="w-[70px]"></div> {/* 右側のスペーサー */}
+        </div>
       </div>
-
+      
       <div className="flex-1 overflow-y-auto">
-        <div className="container max-w-2xl mx-auto p-4">
+        <div className="container max-w-3xl mx-auto p-4 md:p-6">
           <FragranceAIChat initialQuery={query || undefined} />
         </div>
       </div>
 
       {recipe && (currentPhaseId === 'complete' || currentPhaseId === 'finalized') && (
-        <div className="sticky bottom-0 left-0 w-full bg-background/95 backdrop-blur py-3 border-t border-muted z-10">
-          <div className="container max-w-2xl mx-auto px-4">
+        <div className="sticky bottom-0 left-0 w-full bg-white/95 backdrop-blur py-3 border-t border-muted z-10">
+          <div className="container max-w-3xl mx-auto px-4">
             <div className="mb-2 text-center">
-              <h3 className="font-semibold">{recipe.title}</h3>
-              <p className="text-sm text-muted-foreground">{recipe.description}</p>
-              <div className="text-xs text-muted-foreground mt-1">
-                <span>トップノート: {recipe.notes.top.join(', ')}</span>
-                <span className="mx-2">|</span>
-                <span>ミドルノート: {recipe.notes.middle.join(', ')}</span>
-                <span className="mx-2">|</span>
-                <span>ベースノート: {recipe.notes.base.join(', ')}</span>
+              <h3 className="font-semibold text-lg">{recipe.title}</h3>
+              <p className="text-sm text-muted-foreground mb-2">{recipe.description}</p>
+              <div className="grid grid-cols-3 gap-2 text-xs text-muted-foreground mt-1 bg-muted/50 p-2 rounded-md">
+                <div>
+                  <div className="font-medium">トップノート</div>
+                  <div>{recipe.notes.top.join(', ')}</div>
+                </div>
+                <div>
+                  <div className="font-medium">ミドルノート</div>
+                  <div>{recipe.notes.middle.join(', ')}</div>
+                </div>
+                <div>
+                  <div className="font-medium">ベースノート</div>
+                  <div>{recipe.notes.base.join(', ')}</div>
+                </div>
               </div>
             </div>
-            <div className="flex justify-center">
+            <div className="flex justify-center space-x-4">
               <button 
                 onClick={handlePurchase}
                 className="px-6 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
               >
                 この香水を注文する
+              </button>
+              <button 
+                onClick={async () => {
+                  try {
+                    const supabase = getSupabaseClient()
+                    const { data, error } = await supabase
+                      .from('recipes')
+                      .insert({
+                        name: recipe.title,
+                        description: recipe.description,
+                        top_notes: recipe.notes.top,
+                        middle_notes: recipe.notes.middle,
+                        base_notes: recipe.notes.base,
+                        mode: 'chat'
+                      })
+                      .select()
+
+                    if (error) throw error
+
+                    localStorage.setItem('last_saved_recipe', JSON.stringify({
+                      name: recipe.title,
+                      description: recipe.description,
+                      top_notes: recipe.notes.top,
+                      middle_notes: recipe.notes.middle,
+                      base_notes: recipe.notes.base
+                    }))
+
+                    router.push('/')
+                  } catch (error) {
+                    console.error('Error saving recipe:', error)
+                    setError('レシピの保存に失敗しました。')
+                  }
+                }}
+                className="px-6 py-2 bg-muted text-muted-foreground border border-input rounded-md hover:bg-muted/80"
+              >
+                レシピを保存して終了
               </button>
             </div>
           </div>

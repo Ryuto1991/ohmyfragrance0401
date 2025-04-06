@@ -19,10 +19,21 @@ const AUTH_ROUTES = [
 
 export async function middleware(req: NextRequest) {
   const res = NextResponse.next()
+  const path = req.nextUrl.pathname
+  
+  // 大文字のFragrance-Labを小文字のfragrance-labにリダイレクト
+  if (path.startsWith('/Fragrance-Lab')) {
+    const newPath = path.replace('/Fragrance-Lab', '/fragrance-lab')
+    const redirectUrl = new URL(newPath, req.url)
+    // クエリパラメータを維持
+    req.nextUrl.searchParams.forEach((value, key) => {
+      redirectUrl.searchParams.set(key, value)
+    })
+    return NextResponse.redirect(redirectUrl)
+  }
+  
   const supabase = createMiddlewareClient({ req, res })
   const { data: { session } } = await supabase.auth.getSession()
-
-  const path = req.nextUrl.pathname
 
   // 保護されたルートへのアクセスチェック
   if (PROTECTED_ROUTES.some(route => path.startsWith(route))) {

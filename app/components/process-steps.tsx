@@ -13,9 +13,14 @@ const steps = [
     iconColor: "text-primary",
     delay: 0.2,
     additionalContent: (
-      <Link href="/oh-my-custom" className="block mt-2 text-xs text-primary hover:text-primary/80 transition-colors">
-        ※人気の香りを選ぶOh my customはこちらから
-      </Link>
+      <div className="mt-2 space-y-1">
+        <Link href="/fragrance-lab" className="block text-xs text-primary hover:text-primary/80 transition-colors">
+          ※AIと香りを作るFragrance Labはこちらから
+        </Link>
+        <Link href="/oh-my-custom" className="block text-xs text-primary hover:text-primary/80 transition-colors">
+          ※人気の香りを選ぶOh my customはこちらから
+        </Link>
+      </div>
     ),
   },
   {

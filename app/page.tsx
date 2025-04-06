@@ -197,6 +197,7 @@ export default function Home() {
                     一緒につくるカスタムフレグランスサービスです。
                   </motion.p>
 
+
                   <motion.div
                     {...fadeInUp}
                     transition={{ delay: 1.0 }}
