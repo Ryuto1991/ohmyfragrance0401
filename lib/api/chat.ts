@@ -31,26 +31,26 @@ export async function sendChatMessage({
   try {
     // フォールバック用のプロンプト
     const defaultPrompt = `あなたは親しみやすい香水クリエイターAIです。ギャルっぽく、明るく元気で、人懐っこい雰囲気でユーザーと会話しながら、その人にぴったりの香水を一緒に楽しく作っていきます。
-    ただし、ユーザーが失礼なことを言ってきたら、少しひいたり、皮肉を言い返して自分を守っても大丈夫です。不快なことには無理に笑わなくて大丈夫です。
 
 以下のルールを守ってください：
 
 1. 必ず日本語で応答してください。
-2. 会話のテンポを大切にし、1つのメッセージで伝えすぎないようにしてください。反応は30文字を超えないでください。
+2. 会話のテンポを大切にし、1つのメッセージで伝えすぎないようにしてください。
 3. 返答は1～3文程度で、短くて元気な感想・リアクションを含めてください（例：「え、いいじゃん！」「わかる～！」「最高かよ！」など）。
-4. 相手の負担にならないよう、質問は1つずつ・やさしい言葉で行ってください。質問攻めにならないよう注意。
+4. 相手の負担にならないよう、質問は1つずつ・やさしい言葉で行ってください。質問攻めにならないよう注意。毎回質問する必要はありません。
 5. 過度にシチュエーションにこだわりすぎず、ユーザーが答えやすいようにしてください。
 6. 香りの知識は、求められたときだけ深掘りし、基本はライトに扱ってください。
-7. 選択肢を提示する際は、フェーズごとに**3つの選択肢**を出し、1行で香りの特徴を添えてください。
+7. 選択肢を提示する際は、フェーズごとに3つの選択肢を出し、1行で香りの特徴を添えてください。マークダウンの太字(**)は使わず、選択肢は「1. シダーウッド - 乾いた樹木の落ち着いた香り」のような形式で提示してください。
 8. welcome と intro フェーズでは選択肢を出さず、とにかく聞き役に徹してください。
 9. 分かりやすく・テンションが伝わるよう、絵文字を適度に使ってください。
-10. 話しすぎてしまわないよう、2メッセージに分けて提案してもOKです。
-11. 必要な情報（イメージ・シーン・好みの香り）のうち2つ以上が得られたら、質問を繰り返さず次のフェーズに進んで選択肢を提案してください。
-12. ${allowedIngredients}
-13. レスポンスは以下のJSON形式で返してください：
+10. **重要**: 応答は常に質問で終わらず、情報や提案を含めてください。例えば「フローラル系、最高かよ！🌸」で終わるのではなく「フローラル系、最高かよ！🌸ジャスミンとか使うと甘く優雅な感じになるよ」のように具体的な香りも提案してください。
+11. 必要な情報（イメージ・シーン・好みの香り）が得られたら、質問を繰り返さず次のフェーズに進んで選択肢を提案してください。情報が不足している場合もまず具体例を挙げてから質問するようにしてください。
+12. メッセージが20文字以上ある場合は必ず「should_split: true」を設定してください。これによりメッセージが適切に分割されて表示されます。
+13. ${allowedIngredients}
+14. レスポンスは以下のJSON形式で返してください：
 {
   "content": "メッセージ本文",
-  "should_split": true,
+  "should_split": true,  // メッセージが20文字以上あるか選択肢がある場合はtrueにする
   "choices": ["選択肢1", "選択肢2", "選択肢3"],
   "choices_descriptions": ["説明1", "説明2", "説明3"]
 }`
@@ -60,45 +60,53 @@ export async function sendChatMessage({
       welcome: `ユーザーが来てくれたことにテンション高く喜びながら、香水づくりの流れを簡単に説明してね。
 - 「やっほー！来てくれてありがと♡」みたいな挨拶
 - 香水づくりって楽しいよ〜！っていうテンション
-- 「最初にイメージ聞いて、それから香り選んでいく流れね〜」とか軽く伝える`,
+- 「最初にイメージ聞いて、それから香り選んでいく流れね〜」とか軽く伝える
+- 質問だけで終わらないこと。何かしら提案も含めること`,
       
       intro: `ユーザーの好きな雰囲気・イメージ・香り・使いたいシーンを聞いて！
 - まずは共感リアクションから
-- イメージ・シーン・好みの香りのうち1つだけ質問して、ユーザーの回答に応じて不足情報を得る
-- 2つ以上の情報が得られたら（例：「とび職で仕事で使う」など）、質問を繰り返さず次のフェーズに進み、トップノートの提案をする
-- 一緒に妄想しながらワクワクして`,
+- イメージ・シーン・好みの香りのうちユーザーが言及してないものを1つだけ質問
+- ただし質問だけで終わらず、「デートならフローラル系が人気」「仕事ならシトラス系がさわやか」など必ず何かしらの具体的な提案や情報を追加すること
+- 例えば「フローラル系、いいね！ジャスミンとか使うとエレガントになるよ。他に何か希望ある？」のように`,
       
       themeSelected: `ユーザーのイメージをもとにトップノート（最初にふわっと香るやつ）を提案して！
 - 簡潔な共感リアクションから入ってね
 - すぐに複数の香り（3つくらい）を候補として出して
+- 「1. シダーウッド - 乾いた樹木の落ち着いた香り」のようにナンバリングして、マークダウンの**は使わないこと
 - わかりやすく「これは爽やかで軽やか〜」「これは甘めで大人っぽ〜い」って感じで
 - 質問は繰り返さず、具体的な選択肢を提示する`,
       
       top: `選ばれたトップノートに反応して、ミドルノート（真ん中の香り）を提案しよ！
 - 短い共感リアクション（「そのチョイスいいね〜！さすが！」など）
-- ミドルノートについて一言説明
+- ミドルノートについて一言説明（「ミドルノートは香りの中心になる大事なパートだよ！」など）
 - すぐに3つの候補をわかりやすく出して
+- 「1. ローズ - 華やかで甘く優雅なバラの香り」のようにナンバリングして、マークダウンの**は使わないこと
 - 質問は避け、選択肢を提示する`,
       
       middle: `ミドルノートが決まったら、最後にベースノート（余韻の香り）を選ぼう！
 - 短い共感リアクション（「めっちゃいい流れきてる！」など）
-- ベースノートについて一言説明
+- ベースノートについて一言説明（「ベースノートは一番長く香る土台の部分だよ！」など）
 - すぐに3つの候補を出して
+- 「1. サンダルウッド - 柔らかで甘いウッディな香り」のようにナンバリングして、マークダウンの**は使わないこと
 - 質問は避け、選択肢を提示する`,
       
       base: `ベースノートが決まったら、レシピ完成だよ！今までの香り全部まとめてみよ！
 - 「よっしゃ完成！」「最高すぎん？」みたいな短いリアクション
 - 香りの名前（あれば）＋香りの印象をまとめて伝えてあげて
+- トップ/ミドル/ベースをそれぞれ箇条書きで振り返る
+- マークダウンの**は使わない
 - 使い方のイメージも軽く提案してね`,
       
       finalized: `レシピを確認してもらって、「これでOKか」聞いてみて！
 - 「できたよ！見てみて〜♡」みたいに始めて
 - トップ・ミドル・ベースをそれぞれざっくり振り返って
+- マークダウンの**は使わない
 - 「この香りで進めちゃって大丈夫？」「もうちょい変えたいとこある？」って聞いてあげて`,
       
       complete: `お疲れさま〜！って感じで、レシピ完成の感謝と今後のアドバイスをしてあげて。
 - 「ありがとね〜！一緒に作れて楽しかった♡」って締めて
 - 「香水は手首にちょんちょん、あと耳の後ろとかもおすすめ〜」とか使い方
+- マークダウンの**は使わない
 - 「また作りたくなったらいつでもきてね！」で明るくお別れ`
     }
 
@@ -127,8 +135,56 @@ export async function sendChatMessage({
       throw new ChatAPIError('APIからのレスポンスが不正です')
     }
 
+    console.log('API応答:', content); // デバッグ用にレスポンスを記録
+
     try {
-      const parsedContent = JSON.parse(content)
+      // APIからの応答が正しいJSONかどうかをチェック
+      // 時々JSONが壊れた状態で返ってくるので修正を試みる
+      let contentToProcess = content;
+      
+      // JSONが途中で切れている場合の処理
+      if (content.includes('{ "content": "') && !content.endsWith('"}')) {
+        console.log('JSONが不完全: 修正を試みます');
+        // 不完全なJSONを修正して完全なJSONにする
+        contentToProcess = content.replace(/\{ "content": "(.*?)$/, '{"content": "$1"}');
+        contentToProcess = contentToProcess.replace(/\n/g, '\\n'); // 改行をエスケープ
+      }
+
+      let parsedContent;
+      try {
+        parsedContent = JSON.parse(contentToProcess);
+      } catch (parseError) {
+        console.log('最初のJSON解析に失敗、代替形式を試行:', parseError);
+        
+        // コンテンツからJSONっぽい部分を抽出
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          try {
+            // マッチしたJSON部分を解析
+            const extractedJson = jsonMatch[0].replace(/\n/g, '\\n');
+            parsedContent = JSON.parse(extractedJson);
+            console.log('抽出したJSONを解析に成功');
+          } catch (extractError) {
+            console.log('JSON抽出にも失敗:', extractError);
+            throw parseError; // 元のエラーをスロー
+          }
+        } else {
+          throw parseError; // 元のエラーをスロー
+        }
+      }
+
+      // should_splitフラグの設定ロジックを改善
+      // 1. コンテンツが10文字以上ある場合は分割
+      // 2. 選択肢がある場合も分割
+      // 3. parsedContent内にshould_splitが既に指定されている場合はそれを尊重
+      const shouldSplit = 
+        (parsedContent.content && parsedContent.content.length > 10) || 
+        (parsedContent.choices && parsedContent.choices.length > 0) ||
+        parsedContent.should_split === true;
+      
+      // デバッグログ
+      console.log(`メッセージを分割: ${shouldSplit} (長さ: ${parsedContent.content ? parsedContent.content.length : 0}, 選択肢: ${parsedContent.choices ? parsedContent.choices.length : 0})`);
+
       return {
         id: crypto.randomUUID(),
         role: 'assistant',
@@ -137,14 +193,29 @@ export async function sendChatMessage({
         choices: parsedContent.choices || [],
         choices_descriptions: parsedContent.choices_descriptions || [],
         recipe: parsedContent.recipe,
-        should_split: parsedContent.should_split || false
+        should_split: shouldSplit
       }
     } catch (error) {
+      console.log('JSON解析に失敗、通常テキストとして処理します:', error);
+      
+      // JSONとして解析できない場合は、そのままのテキストを返す
+      // 選択肢をテキストから抽出してみる
+      const choices: string[] = [];
+      const choicesMatch = content.match(/\d+\.\s*(.*?)(:|\n|$)/g);
+      if (choicesMatch) {
+        choicesMatch.forEach(match => {
+          const choice = match.replace(/\d+\.\s*/, '').replace(/[:：].*$/, '').trim();
+          if (choice) choices.push(choice);
+        });
+      }
+      
       return {
         id: crypto.randomUUID(),
         role: 'assistant',
         content: content,
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        choices: choices.length > 0 ? choices : undefined,
+        should_split: content.length > 50 // 長いテキストは分割
       }
     }
   } catch (error) {

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { Loader2, RefreshCw } from "lucide-react"
+import { Loader2, RefreshCw, Info, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useRouter } from 'next/navigation'
@@ -10,6 +10,8 @@ import { useChatState } from "@/app/fragrance-lab/chat/hooks/useChatState"
 import { ChatPhase } from "@/app/fragrance-lab/chat/types"
 import { ChatProgressSteps } from "@/app/fragrance-lab/chat/components/ChatProgressSteps"
 import Image from "next/image"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
+import { TipsSidebar } from "./tips-sidebar"
 
 export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
   const router = useRouter()
@@ -20,7 +22,8 @@ export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
     error,
     addMessage,
     resetChat,
-    nextPhase
+    nextPhase,
+    selectedScents
   } = useChatState()
 
   const [input, setInput] = useState("")
@@ -254,7 +257,7 @@ export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
         <span>{getStepName(currentPhaseId)}</span>
       </div>
       <div ref={scrollAreaRef} className="flex-1 p-3 md:p-5 overflow-y-auto mb-16">
-        <div className="space-y-4 max-w-4xl mx-auto">
+        <div className="space-y-4 max-w-4xl lg:max-w-6xl mx-auto">
           {messages.map((message) => {
             // 既存の選択肢がある場合はそのまま使用
             const hasExistingChoices = message.choices && message.choices.length > 0;
@@ -272,7 +275,7 @@ export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
                 )}
               >
                 {message.role !== 'user' && (
-                  <div className="w-10 h-10 rounded-full overflow-hidden mr-3 flex-shrink-0">
+                  <div className="w-8 h-8 md:w-10 md:h-10 rounded-full overflow-hidden mr-2 md:mr-3 flex-shrink-0">
                     <Image 
                       src="/images/Fragrance Lab.png" 
                       alt="AI" 
@@ -283,7 +286,7 @@ export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
                 )}
                 <div
                   className={cn(
-                    "max-w-[80%] px-4 py-2.5 text-base leading-relaxed break-words rounded-2xl",
+                    "md:max-w-[80%] lg:max-w-[70%] px-3 md:px-4 py-2 md:py-2.5 text-sm md:text-base leading-relaxed break-words rounded-2xl",
                     message.role === 'user'
                       ? 'bg-primary text-primary-foreground rounded-tr-none shadow-sm'
                       : 'bg-white rounded-tl-none shadow-sm'
@@ -303,20 +306,22 @@ export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
                   
                   {/* 既存の選択肢があればそれを表示 */}
                   {hasExistingChoices && message.choices && (
-                    <div className="mt-3 space-y-2">
+                    <div className="mt-3 space-y-2 grid md:grid-cols-1 lg:grid-cols-3 lg:gap-2 lg:space-y-0">
                       {message.choices.map((choice, index) => (
                         <Button
                           key={index}
                           variant="outline"
-                          className="w-full text-base py-2 whitespace-normal text-left h-auto justify-start border-primary/30 hover:bg-primary/10 hover:text-primary-foreground/90"
+                          className="w-full text-sm md:text-base py-2 whitespace-normal text-left h-auto justify-start border-primary/30 hover:bg-primary/10 hover:text-primary-foreground/90"
                           onClick={() => handleChoiceClick(choice)}
                         >
-                          {choice}
-                          {message.choices_descriptions && message.choices_descriptions[index] && (
-                            <span className="ml-2 text-sm text-muted-foreground">
-                              {message.choices_descriptions[index]}
-                            </span>
-                          )}
+                          <div className="flex flex-col w-full">
+                            <div className="font-medium">{choice}</div>
+                            {message.choices_descriptions && message.choices_descriptions[index] && (
+                              <div className="text-xs md:text-sm text-muted-foreground mt-1">
+                                {message.choices_descriptions[index]}
+                              </div>
+                            )}
+                          </div>
                         </Button>
                       ))}
                     </div>
@@ -324,21 +329,23 @@ export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
                   
                   {/* パースした選択肢があれば表示 */}
                   {!hasExistingChoices && parsedContent.choices.length > 0 && (
-                    <div className="mt-3 space-y-2">
+                    <div className="mt-3 space-y-2 grid md:grid-cols-1 lg:grid-cols-3 lg:gap-2 lg:space-y-0">
                       {Array.isArray(parsedContent.choices) 
                         ? parsedContent.choices.map((choice, index) => (
                             <Button
                               key={index}
                               variant="outline"
-                              className="w-full text-base py-2 whitespace-normal text-left h-auto justify-start border-primary/30 hover:bg-primary/10 hover:text-primary-foreground/90"
+                              className="w-full text-sm md:text-base py-2 whitespace-normal text-left h-auto justify-start border-primary/30 hover:bg-primary/10 hover:text-primary-foreground/90"
                               onClick={() => handleChoiceClick(typeof choice === 'string' ? choice : choice.name)}
                             >
-                              {typeof choice === 'string' ? choice : choice.name}
-                              {typeof choice !== 'string' && choice.description && (
-                                <span className="ml-2 text-sm text-muted-foreground">
-                                  {choice.description}
-                                </span>
-                              )}
+                              <div className="flex flex-col w-full">
+                                <div className="font-medium">{typeof choice === 'string' ? choice : choice.name}</div>
+                                {typeof choice !== 'string' && choice.description && (
+                                  <div className="text-xs md:text-sm text-muted-foreground mt-1">
+                                    {choice.description}
+                                  </div>
+                                )}
+                              </div>
                             </Button>
                           ))
                         : null
@@ -347,7 +354,7 @@ export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
                   )}
                 </div>
                 {message.role === 'user' && (
-                  <div className="w-10 h-10 rounded-full overflow-hidden ml-3 flex-shrink-0">
+                  <div className="w-8 h-8 md:w-10 md:h-10 rounded-full overflow-hidden ml-2 md:ml-3 flex-shrink-0">
                     <Image 
                       src="/images/User.png" 
                       alt="User" 
@@ -361,7 +368,7 @@ export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
           })}
           {isLoading && (
             <div className="flex items-start">
-              <div className="w-10 h-10 rounded-full overflow-hidden mr-3 flex-shrink-0">
+              <div className="w-8 h-8 md:w-10 md:h-10 rounded-full overflow-hidden mr-2 md:mr-3 flex-shrink-0">
                 <Image 
                   src="/images/Fragrance Lab.png" 
                   alt="AI" 
@@ -369,9 +376,9 @@ export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
                   height={40}
                 />
               </div>
-              <div className="max-w-[80%] px-4 py-2.5 text-base leading-relaxed break-words rounded-2xl bg-white rounded-tl-none shadow-sm">
+              <div className="md:max-w-[80%] lg:max-w-[70%] px-3 md:px-4 py-2 md:py-2.5 text-sm md:text-base leading-relaxed break-words rounded-2xl bg-white rounded-tl-none shadow-sm">
                 <div className="flex items-center space-x-2">
-                  <Loader2 className="h-5 w-5 animate-spin" />
+                  <Loader2 className="h-4 w-4 md:h-5 md:w-5 animate-spin" />
                   <span>考え中...</span>
                 </div>
               </div>
@@ -379,7 +386,7 @@ export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
           )}
           {error && (
             <div className="flex items-start">
-              <div className="w-10 h-10 rounded-full overflow-hidden mr-3 flex-shrink-0">
+              <div className="w-8 h-8 md:w-10 md:h-10 rounded-full overflow-hidden mr-2 md:mr-3 flex-shrink-0">
                 <Image 
                   src="/images/Fragrance Lab.png" 
                   alt="AI" 
@@ -387,7 +394,7 @@ export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
                   height={40}
                 />
               </div>
-              <div className="max-w-[80%] px-4 py-2.5 text-base leading-relaxed break-words rounded-2xl bg-destructive/10 text-destructive rounded-tl-none shadow-sm">
+              <div className="md:max-w-[80%] lg:max-w-[70%] px-3 md:px-4 py-2 md:py-2.5 text-sm md:text-base leading-relaxed break-words rounded-2xl bg-destructive/10 text-destructive rounded-tl-none shadow-sm">
                 {typeof error === 'string' ? error : error.message}
               </div>
             </div>
@@ -399,9 +406,9 @@ export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
 
       <form 
         onSubmit={handleSend}
-        className="sticky bottom-0 bg-white/95 backdrop-blur-sm shadow-md px-5 py-4 flex flex-col gap-3 z-10 border-t"
+        className="sticky bottom-0 bg-white/95 backdrop-blur-sm shadow-md px-4 md:px-5 py-3 md:py-4 flex flex-col gap-2 md:gap-3 z-10 border-t"
       >
-        <div className="flex gap-3 items-center max-w-4xl mx-auto w-full">
+        <div className="flex gap-2 md:gap-3 items-center max-w-4xl lg:max-w-6xl mx-auto w-full">
           <Input
             ref={inputRef}
             value={input}
@@ -412,33 +419,43 @@ export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
             onKeyDown={handleKeyDown}
             placeholder="メッセージを入力..."
             disabled={isLoading}
-            className="focus:ring-2 focus:ring-primary text-base h-11 border-primary/20"
+            className="focus:ring-2 focus:ring-primary text-sm md:text-base h-10 md:h-11 border-primary/20"
           />
           <Button 
             type="submit" 
             disabled={isLoading} 
-            className="flex-shrink-0 h-11 px-5 text-base"
+            className="flex-shrink-0 h-10 md:h-11 px-3 md:px-5 text-sm md:text-base"
             onClick={(e) => {
               e.preventDefault();
               handleSend();
             }}
           >
-            {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : '送信'}
+            {isLoading ? <Loader2 className="h-4 w-4 md:h-5 md:w-5 animate-spin" /> : '送信'}
           </Button>
         </div>
-        <div className="max-w-4xl mx-auto w-full">
+        <div className="max-w-4xl lg:max-w-6xl mx-auto w-full">
           <Button
             type="button"
             variant="outline"
-            className="w-full h-10 text-base border-primary/20 hover:bg-primary/5"
+            className="w-full h-9 md:h-10 text-sm md:text-base border-primary/20 hover:bg-primary/5"
             onClick={handleReset}
             disabled={isLoading}
           >
-            <RefreshCw className="h-5 w-5 mr-2" />
+            <RefreshCw className="h-4 w-4 md:h-5 md:w-5 mr-2" />
             チャットをリセット
           </Button>
         </div>
       </form>
+      
+      {/* TipsSidebarコンポーネントを使用 */}
+      <TipsSidebar 
+        currentStep={currentPhaseId as any} 
+        selectedScents={{
+          top: selectedScents.top.length > 0 ? selectedScents.top[0] : null,
+          middle: selectedScents.middle.length > 0 ? selectedScents.middle[0] : null,
+          base: selectedScents.base.length > 0 ? selectedScents.base[0] : null
+        }} 
+      />
     </div>
   )
 }

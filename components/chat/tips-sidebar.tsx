@@ -1,4 +1,7 @@
-import { Info } from "lucide-react"
+import { useState } from "react"
+import { Info, X } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 
 type TipsSidebarProps = {
   currentStep: "intro" | "top" | "middle" | "base" | "bottle" | "complete"
@@ -10,6 +13,8 @@ type TipsSidebarProps = {
 }
 
 export function TipsSidebar({ currentStep, selectedScents }: TipsSidebarProps) {
+  const [isOpen, setIsOpen] = useState(false)
+
   // ノートの説明
   const noteDescriptions = {
     top: "トップノートは最初に感じる香りで、約15分〜2時間持続します。フレッシュで爽やかな印象を与えます。",
@@ -36,7 +41,7 @@ export function TipsSidebar({ currentStep, selectedScents }: TipsSidebarProps) {
   }
 
   // 現在のステップに応じた説明を表示
-  const renderContent = () => {
+  const getStepContent = () => {
     switch (currentStep) {
       case "intro":
         return (
@@ -118,13 +123,99 @@ export function TipsSidebar({ currentStep, selectedScents }: TipsSidebarProps) {
     }
   }
 
+  // タブ切り替え型のTIPS内容
+  const getTipsContent = (tabValue: string) => {
+    switch (tabValue) {
+      case "about":
+        return (
+          <div>
+            <h3 className="font-medium mb-2">香水作成ガイド</h3>
+            <p className="text-xs text-secondary-foreground/70">
+              AIとチャットして香水レシピを作成できます。好みや気分を伝えると、AIがトップノート、ミドルノート、ベースノートを提案します。完成したレシピは、好きな写真とボトルを選んで注文可能です。
+            </p>
+          </div>
+        )
+      case "top":
+        return (
+          <div>
+            <h3 className="font-medium mb-2">トップノートとは</h3>
+            <p className="text-xs text-secondary-foreground/70">
+              トップノートは最初に感じる香りで、香水をつけた直後から約15分〜2時間持続します。レモンやベルガモットなどのフレッシュで爽やかな印象の香りが多く使われます。
+            </p>
+          </div>
+        )
+      case "middle":
+        return (
+          <div>
+            <h3 className="font-medium mb-2">ミドルノートとは</h3>
+            <p className="text-xs text-secondary-foreground/70">
+              ミドルノートは香りの中心となり、トップノートが消えた後に現れ、2〜4時間持続します。ローズやジャスミンなどのフローラルやスパイシーな香りが特徴で、香水の「心」と呼ばれます。
+            </p>
+          </div>
+        )
+      case "note":
+        return (
+          <div>
+            <h3 className="font-medium mb-2">ノートとは</h3>
+            <p className="text-xs text-secondary-foreground/70">
+              ノートとは香水の構成要素で、時間とともに変化する香りの層を表します。香水は「トップノート」「ミドルノート」「ベースノート（ラストノート）」の3層構造になっており、それぞれが時間の経過とともに変化し、香りの物語を紡ぎます。
+            </p>
+          </div>
+        )
+      default:
+        return getStepContent()
+    }
+  }
+
+  if (!isOpen) {
+    return (
+      <button
+        onClick={() => setIsOpen(true)}
+        className="fixed bottom-4 left-4 flex items-center justify-center bg-primary text-primary-foreground rounded-full w-10 h-10 shadow-md z-20 hover:bg-primary/90 transition-colors"
+        aria-label="香水作成ガイドを表示"
+      >
+        <Info className="h-5 w-5" />
+      </button>
+    )
+  }
+
   return (
-    <div className="fixed bottom-4 left-4 w-64 bg-white p-4 rounded-lg shadow-md z-10 animate-fadeIn">
-      <div className="flex items-center mb-3">
-        <Info className="h-4 w-4 text-primary mr-2" />
-        <h2 className="text-sm font-medium">Tips</h2>
+    <div className="fixed bottom-4 left-4 w-72 bg-white p-4 rounded-lg shadow-md z-20 animate-fadeIn">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center">
+          <Info className="h-4 w-4 text-primary mr-2" />
+          <h2 className="text-sm font-medium">香水作成ガイド</h2>
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-6 w-6 p-0"
+          onClick={() => setIsOpen(false)}
+        >
+          <X className="h-4 w-4" />
+        </Button>
       </div>
-      {renderContent()}
+      
+      <Tabs defaultValue="about" className="w-full">
+        <TabsList className="grid grid-cols-4 w-full mb-2">
+          <TabsTrigger value="about" className="text-xs py-1">使い方</TabsTrigger>
+          <TabsTrigger value="top" className="text-xs py-1">トップ</TabsTrigger>
+          <TabsTrigger value="middle" className="text-xs py-1">ミドル</TabsTrigger>
+          <TabsTrigger value="note" className="text-xs py-1">ノート</TabsTrigger>
+        </TabsList>
+        <TabsContent value="about">
+          {getTipsContent("about")}
+        </TabsContent>
+        <TabsContent value="top">
+          {getTipsContent("top")}
+        </TabsContent>
+        <TabsContent value="middle">
+          {getTipsContent("middle")}
+        </TabsContent>
+        <TabsContent value="note">
+          {getTipsContent("note")}
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }
