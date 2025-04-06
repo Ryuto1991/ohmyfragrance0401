@@ -5,94 +5,25 @@ import { Loader2, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useRouter } from 'next/navigation'
-import { v4 as uuidv4 } from 'uuid'
 import { ScrollArea } from "@/components/ui/scroll-area"
-import essentialOilsDataRaw from './essential-oils.json'
 import { cn } from "@/lib/utils"
-
-// 型定義
-
-type MessageRole = 'user' | 'assistant' | 'system'
-
-type Message = {
-  id: string
-  role: MessageRole
-  content: string
-  options?: string[]
-}
-
-type Step = 'intro' | 'themeSelected' | 'top' | 'middle' | 'base' | 'finalized' | 'complete' | 'generator'
-
-interface FragranceRecipe {
-  top_notes: string[]
-  middle_notes: string[]
-  base_notes: string[]
-  name: string
-  description: string
-}
-
-interface EssentialOil {
-  name: string
-  english: string
-  description: string
-  emotion: string
-  category: 'top' | 'middle' | 'base'
-  source: string
-  info: string
-}
-
-const essentialOilsData: EssentialOil[] = [
-  ...essentialOilsDataRaw.perfumeNotes.topNotes.map(oil => ({
-    ...oil,
-    category: 'top' as const
-  })),
-  ...essentialOilsDataRaw.perfumeNotes.middleNotes.map(oil => ({
-    ...oil,
-    category: 'middle' as const
-  })),
-  ...essentialOilsDataRaw.perfumeNotes.baseNotes.map(oil => ({
-    ...oil,
-    category: 'base' as const
-  }))
-]
+import { useChatState } from "@/app/fragrance-lab/chat/hooks/useChatState"
+import { ChatPhase } from "@/app/fragrance-lab/chat/types"
+import { ChatProgressSteps } from "@/app/fragrance-lab/chat/components/ChatProgressSteps"
 
 export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
   const router = useRouter()
-  const [messages, setMessages] = useState<Message[]>([])
+  const {
+    messages,
+    currentPhaseId,
+    isLoading,
+    error,
+    addMessage,
+    resetChat
+  } = useChatState()
+
   const [input, setInput] = useState("")
-  const [currentStep, setCurrentStep] = useState<Step>("intro")
-  const [selectedScents, setSelectedScents] = useState({
-    top: null as string | null,
-    middle: null as string | null,
-    base: null as string | null,
-  })
-  const [isLoading, setIsLoading] = useState(false)
-  const [sessionId, setSessionId] = useState<string>("")
-  const [isInitialized, setIsInitialized] = useState(false)
-  const [hasProcessedInitialQuery, setHasProcessedInitialQuery] = useState(false)
   const scrollAreaRef = useRef<HTMLDivElement>(null)
-
-  const handleSend = async () => {
-    if (!input.trim()) return
-
-    const userMessage = createMessage('user', input)
-    setMessages(prev => [...prev, userMessage])
-    setInput('')
-    setIsLoading(true)
-
-    try {
-      const options = getOptionsForStep(currentStep)
-      const assistantMessage = createMessage('assistant', '考え中...', options)
-      setMessages(prev => [...prev, assistantMessage])
-      determineCurrentStep(assistantMessage)
-    } catch (error) {
-      console.error('Error in handleSend:', error)
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  useEffect(() => setSessionId(uuidv4()), [])
 
   useEffect(() => {
     if (scrollAreaRef.current) {
@@ -100,189 +31,82 @@ export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
     }
   }, [messages])
 
-  useEffect(() => {
-    if (typeof window !== 'undefined' && !isInitialized) {
-      const saved = localStorage.getItem('fragrance_chat_history')
-      const lastVisit = localStorage.getItem('last_fragrance_chat_visit')
-      const now = new Date().getTime()
-
-      if (lastVisit && now - parseInt(lastVisit) > 30 * 60 * 1000) {
-        localStorage.removeItem('fragrance_chat_history')
-        initializeChat()
-      } else if (saved) {
-        const parsedMessages = JSON.parse(saved)
-        setMessages(parsedMessages)
-        const lastMessage = parsedMessages[parsedMessages.length - 1]
-        if (lastMessage.role === 'assistant' && lastMessage.options) determineCurrentStep(lastMessage)
-      } else {
-        initializeChat()
-      }
-
-      localStorage.setItem('last_fragrance_chat_visit', now.toString())
-      setIsInitialized(true)
-    }
-  }, [isInitialized])
-
-  useEffect(() => {
-    if (typeof window !== 'undefined' && isInitialized && messages.length > 0) {
-      localStorage.setItem('fragrance_chat_history', JSON.stringify(messages))
-    }
-  }, [messages, isInitialized])
-
-  const createMessage = (role: MessageRole, content: string, options?: string[]): Message => ({
-    id: uuidv4(),
-    role,
-    content,
-    ...(options ? { options } : {})
-  })
-
-  const initializeChat = () => {
-    const systemMessage = createMessage('system', `あなたは香水を一緒に考える調香師『Fragrance Lab』です。\n- 文体は敬語とカジュアル語を混ぜて、親しみやすく。\n- ユーザーのテンションや文章量に応じて返答の長さやトーンを調整してください。\n- 基本的に1～2文で返答してください。\n- レシピはトップ・ミドル・ベースノートの順で構成してください。`)
-
-    const welcomeMessage = createMessage('assistant', 'こんにちは！あなただけのオリジナル香水を一緒に作りましょう✨\nまずは、どんなイメージの香りが好き？気分やシーンでもOKだよ〜', ["爽やかな朝の香り", "リラックスできる香り", "特別な日に身につけたい香り"])
-
-    setMessages([systemMessage, welcomeMessage])
-    setCurrentStep("intro")
+  const handleSend = async () => {
+    if (!input.trim()) return
+    await addMessage(input)
+    setInput('')
   }
 
-  const determineCurrentStep = (message: Message) => {
-    if (currentStep === "intro") setCurrentStep("themeSelected")
-    else if (message.options?.some(o => o.includes("レモン") || o.includes("ベルガモット"))) setCurrentStep("top")
-    else if (message.options?.some(o => o.includes("ジャスミン") || o.includes("ローズ"))) setCurrentStep("middle")
-    else if (message.options?.some(o => o.includes("サンダルウッド") || o.includes("バニラ"))) setCurrentStep("base")
+  const handleReset = () => {
+    resetChat()
   }
 
-  const extractRecipeFromText = (text: string): FragranceRecipe | null => {
-    const match = text.match(/```json\n([\s\S]*?)\n```/)
-    if (!match) return null
-    try {
-      const parsed = JSON.parse(match[1])
-      return parsed.recipe
-    } catch {
-      return null
+  const getStepName = (phase: ChatPhase) => {
+    switch (phase) {
+      case 'welcome': return 'ようこそ'
+      case 'intro': return 'テーマ選択'
+      case 'themeSelected': return '香料提案中'
+      case 'top': return 'トップノート選択中'
+      case 'middle': return 'ミドルノート選択中'
+      case 'base': return 'ベースノート選択中'
+      case 'finalized': return 'レシピ確認中'
+      case 'complete': return '完了！'
+      default: return phase
     }
   }
-
-  const getOptionsForStep = (step: Step): string[] | undefined => {
-    const getOptionsFromOilData = (category: 'top' | 'middle' | 'base') => {
-      return essentialOilsData
-        .filter((oil: EssentialOil) => oil.category === category)
-        .slice(0, 3)
-        .map((oil: EssentialOil) => `${oil.name}（${oil.description}）`)
-    }
-
-    switch (step) {
-      case 'intro': return ["爽やかな朝の香り", "リラックスできる香り", "特別な日に身につけたい香り"]
-      case 'top': return getOptionsFromOilData('top')
-      case 'middle': return getOptionsFromOilData('middle')
-      case 'base': return getOptionsFromOilData('base')
-      default: return undefined
-    }
-  }
-
-  const processInitialQuery = async () => {
-    if (initialQuery && !hasProcessedInitialQuery && isInitialized) {
-      setHasProcessedInitialQuery(true)
-      setIsLoading(true)
-
-      // 入力文に「一発」「すぐに」などが含まれるかで判定
-      const isOneShot = /一発|すぐに|パッと|一気に|ざっくり|完成|生成/.test(initialQuery)
-
-      const newMessages = isOneShot
-        ? [createMessage('user', initialQuery)]
-        : [
-            createMessage('assistant', 'なるほど、新しいアイデアをいただきましたね。それでは、その観点からも考えてみましょう。'),
-            createMessage('user', initialQuery)
-          ]
-
-      setMessages(newMessages)
-      await processMessage(newMessages)
-      setIsLoading(false)
-
-      // ステップ変更
-      setCurrentStep(isOneShot ? 'generator' : 'themeSelected')
-    }
-  }
-
-  const processMessage = async (messages: Message[]) => {
-    try {
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ messages }),
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to send message')
-      }
-
-      const data = await response.json()
-      const recipe = extractRecipeFromText(data.result)
-      
-      if (recipe) {
-        // レシピが生成された場合、custom-orderページに遷移
-        router.push(`/custom-order?mode=lab&recipe=${encodeURIComponent(JSON.stringify(recipe))}`)
-        return
-      }
-
-      return data.result
-    } catch (error) {
-      console.error('Error in processMessage:', error)
-      return '申し訳ありません。エラーが発生しました。もう一度お試しください。'
-    }
-  }
-
-  // TODO: チャットUIにステップインジケーター追加予定
-  // TODO: チャット体験をライトにし、初期提案ベース型に切り替え検討
 
   return (
     <div className="flex flex-col h-[600px]">
-      {/* ステップインジケーター（仮） */}
-      <div className="flex justify-center mb-2 text-sm text-muted-foreground">
-        <span>
-          ステップ: {currentStep === "intro" ? "テーマ選択" : currentStep === "themeSelected" ? "香料提案中" :
-          currentStep === "top" ? "トップノート選択中" :
-          currentStep === "middle" ? "ミドルノート選択中" :
-          currentStep === "base" ? "ベースノート選択中" :
-          currentStep === "finalized" ? "レシピ確認中" : "完了！"}
-        </span>
+      <div className="flex justify-center mb-2">
+        <ChatProgressSteps currentPhaseId={currentPhaseId} />
       </div>
-
-      <ScrollArea className="flex-1 p-4">
-        <div className="space-y-4" ref={scrollAreaRef}>
+      <div className="flex justify-center mb-2 text-sm text-muted-foreground">
+        <span>ステップ: {getStepName(currentPhaseId)}</span>
+      </div>
+      <ScrollArea ref={scrollAreaRef} className="flex-1 p-4">
+        <div className="space-y-4">
           {messages.map((message) => (
             <div
               key={message.id}
               className={cn(
                 "flex",
-                message.role === "user" ? "justify-end" : "justify-start"
+                message.role === 'user' ? 'justify-end' : 'justify-start'
               )}
             >
               <div
                 className={cn(
-                  "max-w-[80%] rounded-lg p-3",
-                  message.role === "user"
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted"
+                  "rounded-lg p-4 max-w-[80%]",
+                  message.role === 'user'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted'
                 )}
               >
-                <p className="text-sm">{message.content}</p>
-                {message.options && (
+                {message.content && message.content.trim().startsWith('{') && message.content.trim().endsWith('}')
+                  ? (() => {
+                      try {
+                        const parsed = JSON.parse(message.content);
+                        return <p>{parsed.content || message.content}</p>;
+                      } catch (e) {
+                        return <p>{message.content}</p>;
+                      }
+                    })()
+                  : <p>{message.content}</p>
+                }
+                {message.choices && message.choices.length > 0 && (
                   <div className="mt-2 space-y-2">
-                    {message.options.map((option) => (
+                    {message.choices.map((choice, index) => (
                       <Button
-                        key={option}
+                        key={index}
                         variant="outline"
-                        size="sm"
                         className="w-full"
-                        onClick={() => {
-                          setInput(option)
-                          handleSend()
-                        }}
+                        onClick={() => addMessage(choice)}
                       >
-                        {option}
+                        {choice}
+                        {message.choices_descriptions && message.choices_descriptions[index] && (
+                          <span className="ml-2 text-xs text-muted-foreground">
+                            {message.choices_descriptions[index]}
+                          </span>
+                        )}
                       </Button>
                     ))}
                   </div>
@@ -290,31 +114,52 @@ export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
               </div>
             </div>
           ))}
+          {isLoading && (
+            <div className="flex justify-start">
+              <div className="bg-muted rounded-lg p-4">
+                <div className="flex items-center space-x-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>考え中...</span>
+                </div>
+              </div>
+            </div>
+          )}
+          {error && (
+            <div className="flex justify-start">
+              <div className="bg-destructive/10 text-destructive rounded-lg p-4">
+                {typeof error === 'string' ? error : error.message}
+              </div>
+            </div>
+          )}
         </div>
       </ScrollArea>
-
-      <div className="p-4 border-t">
-        <form
-          onSubmit={(e) => {
-            e.preventDefault()
-            handleSend()
-          }}
-          className="flex gap-2"
-        >
+      <div className="border-t p-4">
+        <div className="flex space-x-2">
           <Input
             value={input}
             onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault()
+                handleSend()
+              }
+            }}
             placeholder="メッセージを入力..."
-            className="flex-1"
+            disabled={isLoading}
           />
-          <Button type="submit" disabled={isLoading}>
-            {isLoading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              "送信"
-            )}
+          <Button onClick={handleSend} disabled={isLoading}>
+            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : '送信'}
           </Button>
-        </form>
+        </div>
+        <Button
+          variant="outline"
+          className="mt-2 w-full"
+          onClick={handleReset}
+          disabled={isLoading}
+        >
+          <RefreshCw className="h-4 w-4 mr-2" />
+          チャットをリセット
+        </Button>
       </div>
     </div>
   )

@@ -13,23 +13,28 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET!
 
 export async function POST(req: NextRequest) {
+  console.log('🔄 Webhook受信開始');
   const payload = await req.text()
   const sig = req.headers.get('stripe-signature')
 
   let event: Stripe.Event
 
   try {
+    console.log('🔍 Webhook署名検証中...');
     event = stripe.webhooks.constructEvent(payload, sig!, endpointSecret)
+    console.log('✅ Webhook署名検証成功');
   } catch (err: any) {
-    console.error('Webhook signature verification failed:', err.message)
+    console.error('❌ Webhook署名検証失敗:', err.message)
     return NextResponse.json({ received: false }, { status: 200 })
   }
 
   if (event.type === 'checkout.session.completed') {
+    console.log('💰 チェックアウトセッション完了イベントを検出');
     const session = event.data.object as Stripe.Checkout.Session
 
     try {
-      console.log('✅ Checkout Session:', session.id)
+      console.log('📝 セッションID:', session.id)
+      console.log('📦 メタデータ:', JSON.stringify(session.metadata, null, 2))
 
       const metadata = session.metadata || {}
       const {
@@ -98,44 +103,55 @@ export async function POST(req: NextRequest) {
       }
 
       // スプレッドシートに注文記録
-      await appendOrderToSpreadsheet({
-        orderId: session.id,
-        stripeSessionId: session.id,
-        paymentStatus: session.payment_status,
-        paymentMethod: session.payment_method_types[0],
-        amountTotal: session.amount_total ? session.amount_total / 100 : 0,
-        shippingCost: session.shipping_cost ? session.shipping_cost.amount_total / 100 : 0,
-        taxAmount: session.total_details?.amount_tax ? session.total_details.amount_tax / 100 : 0,
-        subtotal: session.amount_subtotal ? session.amount_subtotal / 100 : 0,
-        customerName: session.customer_details?.name || customerName || '',
-        customerEmail: session.customer_details?.email || customerEmail || '',
-        customerPhone: session.customer_details?.phone || '',
-        customerAddress: {
-          postalCode: session.customer_details?.address?.postal_code || '',
-          prefecture: session.customer_details?.address?.state || '',
-          city: session.customer_details?.address?.city || '',
-          address: [
-            session.customer_details?.address?.line1,
-            session.customer_details?.address?.line2
-          ].filter(Boolean).join(' ') || ''
-        },
-        productType,
-        fragranceName: fragranceName || '',
-        bottleType: bottleType || '',
-        labelSize: labelSize || '',
-        labelImageUrl: labelImageUrl || '',
-        orderNote,
-        originalImageUrl: originalImageUrl || '',
-        originalImageSize: originalImageSize || '',
-        originalImageFormat: originalImageFormat || '',
-        editedImageUrl: labelImageUrl || '',
-        editedImageSize: labelImageSize || '',
-        editedImageFormat: labelImageFormat || ''
-      })
+      try {
+        console.log('📊 スプレッドシートへの書き込みを開始');
+        const spreadsheetResult = await appendOrderToSpreadsheet({
+          orderId: session.id,
+          stripeSessionId: session.id,
+          paymentStatus: session.payment_status,
+          paymentMethod: session.payment_method_types[0],
+          amountTotal: session.amount_total ? session.amount_total / 100 : 0,
+          shippingCost: session.shipping_cost ? session.shipping_cost.amount_total / 100 : 0,
+          taxAmount: session.total_details?.amount_tax ? session.total_details.amount_tax / 100 : 0,
+          subtotal: session.amount_subtotal ? session.amount_subtotal / 100 : 0,
+          customerName: session.customer_details?.name || customerName || '',
+          customerEmail: session.customer_details?.email || customerEmail || '',
+          customerPhone: session.customer_details?.phone || '',
+          customerAddress: {
+            postalCode: session.customer_details?.address?.postal_code || '',
+            prefecture: session.customer_details?.address?.state || '',
+            city: session.customer_details?.address?.city || '',
+            address: [
+              session.customer_details?.address?.line1,
+              session.customer_details?.address?.line2
+            ].filter(Boolean).join(' ') || ''
+          },
+          productType,
+          fragranceName: fragranceName || '',
+          bottleType: bottleType || '',
+          labelSize: labelSize || '',
+          labelImageUrl: labelImageUrl || '',
+          orderNote,
+          originalImageUrl: originalImageUrl || '',
+          originalImageSize: originalImageSize || '',
+          originalImageFormat: originalImageFormat || '',
+          editedImageUrl: labelImageUrl || '',
+          editedImageSize: labelImageSize || '',
+          editedImageFormat: labelImageFormat || ''
+        })
+
+        if (!spreadsheetResult.success) {
+          console.error('❌ スプレッドシートへの書き込みに失敗:', spreadsheetResult.error)
+        } else {
+          console.log('✅ スプレッドシートへの書き込み成功:', spreadsheetResult.data)
+        }
+      } catch (spreadsheetError) {
+        console.error('❌ スプレッドシート処理エラー:', spreadsheetError)
+      }
 
       return NextResponse.json({ received: true })
     } catch (error) {
-      console.error('❌ Webhook 処理エラー:', error)
+      console.error('❌ Webhook処理エラー:', error)
       // Stripeに「処理済み」と返して再送を防ぐ
       return NextResponse.json({ received: true })
     }

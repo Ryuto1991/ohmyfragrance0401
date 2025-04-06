@@ -224,41 +224,93 @@ export async function appendOrderToSpreadsheet({
   editedImageSize?: string;
   editedImageFormat?: string;
 }) {
-  const values = [
-    new Date().toISOString(),
-    orderId,
-    stripeSessionId,
-    paymentStatus,
-    paymentMethod,
-    amountTotal.toString(),
-    shippingCost.toString(),
-    taxAmount.toString(),
-    subtotal.toString(),
-    customerName,
-    customerEmail,
-    customerPhone,
-    customerAddress.postalCode,
-    customerAddress.prefecture,
-    customerAddress.city,
-    customerAddress.address,
-    productType,
-    fragranceName || '',
-    bottleType || '',
-    labelSize || '',
-    labelImageUrl || '',
-    orderNote || '',
-    originalImageUrl || '',
-    originalImageSize || '',
-    originalImageFormat || '',
-    editedImageUrl || '',
-    editedImageSize || '',
-    editedImageFormat || '',
-    '未発送',
-    '',
-    '',
-  ];
+  try {
+    console.log('🔄 スプレッドシートへのデータ追加を開始');
+    console.log('📊 スプレッドシートID:', spreadsheetId);
+    console.log('👤 サービスアカウント:', process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL);
 
-  return appendSpreadsheetRow(values);
+    // シート名を取得
+    const sheetName = getSheetName();
+    console.log('📄 シート名:', sheetName);
+    
+    // シートが存在するか確認
+    const sheetExists = await checkSheetExists(sheetName);
+    console.log('🔍 シートの存在確認:', sheetExists ? '存在する' : '存在しない');
+
+    if (!sheetExists) {
+      // シートが存在しない場合は作成
+      console.log('📝 新規シートを作成');
+      const created = await createNewSheet(sheetName);
+      if (!created) {
+        throw new Error('Failed to create new sheet');
+      }
+      console.log('✅ 新規シートの作成完了');
+    }
+
+    // 現在の日時を取得（日本時間）
+    const now = new Date();
+    const japanTime = new Date(now.getTime() + (9 * 60 * 60 * 1000));
+    const formattedDate = japanTime.toISOString().replace('T', ' ').replace('.000Z', '');
+    console.log('⏰ 注文日時:', formattedDate);
+
+    // データを準備
+    const values = [
+      formattedDate,
+      orderId,
+      stripeSessionId,
+      paymentStatus,
+      paymentMethod,
+      amountTotal,
+      shippingCost,
+      taxAmount,
+      subtotal,
+      customerName,
+      customerEmail,
+      customerPhone,
+      customerAddress.postalCode,
+      customerAddress.prefecture,
+      customerAddress.city,
+      customerAddress.address,
+      productType,
+      fragranceName || '',
+      bottleType || '',
+      labelSize || '',
+      labelImageUrl || '',
+      orderNote || '',
+      originalImageUrl || '',
+      originalImageSize || '',
+      originalImageFormat || '',
+      editedImageUrl || '',
+      editedImageSize || '',
+      editedImageFormat || '',
+      '未発送', // 発送状況
+      '', // 発送日
+      '' // 追跡番号
+    ];
+
+    console.log('📝 追加するデータ:', JSON.stringify(values, null, 2));
+
+    // スプレッドシートにデータを追加
+    console.log('📤 スプレッドシートにデータを追加中...');
+    const response = await sheets.spreadsheets.values.append({
+      spreadsheetId,
+      range: `${sheetName}!A1:AC1`,
+      valueInputOption: 'USER_ENTERED',
+      requestBody: {
+        values: [values],
+      },
+    });
+
+    if (!response.data) {
+      throw new Error('No response data from Google Sheets API');
+    }
+
+    console.log('✅ スプレッドシートへのデータ追加成功');
+    return { success: true, data: response.data };
+  } catch (error) {
+    console.error('❌ スプレッドシートへのデータ追加エラー:', error);
+    return { success: false, error };
+  }
 }
 
 // スプレッドシートの注文ステータスを更新する関数

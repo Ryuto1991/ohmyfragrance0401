@@ -125,13 +125,13 @@ export default function PerfumeOrderingPage() {
     giftMessage: ''
   })
   const [selectedFragrance, setSelectedFragrance] = useState<Fragrance | null>(null)
-  const [selectedBottle, setSelectedBottle] = useState<string>('')
-  const [selectedLabelSize, setSelectedLabelSize] = useState<string>('')
+  const [selectedBottle, setSelectedBottle] = useState<string>('clear')
+  const [selectedLabelSize, setSelectedLabelSize] = useState<string>('medium')
   const [selectedLabelType, setSelectedLabelType] = useState<string>('')
   const [totalAmount, setTotalAmount] = useState<number>(0)
-  const [uploadedImage, setUploadedImage] = useState<string>('')
+  const [uploadedImage, setUploadedImage] = useState<string>('/labels/Template_label.png')
   const [croppedImageUrl, setCroppedImageUrl] = useState<string>('')
-  const [useTemplate, setUseTemplate] = useState(false)
+  const [useTemplate, setUseTemplate] = useState(true)
 
   // AIで生成された香りのデータを取得
   useEffect(() => {
