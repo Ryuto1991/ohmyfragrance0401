@@ -92,6 +92,55 @@ export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
     }
   }
 
+  // メッセージからテキスト部分と選択肢部分を分離する関数
+  const parseMessageContent = (content: string) => {
+    if (!content) return { text: '', choices: [] };
+
+    // 数字付きリストを検出する正規表現
+    const listPattern = /(\d+\.\s*\*\*([^*]+)\*\*\s*-\s*([^\n]+))/g;
+    const matches = [...content.matchAll(listPattern)];
+    
+    if (matches.length === 0) {
+      // 別の形式の選択肢も検出
+      const simplifiedPattern = /(\d+\.\s*([^\n\d\.]+))/g;
+      const simpleMatches = [...content.matchAll(simplifiedPattern)];
+      
+      if (simpleMatches.length > 0) {
+        const choices = simpleMatches.map(match => match[2].trim());
+        // テキスト部分（選択肢の前まで）
+        const lastChoiceIndex = content.lastIndexOf(simpleMatches[0][0]);
+        const textContent = lastChoiceIndex > 0 
+          ? content.substring(0, lastChoiceIndex) 
+          : content;
+          
+        return {
+          text: textContent,
+          choices: choices
+        };
+      }
+      
+      return { text: content, choices: [] };
+    }
+    
+    // 選択肢を抽出
+    const choices = matches.map(match => {
+      const name = match[2].trim();
+      const description = match[3].trim();
+      return { name, description };
+    });
+    
+    // テキスト部分（選択肢の前まで）
+    const firstChoiceIndex = content.indexOf(matches[0][0]);
+    const textContent = firstChoiceIndex > 0 
+      ? content.substring(0, firstChoiceIndex) 
+      : content;
+    
+    return {
+      text: textContent,
+      choices: choices
+    };
+  };
+
   return (
     <div className="flex flex-col h-[calc(100vh-120px)] w-full">
       <div className="flex justify-center mb-3">
@@ -102,75 +151,110 @@ export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
       </div>
       <div ref={scrollAreaRef} className="flex-1 p-5 overflow-y-auto mb-20">
         <div className="space-y-5 max-w-4xl mx-auto">
-          {messages.map((message) => (
-            <div
-              key={message.id}
-              className={cn(
-                "flex items-start",
-                message.role === 'user' ? 'justify-end' : 'justify-start'
-              )}
-            >
-              {message.role !== 'user' && (
-                <div className="w-10 h-10 rounded-full overflow-hidden mr-3 flex-shrink-0">
-                  <Image 
-                    src="/images/Fragrance Lab.png" 
-                    alt="AI" 
-                    width={40} 
-                    height={40}
-                  />
-                </div>
-              )}
+          {messages.map((message) => {
+            // 既存の選択肢がある場合はそのまま使用
+            const hasExistingChoices = message.choices && message.choices.length > 0;
+            // それ以外の場合は、コンテンツからパースして選択肢を抽出
+            const parsedContent = !hasExistingChoices && message.role === 'assistant' 
+              ? parseMessageContent(message.content)
+              : { text: message.content, choices: [] };
+            
+            return (
               <div
+                key={message.id}
                 className={cn(
-                  "max-w-[70%] px-5 py-3 text-base leading-relaxed break-words rounded-lg",
-                  message.role === 'user'
-                    ? 'bg-primary text-primary-foreground rounded-tr-none'
-                    : 'bg-muted rounded-tl-none'
+                  "flex items-start",
+                  message.role === 'user' ? 'justify-end' : 'justify-start'
                 )}
               >
-                {message.content && message.content.trim().startsWith('{') && message.content.trim().endsWith('}')
-                  ? (() => {
-                      try {
-                        const parsed = JSON.parse(message.content);
-                        return <p>{parsed.content || message.content}</p>;
-                      } catch (e) {
-                        return <p>{message.content}</p>;
+                {message.role !== 'user' && (
+                  <div className="w-10 h-10 rounded-full overflow-hidden mr-3 flex-shrink-0">
+                    <Image 
+                      src="/images/Fragrance Lab.png" 
+                      alt="AI" 
+                      width={40} 
+                      height={40}
+                    />
+                  </div>
+                )}
+                <div
+                  className={cn(
+                    "max-w-[70%] px-5 py-3 text-base leading-relaxed break-words rounded-lg",
+                    message.role === 'user'
+                      ? 'bg-primary text-primary-foreground rounded-tr-none'
+                      : 'bg-muted rounded-tl-none'
+                  )}
+                >
+                  {message.content && message.content.trim().startsWith('{') && message.content.trim().endsWith('}')
+                    ? (() => {
+                        try {
+                          const parsed = JSON.parse(message.content);
+                          return <p>{parsed.content || message.content}</p>;
+                        } catch (e) {
+                          return <p>{message.content}</p>;
+                        }
+                      })()
+                    : <p>{hasExistingChoices ? message.content : parsedContent.text}</p>
+                  }
+                  
+                  {/* 既存の選択肢があればそれを表示 */}
+                  {hasExistingChoices && message.choices && (
+                    <div className="mt-4 space-y-3">
+                      {message.choices.map((choice, index) => (
+                        <Button
+                          key={index}
+                          variant="outline"
+                          className="w-full text-base py-2"
+                          onClick={() => addMessage(choice)}
+                        >
+                          {choice}
+                          {message.choices_descriptions && message.choices_descriptions[index] && (
+                            <span className="ml-2 text-sm text-muted-foreground">
+                              {message.choices_descriptions[index]}
+                            </span>
+                          )}
+                        </Button>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {/* パースした選択肢があれば表示 */}
+                  {!hasExistingChoices && parsedContent.choices.length > 0 && (
+                    <div className="mt-4 space-y-3">
+                      {Array.isArray(parsedContent.choices) 
+                        ? parsedContent.choices.map((choice, index) => (
+                            <Button
+                              key={index}
+                              variant="outline"
+                              className="w-full text-base py-2"
+                              onClick={() => addMessage(typeof choice === 'string' ? choice : choice.name)}
+                            >
+                              {typeof choice === 'string' ? choice : choice.name}
+                              {typeof choice !== 'string' && choice.description && (
+                                <span className="ml-2 text-sm text-muted-foreground">
+                                  {choice.description}
+                                </span>
+                              )}
+                            </Button>
+                          ))
+                        : null
                       }
-                    })()
-                  : <p>{message.content}</p>
-                }
-                {message.choices && message.choices.length > 0 && (
-                  <div className="mt-4 space-y-3">
-                    {message.choices.map((choice, index) => (
-                      <Button
-                        key={index}
-                        variant="outline"
-                        className="w-full text-base py-2"
-                        onClick={() => addMessage(choice)}
-                      >
-                        {choice}
-                        {message.choices_descriptions && message.choices_descriptions[index] && (
-                          <span className="ml-2 text-sm text-muted-foreground">
-                            {message.choices_descriptions[index]}
-                          </span>
-                        )}
-                      </Button>
-                    ))}
+                    </div>
+                  )}
+                </div>
+                {message.role === 'user' && (
+                  <div className="w-10 h-10 rounded-full overflow-hidden ml-3 flex-shrink-0">
+                    <Image 
+                      src="/images/User.png" 
+                      alt="User" 
+                      width={40} 
+                      height={40}
+                    />
                   </div>
                 )}
               </div>
-              {message.role === 'user' && (
-                <div className="w-10 h-10 rounded-full overflow-hidden ml-3 flex-shrink-0">
-                  <Image 
-                    src="/images/User.png" 
-                    alt="User" 
-                    width={40} 
-                    height={40}
-                  />
-                </div>
-              )}
-            </div>
-          ))}
+            );
+          })}
           {isLoading && (
             <div className="flex items-start">
               <div className="w-10 h-10 rounded-full overflow-hidden mr-3 flex-shrink-0">
