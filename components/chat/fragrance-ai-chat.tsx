@@ -5,11 +5,11 @@ import { Loader2, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useRouter } from 'next/navigation'
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
 import { useChatState } from "@/app/fragrance-lab/chat/hooks/useChatState"
 import { ChatPhase } from "@/app/fragrance-lab/chat/types"
 import { ChatProgressSteps } from "@/app/fragrance-lab/chat/components/ChatProgressSteps"
+import Image from "next/image"
 
 export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
   const router = useRouter()
@@ -25,11 +25,19 @@ export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
   const [input, setInput] = useState("")
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const scrollAreaRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
 
   // メッセージが追加されたときに最下部にスクロールする
   useEffect(() => {
     scrollToBottom();
   }, [messages, isLoading]);
+
+  // 初期表示時にinputにフォーカスする
+  useEffect(() => {
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, []);
 
   // 確実に最下部までスクロールする関数
   const scrollToBottom = () => {
@@ -40,16 +48,34 @@ export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
     }
   }
 
-  const handleSend = async () => {
+  const handleSend = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!input.trim()) return
+    console.log("送信中:", input); // デバッグ用
     await addMessage(input)
     setInput('')
     // メッセージ送信後も明示的にスクロール
     setTimeout(scrollToBottom, 100);
+    // 送信後は再度inputにフォーカス
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
   }
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      console.log("Enterキーが押されました"); // デバッグ用
+      e.preventDefault();
+      handleSend();
+    }
+  };
 
   const handleReset = () => {
     resetChat()
+    // リセット後は再度inputにフォーカス
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
   }
 
   const getStepName = (phase: ChatPhase) => {
@@ -67,29 +93,39 @@ export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-120px)]">
-      <div className="flex justify-center mb-2">
+    <div className="flex flex-col h-[calc(100vh-120px)] w-full">
+      <div className="flex justify-center mb-3">
         <ChatProgressSteps currentPhaseId={currentPhaseId} />
       </div>
-      <div className="flex justify-center mb-2 text-sm text-muted-foreground">
+      <div className="flex justify-center mb-3 text-base text-muted-foreground">
         <span>ステップ: {getStepName(currentPhaseId)}</span>
       </div>
-      <div ref={scrollAreaRef} className="flex-1 p-4 overflow-y-auto">
-        <div className="space-y-4">
+      <div ref={scrollAreaRef} className="flex-1 p-5 overflow-y-auto mb-20">
+        <div className="space-y-5 max-w-4xl mx-auto">
           {messages.map((message) => (
             <div
               key={message.id}
               className={cn(
-                "flex",
+                "flex items-start",
                 message.role === 'user' ? 'justify-end' : 'justify-start'
               )}
             >
+              {message.role !== 'user' && (
+                <div className="w-10 h-10 rounded-full overflow-hidden mr-3 flex-shrink-0">
+                  <Image 
+                    src="/images/Fragrance Lab.png" 
+                    alt="AI" 
+                    width={40} 
+                    height={40}
+                  />
+                </div>
+              )}
               <div
                 className={cn(
-                  "rounded-lg p-4 max-w-[80%]",
+                  "max-w-[70%] px-5 py-3 text-base leading-relaxed break-words rounded-lg",
                   message.role === 'user'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted'
+                    ? 'bg-primary text-primary-foreground rounded-tr-none'
+                    : 'bg-muted rounded-tl-none'
                 )}
               >
                 {message.content && message.content.trim().startsWith('{') && message.content.trim().endsWith('}')
@@ -104,17 +140,17 @@ export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
                   : <p>{message.content}</p>
                 }
                 {message.choices && message.choices.length > 0 && (
-                  <div className="mt-2 space-y-2">
+                  <div className="mt-4 space-y-3">
                     {message.choices.map((choice, index) => (
                       <Button
                         key={index}
                         variant="outline"
-                        className="w-full"
+                        className="w-full text-base py-2"
                         onClick={() => addMessage(choice)}
                       >
                         {choice}
                         {message.choices_descriptions && message.choices_descriptions[index] && (
-                          <span className="ml-2 text-xs text-muted-foreground">
+                          <span className="ml-2 text-sm text-muted-foreground">
                             {message.choices_descriptions[index]}
                           </span>
                         )}
@@ -123,21 +159,47 @@ export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
                   </div>
                 )}
               </div>
+              {message.role === 'user' && (
+                <div className="w-10 h-10 rounded-full overflow-hidden ml-3 flex-shrink-0">
+                  <Image 
+                    src="/images/User.png" 
+                    alt="User" 
+                    width={40} 
+                    height={40}
+                  />
+                </div>
+              )}
             </div>
           ))}
           {isLoading && (
-            <div className="flex justify-start">
-              <div className="bg-muted rounded-lg p-4">
+            <div className="flex items-start">
+              <div className="w-10 h-10 rounded-full overflow-hidden mr-3 flex-shrink-0">
+                <Image 
+                  src="/images/Fragrance Lab.png" 
+                  alt="AI" 
+                  width={40} 
+                  height={40}
+                />
+              </div>
+              <div className="max-w-[70%] px-5 py-3 text-base leading-relaxed break-words rounded-lg bg-muted rounded-tl-none">
                 <div className="flex items-center space-x-2">
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Loader2 className="h-5 w-5 animate-spin" />
                   <span>考え中...</span>
                 </div>
               </div>
             </div>
           )}
           {error && (
-            <div className="flex justify-start">
-              <div className="bg-destructive/10 text-destructive rounded-lg p-4">
+            <div className="flex items-start">
+              <div className="w-10 h-10 rounded-full overflow-hidden mr-3 flex-shrink-0">
+                <Image 
+                  src="/images/Fragrance Lab.png" 
+                  alt="AI" 
+                  width={40} 
+                  height={40}
+                />
+              </div>
+              <div className="max-w-[70%] px-5 py-3 text-base leading-relaxed break-words rounded-lg bg-destructive/10 text-destructive rounded-tl-none">
                 {typeof error === 'string' ? error : error.message}
               </div>
             </div>
@@ -146,34 +208,38 @@ export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
           <div ref={messagesEndRef} />
         </div>
       </div>
-      <div className="border-t p-4">
-        <div className="flex space-x-2">
+
+      <form 
+        onSubmit={handleSend}
+        className="sticky bottom-0 bg-white shadow-md px-5 py-4 flex flex-col gap-3 z-10 border-t"
+      >
+        <div className="flex gap-3 items-center max-w-4xl mx-auto w-full">
           <Input
+            ref={inputRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault()
-                handleSend()
-              }
-            }}
+            onKeyDown={handleKeyDown}
             placeholder="メッセージを入力..."
             disabled={isLoading}
+            className="focus:ring-2 focus:ring-primary text-base h-11"
           />
-          <Button onClick={handleSend} disabled={isLoading}>
-            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : '送信'}
+          <Button type="submit" disabled={isLoading} className="flex-shrink-0 h-11 px-5 text-base">
+            {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : '送信'}
           </Button>
         </div>
-        <Button
-          variant="outline"
-          className="mt-2 w-full"
-          onClick={handleReset}
-          disabled={isLoading}
-        >
-          <RefreshCw className="h-4 w-4 mr-2" />
-          チャットをリセット
-        </Button>
-      </div>
+        <div className="max-w-4xl mx-auto w-full">
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full h-10 text-base"
+            onClick={handleReset}
+            disabled={isLoading}
+          >
+            <RefreshCw className="h-5 w-5 mr-2" />
+            チャットをリセット
+          </Button>
+        </div>
+      </form>
     </div>
   )
 }
