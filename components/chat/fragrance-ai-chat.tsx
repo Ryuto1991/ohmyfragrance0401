@@ -442,16 +442,18 @@ export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
               onClick={() => {
                 // レシピデータを作成
                 const recipeData = {
-                  topNotes: selectedScents.top,
-                  middleNotes: selectedScents.middle,
-                  baseNotes: selectedScents.base,
-                  // 最新のアシスタントメッセージからレシピ名と説明を抽出
                   name: messages.filter(msg => msg.role === 'assistant' && msg.recipe?.name).pop()?.recipe?.name || 'カスタムルームフレグランス',
-                  description: messages.filter(msg => msg.role === 'assistant' && msg.recipe?.description).pop()?.recipe?.description || '自分だけの特別な香り'
+                  description: messages.filter(msg => msg.role === 'assistant' && msg.recipe?.description).pop()?.recipe?.description || '自分だけの特別な香り',
+                  top_notes: selectedScents.top,
+                  middle_notes: selectedScents.middle,
+                  base_notes: selectedScents.base,
+                  mode: 'lab'
                 };
                 
                 // ローカルストレージにレシピを保存
-                localStorage.setItem('fragrance_recipe', JSON.stringify(recipeData));
+                localStorage.setItem('selected_recipe', JSON.stringify(recipeData));
+                
+                console.log('保存したレシピデータ:', recipeData);
                 
                 // 注文ページへ遷移
                 router.push('/custom-order?mode=lab');
