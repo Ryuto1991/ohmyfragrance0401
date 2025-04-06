@@ -1,87 +1,115 @@
-// チャットフェーズ関連
+// チャットのフェーズ定義
 export type ChatPhase = 
-  | "welcome"     // 初期フェーズ：イメージ入力
-  | "purpose"     // トップノート選択
-  | "personality" // ミドルノート選択
-  | "preferences" // ベースノート選択
-  | "emotions"    // 感情分析
-  | "result"      // レシピ確認
+  | 'welcome'
+  | 'intro'
+  | 'themeSelected'
+  | 'top'
+  | 'middle'
+  | 'base'
+  | 'finalized'
+  | 'complete';
 
-// エッセンシャルオイル関連
-export interface EssentialOil {
-  name: string
-  english: string
-  description: string
-  emotion: string
-  category: "top" | "middle" | "base"
-  source: string
-  info: string
+export type ChatPhaseId = ChatPhase
+
+export interface ChatPhaseInfo {
+  id: ChatPhaseId
+  step: number
 }
 
-export interface EssentialOils {
-  topNotes: EssentialOil[]
-  middleNotes: EssentialOil[]
-  baseNotes: EssentialOil[]
+export const CHAT_PHASES: Record<ChatPhaseId, ChatPhaseInfo> = {
+  welcome: { id: 'welcome', step: 0 },
+  intro: { id: 'intro', step: 1 },
+  themeSelected: { id: 'themeSelected', step: 2 },
+  top: { id: 'top', step: 3 },
+  middle: { id: 'middle', step: 4 },
+  base: { id: 'base', step: 5 },
+  finalized: { id: 'finalized', step: 6 },
+  complete: { id: 'complete', step: 7 }
 }
 
-// レシピ関連
-export interface FragranceRecipe {
-  title: string
-  description: string
-  notes: {
-    top: string[]    // トップノート
-    middle: string[] // ミドルノート
-    base: string[]   // ベースノート
-  }
-}
+// メッセージの型定義
+export type MessageRole = 'user' | 'assistant' | 'system'
 
-// 感情スコア関連
-export interface EmotionScore {
-  calm: number      // 落ち着き (0-100)
-  refresh: number   // リフレッシュ (0-100)
-  romantic: number  // ロマンティック (0-100)
-  spiritual: number // スピリチュアル (0-100)
-  energy: number    // エネルギー (0-100)
-}
-
-export interface EmotionScores {
-  calm: number      // 落ち着き
-  refresh: number   // リフレッシュ
-  romantic: number  // ロマンチック
-  spiritual: number // スピリチュアル
-  energy: number    // エネルギー
-}
-
-// メッセージ関連
 export interface Message {
   id: string
-  role: "user" | "assistant"
+  role: MessageRole
   content: string
-  choices?: string[]  // 選択肢
-  choices_descriptions?: { [key: string]: string } // 選択肢の説明
-  recipe?: FragranceRecipe // レシピ情報
-  emotionScores?: EmotionScores // 感情スコア
-  error?: string // エラーメッセージ
-}
-
-// チャットフロー設定関連
-export interface ChatFlowOptions {
-  initialDelay?: number    // 初期遅延時間（ms）
-  messageDelay?: number    // メッセージ間の遅延時間（ms）
-  typingDelay?: number     // タイピング遅延時間（ms）
-  onPhaseAdvance?: () => void // フェーズ進行時のコールバック
-}
-
-// APIレスポンス関連
-export interface ChatAPIResponse {
-  message: Message
-  phase: ChatPhase
+  timestamp: number
+  choices?: string[]
+  choices_descriptions?: string[]
+  recipe?: FragranceRecipe
+  emotionScores?: EmotionScores
   error?: string
 }
 
-// エラー関連
-export interface ChatError {
-  code: string
-  message: string
-  details?: any
-} 
+// フレグランスレシピの型定義
+export interface FragranceRecipe {
+  topNotes: string[]
+  middleNotes: string[]
+  baseNotes: string[]
+  name?: string
+  description?: string
+}
+
+// エッセンシャルオイルの型定義
+export interface EssentialOil {
+  name: string
+  category: 'top' | 'middle' | 'base'
+  description: string
+}
+
+// 感情スコアの型定義
+export interface EmotionScores {
+  joy: number
+  sadness: number
+  anger: number
+  fear: number
+  surprise: number
+  disgust: number
+}
+
+// チャット状態の型定義
+export interface ChatState {
+  messages: Message[]
+  currentPhaseId: ChatPhase
+  selectedScents: {
+    top: string[]
+    middle: string[]
+    base: string[]
+  }
+  isLoading: boolean
+  sessionId: string
+  error: Error | null
+}
+
+// APIレスポンスの型定義
+export interface ChatResponse {
+  id: string
+  role: MessageRole
+  content: string
+  timestamp: number
+  choices?: string[]
+  choices_descriptions?: string[]
+  recipe?: FragranceRecipe
+  emotionScores?: EmotionScores
+}
+
+// チャットフローのオプション
+export interface ChatFlowOptions {
+  messages: Message[]
+  currentPhase: ChatPhase
+  systemPrompt?: string
+  initialDelay?: number
+  messageDelay?: number
+  typingDelay?: number
+  onPhaseAdvance?: () => void
+  onError?: (error: Error) => void
+}
+
+// ローカルストレージのキー
+export const STORAGE_KEYS = {
+  CHAT_HISTORY: 'chat_history',
+  SESSION_ID: 'chat_session_id',
+  LAST_VISIT: 'last_visit',
+  SESSION: 'chat_session'
+} as const 

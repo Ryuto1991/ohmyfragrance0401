@@ -5,62 +5,23 @@ import { motion, AnimatePresence } from "framer-motion"
 
 interface TypewriterTextProps {
   content: string
-  typingSpeed?: number
-  onComplete?: () => void
+  speed?: number
 }
 
-export function TypewriterText({ 
-  content, 
-  typingSpeed = 30,
-  onComplete 
-}: TypewriterTextProps) {
-  const [displayedContent, setDisplayedContent] = useState("")
-  const [isComplete, setIsComplete] = useState(false)
+export function TypewriterText({ content, speed = 30 }: TypewriterTextProps) {
+  const [displayText, setDisplayText] = useState('')
+  const [currentIndex, setCurrentIndex] = useState(0)
 
   useEffect(() => {
-    if (!content || typeof content !== 'string') {
-      console.log("TypewriterText: Invalid content", content)
-      return
+    if (currentIndex < content.length) {
+      const timer = setTimeout(() => {
+        setDisplayText(prev => prev + content[currentIndex])
+        setCurrentIndex(prev => prev + 1)
+      }, speed)
+
+      return () => clearTimeout(timer)
     }
+  }, [content, currentIndex, speed])
 
-    let currentIndex = 0
-    setDisplayedContent("")
-    setIsComplete(false)
-
-    const interval = setInterval(() => {
-      if (currentIndex < content.length) {
-        setDisplayedContent(prev => prev + content[currentIndex])
-        currentIndex++
-      } else {
-        clearInterval(interval)
-        setIsComplete(true)
-        onComplete?.()
-      }
-    }, typingSpeed)
-
-    return () => clearInterval(interval)
-  }, [content, typingSpeed, onComplete])
-
-  if (!content || typeof content !== 'string') {
-    return null
-  }
-
-  return (
-    <div className="relative">
-      <span>{displayedContent}</span>
-      <AnimatePresence>
-        {!isComplete && (
-          <motion.span
-            initial={{ opacity: 0 }}
-            animate={{ opacity: [0, 1] }}
-            exit={{ opacity: 0 }}
-            transition={{ repeat: Infinity, duration: 0.5 }}
-            className="absolute -right-2 bottom-0"
-          >
-            ▍
-          </motion.span>
-        )}
-      </AnimatePresence>
-    </div>
-  )
+  return <div className="whitespace-pre-wrap">{displayText}</div>
 } 

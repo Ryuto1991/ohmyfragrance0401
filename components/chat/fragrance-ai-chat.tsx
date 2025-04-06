@@ -23,18 +23,29 @@ export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
   } = useChatState()
 
   const [input, setInput] = useState("")
+  const messagesEndRef = useRef<HTMLDivElement>(null)
   const scrollAreaRef = useRef<HTMLDivElement>(null)
 
+  // メッセージが追加されたときに最下部にスクロールする
   useEffect(() => {
-    if (scrollAreaRef.current) {
-      scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight
+    scrollToBottom();
+  }, [messages, isLoading]);
+
+  // 確実に最下部までスクロールする関数
+  const scrollToBottom = () => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    } else if (scrollAreaRef.current) {
+      scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
     }
-  }, [messages])
+  }
 
   const handleSend = async () => {
     if (!input.trim()) return
     await addMessage(input)
     setInput('')
+    // メッセージ送信後も明示的にスクロール
+    setTimeout(scrollToBottom, 100);
   }
 
   const handleReset = () => {
@@ -56,14 +67,14 @@ export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
   }
 
   return (
-    <div className="flex flex-col h-[600px]">
+    <div className="flex flex-col h-[calc(100vh-120px)]">
       <div className="flex justify-center mb-2">
         <ChatProgressSteps currentPhaseId={currentPhaseId} />
       </div>
       <div className="flex justify-center mb-2 text-sm text-muted-foreground">
         <span>ステップ: {getStepName(currentPhaseId)}</span>
       </div>
-      <ScrollArea ref={scrollAreaRef} className="flex-1 p-4">
+      <div ref={scrollAreaRef} className="flex-1 p-4 overflow-y-auto">
         <div className="space-y-4">
           {messages.map((message) => (
             <div
@@ -131,8 +142,10 @@ export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
               </div>
             </div>
           )}
+          {/* 自動スクロール用の空のdiv */}
+          <div ref={messagesEndRef} />
         </div>
-      </ScrollArea>
+      </div>
       <div className="border-t p-4">
         <div className="flex space-x-2">
           <Input

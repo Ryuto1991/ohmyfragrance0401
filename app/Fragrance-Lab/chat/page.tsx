@@ -1,26 +1,24 @@
 "use client"
 
-import { useState, useRef, useEffect, useCallback } from "react"
-import { Loader2 } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { useSearchParams, useRouter, usePathname } from "next/navigation"
-import { v4 as uuidv4 } from "uuid"
-import SiteHeader from "@/components/site-header"
-import SiteFooter from "@/components/site-footer"
+import { useState, useEffect } from 'react'
+import { useSearchParams, useRouter, usePathname } from 'next/navigation'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
-import { ChoiceButtons } from './components/ChoiceButtons'
-import { useChatFlow, Message } from './hooks/useChatFlow'
+import { FragranceAIChat } from '@/components/chat/fragrance-ai-chat'
+import { useChatState } from './hooks/useChatState'
+import SiteHeader from "@/components/site-header"
 import { ChatProgressSteps } from "./components/ChatProgressSteps"
-import { useChatPhase } from "./hooks/useChatPhase"
-import { cn } from "@/lib/utils"
-import { TypewriterText } from "./components/TypewriterText"
-import { ChatMessage } from "./components/ChatMessage"
-import { motion } from "framer-motion"
-import { ChatPhase as StepPhase } from "./components/ChatProgressSteps"
-import { sendChatMessage, ChatAPIError } from '@/lib/api/chat'
-import { FragranceRecipe } from './types'
-import { getDefaultChoices, getChoiceDescription } from './utils/essential-oils'
+import { ChatPhaseId } from "./types"
+
+// カスタム型定義
+interface RecipeData {
+  title: string;
+  description: string;
+  notes: {
+    top: string[];
+    middle: string[];
+    base: string[];
+  };
+}
 
 // シングルトンパターンでSupabaseクライアントを管理
 let supabaseInstance: any = null
@@ -35,137 +33,61 @@ const getSupabaseClient = () => {
 export default function ChatPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const initialQuery = searchParams.get("query") ?? ""
+  const query = searchParams.get('q')
   const pathname = usePathname()
-  const isChatPage = pathname?.startsWith("/fragrance-lab/chat")
-
-  const [input, setInput] = useState("")
-  const [recipe, setRecipe] = useState<FragranceRecipe | null>(null)
+  
+  const [recipe, setRecipe] = useState<RecipeData | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
-
-  const scrollRef = useRef<HTMLDivElement>(null)
-
-  const { phase, nextPhase } = useChatPhase()
-  const {
-    messages,
-    addMessage,
-    addSplitMessages
-  } = useChatFlow({
-    onPhaseAdvance: nextPhase
-  })
-
-  // 初期メッセージの追加を制御するための状態を追加
-  const [hasInitialized, setHasInitialized] = useState(false)
-
-  const scrollToBottom = useCallback(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTo({
-        top: scrollRef.current.scrollHeight,
-        behavior: "smooth"
-      })
-    }
-  }, [])
+  
+  const { 
+    addMessage, 
+    messages, 
+    selectedScents,
+    currentPhaseId
+  } = useChatState()
 
   useEffect(() => {
-    scrollToBottom()
-  }, [messages, scrollToBottom])
+    // クエリパラメータがある場合は初期メッセージとして追加
+    if (query) {
+      addMessage(query)
+    }
+  }, [query, addMessage])
 
-  // デバッグ用：メッセージの状態変更を監視（開発環境のみ）
+  // selectedScentsからレシピ情報を更新
   useEffect(() => {
-    if (process.env.NODE_ENV === 'development' && messages.length > 0) {
-      console.log("Messages updated:", messages.length)
-    }
-  }, [messages])
+    // 全てのフェーズが完了し、選択された香料がある場合にレシピを生成
+    if (currentPhaseId === 'complete' || currentPhaseId === 'finalized') {
+      if (
+        selectedScents.top.length > 0 && 
+        selectedScents.middle.length > 0 && 
+        selectedScents.base.length > 0
+      ) {
+        // レシピ名を生成（最新のメッセージから取得できるかチェック）
+        let recipeName = "オリジナル香水";
+        let recipeDescription = "あなただけのカスタム香水";
 
-  useEffect(() => {
-    if (!hasInitialized && messages.length === 0) {
-      const welcomeMessage: Message = {
-        id: uuidv4(),
-        role: "assistant",
-        content: "こんにちは！香りのカスタムを始めましょう。どんなイメージがありますか？🌸"
+        // 最新のアシスタントメッセージからレシピ情報を探す
+        const recentMessages = [...messages].reverse();
+        for (const msg of recentMessages) {
+          if (msg.role === 'assistant' && msg.recipe) {
+            recipeName = msg.recipe.name || recipeName;
+            recipeDescription = msg.recipe.description || recipeDescription;
+            break;
+          }
+        }
+
+        setRecipe({
+          title: recipeName,
+          description: recipeDescription,
+          notes: {
+            top: selectedScents.top,
+            middle: selectedScents.middle,
+            base: selectedScents.base
+          }
+        });
       }
-      addMessage(welcomeMessage)
-      setHasInitialized(true)
     }
-  }, [hasInitialized, messages.length, addMessage])
-
-  useEffect(() => {
-    if (initialQuery && messages.length === 0 && hasInitialized) {
-      handleSend(initialQuery)
-    }
-  }, [initialQuery, messages.length, hasInitialized])
-
-  const handleChoiceSelect = useCallback((choice: string) => {
-    handleSend(choice)
-  }, [])
-
-  const createAssistantMessage = (content: string, data: any): Message => {
-    return {
-      id: uuidv4(),
-      role: "assistant",
-      content: content,
-      ...(data.recipe && { recipe: data.recipe }),
-      ...(data.choices?.length && { 
-        choices: data.choices.filter(Boolean),
-        emotionScores: data.emotionScores
-      }),
-      ...(!data.recipe && !data.choices?.length && { 
-        emotionScores: data.emotionScores 
-      })
-    }
-  }
-
-  const handleSend = async (message: string) => {
-    if (!message.trim()) return
-
-    try {
-      setIsLoading(true)
-      const userMessage: Message = {
-        id: uuidv4(),
-        role: 'user',
-        content: message
-      }
-      addMessage(userMessage)
-
-      const response = await sendChatMessage([...messages, userMessage], phase)
-
-      const defaultChoices = getDefaultChoices(phase)
-      const choicesDescriptions = defaultChoices.reduce((acc, choice) => {
-        acc[choice] = getChoiceDescription(choice)
-        return acc
-      }, {} as { [key: string]: string })
-
-      const assistantMessage: Message = {
-        id: uuidv4(),
-        role: 'assistant',
-        content: response.message.content,
-        choices: defaultChoices,
-        choices_descriptions: choicesDescriptions,
-        recipe: response.message.recipe,
-        emotionScores: response.message.emotionScores
-      }
-      addMessage(assistantMessage)
-    } catch (error) {
-      console.error('Error in handleSend:', error)
-      const defaultChoices = getDefaultChoices(phase)
-      const choicesDescriptions = defaultChoices.reduce((acc, choice) => {
-        acc[choice] = getChoiceDescription(choice)
-        return acc
-      }, {} as { [key: string]: string })
-
-      const errorMessage: Message = {
-        id: uuidv4(),
-        role: 'assistant',
-        content: error instanceof ChatAPIError ? error.message : 'エラーが発生しました。もう一度お試しください。',
-        choices: defaultChoices,
-        choices_descriptions: choicesDescriptions
-      }
-      addMessage(errorMessage)
-    } finally {
-      setIsLoading(false)
-    }
-  }
+  }, [currentPhaseId, selectedScents, messages]);
 
   const handlePurchase = async () => {
     if (!recipe) return
@@ -201,69 +123,50 @@ export default function ChatPage() {
     }
   }
 
-  const handleConfirmClick = () => {
-    setInput("はい")
-    handleSend("はい")
-  }
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    handleSend(input)
-  }
-
   return (
     <div className="h-screen flex flex-col bg-background overflow-hidden">
       {pathname !== "/fragrance-lab/chat" && <SiteHeader />}
       <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
-        <ChatProgressSteps currentStep={phase as unknown as StepPhase} />
+        <ChatProgressSteps currentPhaseId={currentPhaseId as ChatPhaseId} />
       </div>
 
-      <div ref={scrollRef} className="flex-1 overflow-y-auto scroll-smooth">
-        <div className="container max-w-2xl mx-auto px-4 py-4 space-y-4">
-          {messages.map((message, index) => (
-            <ChatMessage
-              key={`${message.role}-${index}`}
-              message={message}
-              onSelect={message.role === "assistant" ? handleChoiceSelect : undefined}
-            />
-          ))}
-          {isLoading && (
-            <ChatMessage
-              key="loading"
-              message={{
-                id: "loading",
-                role: "assistant",
-                content: "考え中...✨"
-              }}
-            />
-          )}
+      <div className="flex-1 overflow-y-auto">
+        <div className="container max-w-2xl mx-auto p-4">
+          <FragranceAIChat initialQuery={query || undefined} />
         </div>
       </div>
 
-      <div className="sticky bottom-0 left-0 w-full bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 py-3 border-t border-muted z-10">
-        <motion.form
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-          onSubmit={handleSubmit}
-          className="container max-w-2xl mx-auto px-4 flex items-center gap-2"
-        >
-          <Input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="香りのイメージを入力...🌸"
-            className="flex-1 bg-background"
-          />
-          <Button 
-            type="submit" 
-            disabled={isLoading || !input.trim()}
-            className="relative min-w-[4rem] px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "送信"}
-          </Button>
-        </motion.form>
-      </div>
-      {pathname !== "/fragrance-lab/chat" && <SiteFooter />}
+      {recipe && (currentPhaseId === 'complete' || currentPhaseId === 'finalized') && (
+        <div className="sticky bottom-0 left-0 w-full bg-background/95 backdrop-blur py-3 border-t border-muted z-10">
+          <div className="container max-w-2xl mx-auto px-4">
+            <div className="mb-2 text-center">
+              <h3 className="font-semibold">{recipe.title}</h3>
+              <p className="text-sm text-muted-foreground">{recipe.description}</p>
+              <div className="text-xs text-muted-foreground mt-1">
+                <span>トップノート: {recipe.notes.top.join(', ')}</span>
+                <span className="mx-2">|</span>
+                <span>ミドルノート: {recipe.notes.middle.join(', ')}</span>
+                <span className="mx-2">|</span>
+                <span>ベースノート: {recipe.notes.base.join(', ')}</span>
+              </div>
+            </div>
+            <div className="flex justify-center">
+              <button 
+                onClick={handlePurchase}
+                className="px-6 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+              >
+                この香水を注文する
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {error && (
+        <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-destructive text-destructive-foreground px-4 py-2 rounded-md">
+          {error}
+        </div>
+      )}
     </div>
   )
 }
