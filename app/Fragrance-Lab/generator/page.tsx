@@ -182,38 +182,88 @@ export default function FragranceGeneratorPage() {
     }
   }
 
+  // ランダムなプレースホルダーを選択
+  const randomPlaceholder = EXAMPLE_PHRASES[Math.floor(Math.random() * EXAMPLE_PHRASES.length)]
+
   return (
     <div className="min-h-screen bg-secondary flex flex-col">
       <SiteHeader />
       <main className="flex-1">
         <div className="container mx-auto px-4 py-8">
-          <div className="max-w-4xl mx-auto space-y-6">
-            <div className="text-center mb-8">
-              <h1 className="text-2xl font-bold mb-2">⚡ サクッとつくる</h1>
-              <p className="text-muted-foreground">
-                気になる香りのキーワードを入力してください
-              </p>
-            </div>
-
-            <div className="flex gap-2 max-w-xl mx-auto">
-              <Input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder={query ? "" : `例：${EXAMPLE_PHRASES[Math.floor(Math.random() * EXAMPLE_PHRASES.length)]}`}
-                className="flex-1"
-              />
-              <Button onClick={handleGenerate} disabled={isLoading || !query.trim()}>
-                {isLoading ? <Loader2 className="animate-spin h-4 w-4" /> : "生成する"}
-              </Button>
-            </div>
-
-            {error && (
-              <div className="bg-destructive/10 text-destructive p-4 rounded-lg max-w-xl mx-auto">
-                {error}
+          {!recipe ? (
+            // レシピがない場合は中央に検索バーを表示
+            <div className="flex flex-col items-center justify-center min-h-[70vh]">
+              <div className="max-w-2xl w-full text-center mb-12">
+                <h1 className="text-4xl font-bold mb-4">⚡ クイックモード</h1>
+                <p className="text-xl text-muted-foreground mb-2">
+                  イメージや気分をキーワードで入力するだけ
+                </p>
+                <p className="text-lg text-muted-foreground mb-8">
+                  AIがあなただけのルームフレグランスレシピを自動で作成します
+                </p>
+                
+                <div className="relative max-w-xl mx-auto">
+                  <Input
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder={query ? "" : `例：${randomPlaceholder}`}
+                    className="h-14 pl-4 pr-32 text-lg rounded-full shadow-lg"
+                  />
+                  <Button 
+                    onClick={handleGenerate} 
+                    disabled={isLoading || !query.trim()}
+                    className="absolute right-1 top-1 bottom-1 rounded-full px-6"
+                  >
+                    {isLoading ? <Loader2 className="animate-spin h-5 w-5" /> : "生成する"}
+                  </Button>
+                </div>
+                
+                <div className="flex flex-wrap justify-center gap-2 mt-8">
+                  {EXAMPLE_PHRASES.slice(0, 5).map((phrase, index) => (
+                    <Button
+                      key={index}
+                      variant="outline"
+                      size="sm"
+                      className="rounded-full text-sm"
+                      onClick={() => {
+                        setQuery(phrase);
+                        handleGenerate();
+                      }}
+                    >
+                      {phrase}
+                    </Button>
+                  ))}
+                </div>
               </div>
-            )}
+            </div>
+          ) : (
+            // レシピがある場合は既存のレイアウト
+            <div className="max-w-4xl mx-auto space-y-6">
+              <div className="text-center mb-8">
+                <h1 className="text-2xl font-bold mb-2">⚡ サクッとつくる</h1>
+                <p className="text-muted-foreground">
+                  気になる香りのキーワードを入力してください
+                </p>
+              </div>
 
-            {recipe && (
+              <div className="flex gap-2 max-w-xl mx-auto">
+                <Input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder={query ? "" : `例：${randomPlaceholder}`}
+                  className="flex-1"
+                />
+                <Button onClick={handleGenerate} disabled={isLoading || !query.trim()}>
+                  {isLoading ? <Loader2 className="animate-spin h-4 w-4" /> : "生成する"}
+                </Button>
+              </div>
+
+              {error && (
+                <div className="bg-destructive/10 text-destructive p-4 rounded-lg max-w-xl mx-auto">
+                  {error}
+                </div>
+              )}
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="bg-white p-6 rounded-lg shadow-md space-y-4">
                   <h2 className="text-xl font-bold text-center">🎉 香りが完成しました！</h2>
@@ -272,8 +322,15 @@ export default function FragranceGeneratorPage() {
                   </div>
                 </div>
               </div>
-            )}
-          </div>
+            </div>
+          )}
+          
+          {/* エラーメッセージがあり、レシピがない場合 */}
+          {error && !recipe && (
+            <div className="bg-destructive/10 text-destructive p-4 rounded-lg max-w-xl mx-auto mt-4">
+              {error}
+            </div>
+          )}
         </div>
       </main>
       <SiteFooter />
