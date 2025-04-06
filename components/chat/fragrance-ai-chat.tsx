@@ -249,15 +249,12 @@ export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-120px)] w-full">
-      <div className="flex justify-center mb-3">
-        <ChatProgressSteps currentPhaseId={currentPhaseId} />
-      </div>
-      <div className="flex justify-center mb-3 text-base text-muted-foreground">
+    <div className="flex flex-col h-[calc(100vh-140px)] w-full">
+      <div className="flex justify-center mb-2 text-base text-muted-foreground">
         <span>{getStepName(currentPhaseId)}</span>
       </div>
-      <div ref={scrollAreaRef} className="flex-1 p-5 overflow-y-auto mb-20">
-        <div className="space-y-5 max-w-4xl mx-auto">
+      <div ref={scrollAreaRef} className="flex-1 p-3 md:p-5 overflow-y-auto mb-16">
+        <div className="space-y-4 max-w-4xl mx-auto">
           {messages.map((message) => {
             // 既存の選択肢がある場合はそのまま使用
             const hasExistingChoices = message.choices && message.choices.length > 0;
@@ -286,10 +283,10 @@ export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
                 )}
                 <div
                   className={cn(
-                    "max-w-[70%] px-5 py-3 text-base leading-relaxed break-words rounded-lg",
+                    "max-w-[80%] px-4 py-2.5 text-base leading-relaxed break-words rounded-2xl",
                     message.role === 'user'
-                      ? 'bg-primary text-primary-foreground rounded-tr-none'
-                      : 'bg-muted rounded-tl-none'
+                      ? 'bg-primary text-primary-foreground rounded-tr-none shadow-sm'
+                      : 'bg-white rounded-tl-none shadow-sm'
                   )}
                 >
                   {message.content && message.content.trim().startsWith('{') && message.content.trim().endsWith('}')
@@ -306,12 +303,12 @@ export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
                   
                   {/* 既存の選択肢があればそれを表示 */}
                   {hasExistingChoices && message.choices && (
-                    <div className="mt-4 space-y-3">
+                    <div className="mt-3 space-y-2">
                       {message.choices.map((choice, index) => (
                         <Button
                           key={index}
                           variant="outline"
-                          className="w-full text-base py-2 whitespace-normal text-left h-auto"
+                          className="w-full text-base py-2 whitespace-normal text-left h-auto justify-start border-primary/30 hover:bg-primary/10 hover:text-primary-foreground/90"
                           onClick={() => handleChoiceClick(choice)}
                         >
                           {choice}
@@ -327,13 +324,13 @@ export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
                   
                   {/* パースした選択肢があれば表示 */}
                   {!hasExistingChoices && parsedContent.choices.length > 0 && (
-                    <div className="mt-4 space-y-3">
+                    <div className="mt-3 space-y-2">
                       {Array.isArray(parsedContent.choices) 
                         ? parsedContent.choices.map((choice, index) => (
                             <Button
                               key={index}
                               variant="outline"
-                              className="w-full text-base py-2 whitespace-normal text-left h-auto"
+                              className="w-full text-base py-2 whitespace-normal text-left h-auto justify-start border-primary/30 hover:bg-primary/10 hover:text-primary-foreground/90"
                               onClick={() => handleChoiceClick(typeof choice === 'string' ? choice : choice.name)}
                             >
                               {typeof choice === 'string' ? choice : choice.name}
@@ -372,7 +369,7 @@ export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
                   height={40}
                 />
               </div>
-              <div className="max-w-[70%] px-5 py-3 text-base leading-relaxed break-words rounded-lg bg-muted rounded-tl-none">
+              <div className="max-w-[80%] px-4 py-2.5 text-base leading-relaxed break-words rounded-2xl bg-white rounded-tl-none shadow-sm">
                 <div className="flex items-center space-x-2">
                   <Loader2 className="h-5 w-5 animate-spin" />
                   <span>考え中...</span>
@@ -390,7 +387,7 @@ export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
                   height={40}
                 />
               </div>
-              <div className="max-w-[70%] px-5 py-3 text-base leading-relaxed break-words rounded-lg bg-destructive/10 text-destructive rounded-tl-none">
+              <div className="max-w-[80%] px-4 py-2.5 text-base leading-relaxed break-words rounded-2xl bg-destructive/10 text-destructive rounded-tl-none shadow-sm">
                 {typeof error === 'string' ? error : error.message}
               </div>
             </div>
@@ -402,7 +399,7 @@ export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
 
       <form 
         onSubmit={handleSend}
-        className="sticky bottom-0 bg-white shadow-md px-5 py-4 flex flex-col gap-3 z-10 border-t"
+        className="sticky bottom-0 bg-white/95 backdrop-blur-sm shadow-md px-5 py-4 flex flex-col gap-3 z-10 border-t"
       >
         <div className="flex gap-3 items-center max-w-4xl mx-auto w-full">
           <Input
@@ -415,7 +412,7 @@ export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
             onKeyDown={handleKeyDown}
             placeholder="メッセージを入力..."
             disabled={isLoading}
-            className="focus:ring-2 focus:ring-primary text-base h-11"
+            className="focus:ring-2 focus:ring-primary text-base h-11 border-primary/20"
           />
           <Button 
             type="submit" 
@@ -433,7 +430,7 @@ export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
           <Button
             type="button"
             variant="outline"
-            className="w-full h-10 text-base"
+            className="w-full h-10 text-base border-primary/20 hover:bg-primary/5"
             onClick={handleReset}
             disabled={isLoading}
           >
