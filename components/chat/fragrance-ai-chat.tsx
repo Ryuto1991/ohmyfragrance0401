@@ -131,6 +131,22 @@ export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
     setTimeout(scrollToBottom, 300);
     
     console.log("チャットをリセットしました。初期メッセージが再表示されます。");
+    
+    // 0.5秒後にチャットの状態を確認し、メッセージがなければ初期メッセージを追加
+    setTimeout(() => {
+      if (messages.length === 0 && !isLoading) {
+        console.log("チャットリセット後にメッセージがないため、初期メッセージを再表示します");
+        const initialAIMessage = {
+          id: Date.now().toString(),
+          role: 'assistant' as const,
+          content: '今日はどんな香りつくる？',
+          timestamp: Date.now()
+        };
+        
+        // 初期メッセージを直接APIに送るのではなく、useChatStateフックを使用
+        addMessage("よろしくお願いします");
+      }
+    }, 500);
   }
 
   const getStepName = (phase: ChatPhase) => {
