@@ -131,34 +131,43 @@ export function TipsSidebar({ currentStep, selectedScents }: TipsSidebarProps) {
           <div>
             <h3 className="font-medium mb-2">香水作成ガイド</h3>
             <p className="text-xs text-secondary-foreground/70">
-              AIとチャットして香水レシピを作成できます。好みや気分を伝えると、AIがトップノート、ミドルノート、ベースノートを提案します。完成したレシピは、好きな写真とボトルを選んで注文可能です。
-            </p>
-          </div>
-        )
-      case "top":
-        return (
-          <div>
-            <h3 className="font-medium mb-2">トップノートとは</h3>
-            <p className="text-xs text-secondary-foreground/70">
-              トップノートは最初に感じる香りで、香水をつけた直後から約15分〜2時間持続します。レモンやベルガモットなどのフレッシュで爽やかな印象の香りが多く使われます。
-            </p>
-          </div>
-        )
-      case "middle":
-        return (
-          <div>
-            <h3 className="font-medium mb-2">ミドルノートとは</h3>
-            <p className="text-xs text-secondary-foreground/70">
-              ミドルノートは香りの中心となり、トップノートが消えた後に現れ、2〜4時間持続します。ローズやジャスミンなどのフローラルやスパイシーな香りが特徴で、香水の「心」と呼ばれます。
+              AIとチャットして香水レシピを作成できます。あなたの好みや気分、イメージしたいシーンなどを伝えると、AIがあなたにぴったりの香りを提案します。完成したレシピは、好きな写真とボトルを選んで注文できます。
             </p>
           </div>
         )
       case "note":
         return (
           <div>
-            <h3 className="font-medium mb-2">ノートとは</h3>
+            <h3 className="font-medium mb-2">香水の構造</h3>
             <p className="text-xs text-secondary-foreground/70">
-              ノートとは香水の構成要素で、時間とともに変化する香りの層を表します。香水は「トップノート」「ミドルノート」「ベースノート（ラストノート）」の3層構造になっており、それぞれが時間の経過とともに変化し、香りの物語を紡ぎます。
+              香水は「トップノート」「ミドルノート」「ベースノート（ラストノート）」の3層構造になっています。それぞれのノートが時間の経過とともに変化し、香りの物語を紡ぎます。この3層構造により、香りに奥行きと長時間の持続性が生まれます。
+            </p>
+          </div>
+        )
+      case "top":
+        return (
+          <div>
+            <h3 className="font-medium mb-2">トップノート</h3>
+            <p className="text-xs text-secondary-foreground/70">
+              トップノートは香水をつけた直後に感じる最初の印象で、約15分〜2時間持続します。主に柑橘系（レモン、ベルガモット）やハーブ系の軽やかでフレッシュな香りが使われます。第一印象を決める重要な役割を持ち、明るく爽やかな気分にしてくれます。
+            </p>
+          </div>
+        )
+      case "middle":
+        return (
+          <div>
+            <h3 className="font-medium mb-2">ミドルノート</h3>
+            <p className="text-xs text-secondary-foreground/70">
+              ミドルノートは香りの中心となる「心」の部分で、トップノートが消えた後、2〜4時間持続します。フローラル（ローズ、ジャスミン）やスパイシーな香りが特徴で、香水の個性や魅力を最も表現する部分です。全体の調和をとりながら、香りの主役として存在感を放ちます。
+            </p>
+          </div>
+        )
+      case "base":
+        return (
+          <div>
+            <h3 className="font-medium mb-2">ベースノート</h3>
+            <p className="text-xs text-secondary-foreground/70">
+              ベースノート（ラストノート）は香水の土台となる部分で、4〜24時間と最も長く持続します。ウッディ（サンダルウッド）やムスク、バニラなどの深みと温かみのある香りが特徴です。香りに安定感を与え、ミドルノートを支えながら長時間にわたって香りを定着させる重要な役割を担っています。
             </p>
           </div>
         )
@@ -197,14 +206,18 @@ export function TipsSidebar({ currentStep, selectedScents }: TipsSidebarProps) {
       </div>
       
       <Tabs defaultValue="about" className="w-full">
-        <TabsList className="grid grid-cols-4 w-full mb-2">
+        <TabsList className="grid grid-cols-5 w-full mb-2">
           <TabsTrigger value="about" className="text-xs py-1">使い方</TabsTrigger>
+          <TabsTrigger value="note" className="text-xs py-1">ノート</TabsTrigger>
           <TabsTrigger value="top" className="text-xs py-1">トップ</TabsTrigger>
           <TabsTrigger value="middle" className="text-xs py-1">ミドル</TabsTrigger>
-          <TabsTrigger value="note" className="text-xs py-1">ノート</TabsTrigger>
+          <TabsTrigger value="base" className="text-xs py-1">ベース</TabsTrigger>
         </TabsList>
         <TabsContent value="about">
           {getTipsContent("about")}
+        </TabsContent>
+        <TabsContent value="note">
+          {getTipsContent("note")}
         </TabsContent>
         <TabsContent value="top">
           {getTipsContent("top")}
@@ -212,8 +225,8 @@ export function TipsSidebar({ currentStep, selectedScents }: TipsSidebarProps) {
         <TabsContent value="middle">
           {getTipsContent("middle")}
         </TabsContent>
-        <TabsContent value="note">
-          {getTipsContent("note")}
+        <TabsContent value="base">
+          {getTipsContent("base")}
         </TabsContent>
       </Tabs>
     </div>
