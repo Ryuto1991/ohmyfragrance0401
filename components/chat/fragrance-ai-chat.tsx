@@ -433,7 +433,17 @@ export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
             {isLoading ? <Loader2 className="h-4 w-4 md:h-5 md:w-5 animate-spin" /> : '送信'}
           </Button>
         </div>
-        <div className="max-w-4xl lg:max-w-6xl mx-auto w-full">
+        <div className="max-w-4xl lg:max-w-6xl mx-auto w-full flex flex-col gap-2">
+          {(currentPhaseId === 'finalized' || currentPhaseId === 'complete') && selectedScents.top.length > 0 && selectedScents.middle.length > 0 && selectedScents.base.length > 0 && (
+            <Button
+              type="button"
+              variant="default"
+              className="w-full h-9 md:h-10 text-sm md:text-base bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+              onClick={() => router.push('/custom-order?mode=lab')}
+            >
+              レシピでオーダーする
+            </Button>
+          )}
           <Button
             type="button"
             variant="outline"

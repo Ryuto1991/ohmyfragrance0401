@@ -13,7 +13,7 @@ type TipsSidebarProps = {
 }
 
 export function TipsSidebar({ currentStep, selectedScents }: TipsSidebarProps) {
-  const [isOpen, setIsOpen] = useState(false)
+  const [isOpen, setIsOpen] = useState(true)
 
   // ノートの説明
   const noteDescriptions = {
