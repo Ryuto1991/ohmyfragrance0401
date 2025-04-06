@@ -73,12 +73,14 @@ export default function FragranceGeneratorPage() {
   const [retryCount, setRetryCount] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [hasProcessedInitialQuery, setHasProcessedInitialQuery] = useState(false)
+  const [retryMode, setRetryMode] = useState(false)
 
   const handleGenerate = async () => {
     if (!query.trim()) return
     setIsLoading(true)
     setError(null)
     setRecipe(null)
+    setRetryMode(false)
 
     try {
       const res = await fetch("/api/generator", {
@@ -117,7 +119,8 @@ export default function FragranceGeneratorPage() {
   const handleRetry = () => {
     if (retryCount < 2) {
       setRetryCount((prev) => prev + 1)
-      handleGenerate()
+      setRetryMode(true)
+      setQuery("")
     }
   }
 
@@ -182,6 +185,13 @@ export default function FragranceGeneratorPage() {
     }
   }
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && !isLoading && query.trim()) {
+      e.preventDefault();
+      handleGenerate();
+    }
+  }
+
   // ランダムなプレースホルダーを選択
   const randomPlaceholder = EXAMPLE_PHRASES[Math.floor(Math.random() * EXAMPLE_PHRASES.length)]
 
@@ -206,6 +216,7 @@ export default function FragranceGeneratorPage() {
                   <Input
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
+                    onKeyDown={handleKeyDown}
                     placeholder={query ? "" : `例：${randomPlaceholder}`}
                     className="h-14 pl-4 pr-32 text-lg rounded-full shadow-lg"
                   />
@@ -219,7 +230,7 @@ export default function FragranceGeneratorPage() {
                 </div>
                 
                 <div className="flex flex-wrap justify-center gap-2 mt-8">
-                  {EXAMPLE_PHRASES.slice(0, 5).map((phrase, index) => (
+                  {EXAMPLE_PHRASES.slice(0, 4).map((phrase, index) => (
                     <Button
                       key={index}
                       variant="outline"
@@ -246,17 +257,22 @@ export default function FragranceGeneratorPage() {
                 </p>
               </div>
 
-              <div className="flex gap-2 max-w-xl mx-auto">
+              <form onSubmit={(e) => { e.preventDefault(); handleGenerate(); }} className="flex gap-2 max-w-xl mx-auto">
                 <Input
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
+                  onKeyDown={handleKeyDown}
                   placeholder={query ? "" : `例：${randomPlaceholder}`}
                   className="flex-1"
+                  disabled={isLoading}
                 />
-                <Button onClick={handleGenerate} disabled={isLoading || !query.trim()}>
+                <Button 
+                  type="submit" 
+                  disabled={isLoading || !query.trim()}
+                >
                   {isLoading ? <Loader2 className="animate-spin h-4 w-4" /> : "生成する"}
                 </Button>
-              </div>
+              </form>
 
               {error && (
                 <div className="bg-destructive/10 text-destructive p-4 rounded-lg max-w-xl mx-auto">
@@ -291,14 +307,35 @@ export default function FragranceGeneratorPage() {
                   </div>
 
                   <div className="flex flex-col gap-3 pt-4">
-                    <Button
-                      variant="outline"
-                      onClick={handleRetry}
-                      disabled={retryCount >= 2}
-                      className="w-full"
-                    >
-                      🔁 別パターンで再生成（あと {2 - retryCount} 回）
-                    </Button>
+                    {retryMode ? (
+                      <div className="space-y-2">
+                        <p className="text-sm text-muted-foreground text-center">別のキーワードを入力して再生成してください</p>
+                        <form onSubmit={(e) => { e.preventDefault(); handleGenerate(); }} className="flex gap-2">
+                          <Input
+                            value={query}
+                            onChange={(e) => setQuery(e.target.value)}
+                            placeholder="新しいキーワードを入力"
+                            className="flex-1"
+                            autoFocus
+                          />
+                          <Button 
+                            type="submit"
+                            disabled={!query.trim()}
+                          >
+                            再生成
+                          </Button>
+                        </form>
+                      </div>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        onClick={handleRetry}
+                        disabled={retryCount >= 2}
+                        className="w-full"
+                      >
+                        🔁 別パターンで再生成（あと {2 - retryCount} 回）
+                      </Button>
+                    )}
                     <Button 
                       onClick={handlePurchase} 
                       className="w-full py-6 text-lg"
