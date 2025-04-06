@@ -27,6 +27,7 @@ export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const scrollAreaRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const [initialMessageSent, setInitialMessageSent] = useState(false)
 
   // メッセージが追加されたときに最下部にスクロールする
   useEffect(() => {
@@ -40,6 +41,40 @@ export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
     }
   }, []);
 
+  // 初期クエリまたは初期メッセージを処理
+  useEffect(() => {
+    const handleInitialInteraction = async () => {
+      // すでに初期メッセージが送信済みか、または処理中の場合は何もしない
+      if (initialMessageSent || isLoading || messages.length > 0) return;
+      
+      // 初期クエリがある場合はそれを使用
+      if (initialQuery) {
+        console.log("初期クエリを送信します:", initialQuery);
+        await addMessage(initialQuery);
+        setInitialMessageSent(true);
+      } else {
+        // URLからクエリパラメータも確認（直接URLアクセスの場合）
+        const params = new URLSearchParams(window.location.search);
+        const urlQuery = params.get('query') || params.get('q');
+        
+        if (urlQuery) {
+          console.log("URLから初期クエリを送信します:", urlQuery);
+          await addMessage(urlQuery);
+          setInitialMessageSent(true);
+        } else {
+          // 初期クエリがない場合は、何もしない（AIからのメッセージはAPIの初期メッセージに依存）
+          console.log("初期メッセージを待機中...");
+          setInitialMessageSent(true);
+        }
+      }
+      
+      // スクロールを更新
+      setTimeout(scrollToBottom, 500);
+    };
+    
+    handleInitialInteraction();
+  }, [initialQuery, addMessage, initialMessageSent, isLoading, messages.length]);
+
   // 確実に最下部までスクロールする関数
   const scrollToBottom = () => {
     if (messagesEndRef.current) {
@@ -51,16 +86,24 @@ export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
 
   const handleSend = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!input.trim()) return
-    console.log("送信中:", input); // デバッグ用
-    await addMessage(input)
-    setInput('')
-    // メッセージ送信後も明示的にスクロール
-    setTimeout(scrollToBottom, 100);
-    // 送信後は再度inputにフォーカス
+    
+    // 入力が空なら何もしない
+    const message = input.trim();
+    if (!message) return;
+    
+    // まず入力をクリアし、フォーカスを設定する
+    setInput('');
     if (inputRef.current) {
       inputRef.current.focus();
     }
+    
+    console.log("送信中:", message); // デバッグ用
+    
+    // 保存した入力値を使ってメッセージを送信
+    await addMessage(message);
+    
+    // メッセージ送信後も明示的にスクロール
+    setTimeout(scrollToBottom, 100);
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -77,18 +120,26 @@ export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
     if (inputRef.current) {
       inputRef.current.focus();
     }
+    
+    // 初期メッセージフラグをリセットし、次のレンダリングで初期メッセージが再表示されるようにする
+    setInitialMessageSent(false);
+    
+    // スクロールリセット
+    setTimeout(scrollToBottom, 300);
+    
+    console.log("チャットをリセットしました。初期メッセージが再表示されます。");
   }
 
   const getStepName = (phase: ChatPhase) => {
     switch (phase) {
       case 'welcome': return 'ようこそ'
       case 'intro': return 'テーマ選択'
-      case 'themeSelected': return '香料提案中'
-      case 'top': return 'トップノート選択中'
-      case 'middle': return 'ミドルノート選択中'
-      case 'base': return 'ベースノート選択中'
-      case 'finalized': return 'レシピ確認中'
-      case 'complete': return '完了！'
+      case 'themeSelected': return 'ステップ1: テーマ決定'
+      case 'top': return 'ステップ2: トップノート'
+      case 'middle': return 'ステップ3: ミドルノート'
+      case 'base': return 'ステップ4: ベースノート'
+      case 'finalized': return 'ステップ5: レシピ確認'
+      case 'complete': return 'ステップ6: 完了'
       default: return phase
     }
   }
@@ -97,49 +148,46 @@ export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
   const parseMessageContent = (content: string) => {
     if (!content) return { text: '', choices: [] };
 
-    // 数字付きリストを検出する正規表現
-    const listPattern = /(\d+\.\s*\*\*([^*]+)\*\*\s*-\s*([^\n]+))/g;
-    const matches = [...content.matchAll(listPattern)];
-    
-    if (matches.length === 0) {
-      // 別の形式の選択肢も検出
-      const simplifiedPattern = /(\d+\.\s*([^\n\d\.]+))/g;
-      const simpleMatches = [...content.matchAll(simplifiedPattern)];
+    // 複数の選択肢パターンに対応
+    const patterns = [
+      // 1. **シダーウッド** - 乾いた樹木の落ち着いた香り (古い形式)
+      /(\d+\.\s*\*\*([^*]+)\*\*\s*-\s*([^\n]+))/g,
       
-      if (simpleMatches.length > 0) {
-        const choices = simpleMatches.map(match => match[2].trim());
+      // 1. シダーウッド - 乾いた樹木の落ち着いた香り (新しい形式)
+      /(\d+\.\s*([^-]+)\s*-\s*([^\n]+))/g,
+      
+      // シンプルな番号付きリスト
+      /(\d+\.\s*([^\n\d\.]+))/g
+    ];
+    
+    // 各パターンを試す
+    for (const pattern of patterns) {
+      const matches = [...content.matchAll(pattern)];
+      
+      if (matches.length > 0) {
+        // 選択肢を抽出
+        const choices = matches.map(match => {
+          // 選択肢テキストを掘り下げる (** マークダウンも除去)
+          const name = match[2].replace(/\*\*/g, '').trim();
+          const description = match[3] ? match[3].replace(/\*\*/g, '').trim() : '';
+          return { name, description };
+        });
+        
         // テキスト部分（選択肢の前まで）
-        const lastChoiceIndex = content.lastIndexOf(simpleMatches[0][0]);
-        const textContent = lastChoiceIndex > 0 
-          ? content.substring(0, lastChoiceIndex) 
+        const firstChoiceIndex = content.indexOf(matches[0][0]);
+        const textContent = firstChoiceIndex > 0 
+          ? content.substring(0, firstChoiceIndex) 
           : content;
-          
+        
         return {
-          text: textContent,
+          text: textContent.trim(),
           choices: choices
         };
       }
-      
-      return { text: content, choices: [] };
     }
     
-    // 選択肢を抽出
-    const choices = matches.map(match => {
-      const name = match[2].trim();
-      const description = match[3].trim();
-      return { name, description };
-    });
-    
-    // テキスト部分（選択肢の前まで）
-    const firstChoiceIndex = content.indexOf(matches[0][0]);
-    const textContent = firstChoiceIndex > 0 
-      ? content.substring(0, firstChoiceIndex) 
-      : content;
-    
-    return {
-      text: textContent,
-      choices: choices
-    };
+    // 選択肢が見つからなかった場合
+    return { text: content, choices: [] };
   };
 
   // フェーズごとの次のフェーズを定義
@@ -206,7 +254,7 @@ export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
         <ChatProgressSteps currentPhaseId={currentPhaseId} />
       </div>
       <div className="flex justify-center mb-3 text-base text-muted-foreground">
-        <span>ステップ: {getStepName(currentPhaseId)}</span>
+        <span>{getStepName(currentPhaseId)}</span>
       </div>
       <div ref={scrollAreaRef} className="flex-1 p-5 overflow-y-auto mb-20">
         <div className="space-y-5 max-w-4xl mx-auto">
@@ -360,13 +408,24 @@ export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
           <Input
             ref={inputRef}
             value={input}
-            onChange={(e) => setInput(e.target.value)}
+            onChange={(e) => {
+              const value = e.target.value;
+              setInput(value);
+            }}
             onKeyDown={handleKeyDown}
             placeholder="メッセージを入力..."
             disabled={isLoading}
             className="focus:ring-2 focus:ring-primary text-base h-11"
           />
-          <Button type="submit" disabled={isLoading} className="flex-shrink-0 h-11 px-5 text-base">
+          <Button 
+            type="submit" 
+            disabled={isLoading} 
+            className="flex-shrink-0 h-11 px-5 text-base"
+            onClick={(e) => {
+              e.preventDefault();
+              handleSend();
+            }}
+          >
             {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : '送信'}
           </Button>
         </div>
