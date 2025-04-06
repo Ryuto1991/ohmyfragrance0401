@@ -19,7 +19,8 @@ export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
     isLoading,
     error,
     addMessage,
-    resetChat
+    resetChat,
+    nextPhase
   } = useChatState()
 
   const [input, setInput] = useState("")
@@ -141,6 +142,64 @@ export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
     };
   };
 
+  // フェーズごとの次のフェーズを定義
+  const getNextPhase = (currentPhase: ChatPhase): ChatPhase | null => {
+    const phaseOrder: ChatPhase[] = [
+      'welcome',
+      'intro',
+      'themeSelected',
+      'top',
+      'middle',
+      'base',
+      'finalized',
+      'complete'
+    ];
+    
+    const currentIndex = phaseOrder.indexOf(currentPhase);
+    if (currentIndex >= 0 && currentIndex < phaseOrder.length - 1) {
+      return phaseOrder[currentIndex + 1];
+    }
+    
+    return null;
+  };
+
+  // 選択肢をクリックしたときの処理
+  const handleChoiceClick = async (choice: string) => {
+    // 現在のフェーズに基づいて次のフェーズを決定
+    const nextPhaseId = getNextPhase(currentPhaseId as ChatPhase);
+    
+    console.log(`選択肢クリック: ${choice}`);
+    console.log(`現在のフェーズ: ${currentPhaseId}, 次のフェーズ: ${nextPhaseId}`);
+    
+    // メッセージ送信
+    await addMessage(choice);
+    
+    // フェーズを自動的に進める
+    if (nextPhaseId) {
+      if (['themeSelected', 'top', 'middle', 'base'].includes(currentPhaseId as string)) {
+        // 選択肢を選んだ場合は次のフェーズに自動的に進む
+        console.log(`フェーズを自動更新: ${currentPhaseId} → ${nextPhaseId}`);
+        
+        // nextPhase関数を使用してフェーズを進める
+        setTimeout(() => {
+          nextPhase();
+          console.log("フェーズ更新完了:", nextPhaseId);
+        }, 1000); // メッセージ表示後に少し遅延させてフェーズを更新
+      }
+      
+      // baseフェーズで選択後、finalizedへの移行が確実に行われるようにする
+      if (currentPhaseId === 'base') {
+        setTimeout(() => {
+          // 現在のフェーズを確認し、まだbaseの場合は強制的に次へ進める
+          if (currentPhaseId === 'base') {
+            console.log("baseフェーズから強制的に次のフェーズへ移行");
+            nextPhase();
+          }
+        }, 3000); // より長い遅延を設定
+      }
+    }
+  };
+
   return (
     <div className="flex flex-col h-[calc(100vh-120px)] w-full">
       <div className="flex justify-center mb-3">
@@ -204,8 +263,8 @@ export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
                         <Button
                           key={index}
                           variant="outline"
-                          className="w-full text-base py-2"
-                          onClick={() => addMessage(choice)}
+                          className="w-full text-base py-2 whitespace-normal text-left h-auto"
+                          onClick={() => handleChoiceClick(choice)}
                         >
                           {choice}
                           {message.choices_descriptions && message.choices_descriptions[index] && (
@@ -226,8 +285,8 @@ export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
                             <Button
                               key={index}
                               variant="outline"
-                              className="w-full text-base py-2"
-                              onClick={() => addMessage(typeof choice === 'string' ? choice : choice.name)}
+                              className="w-full text-base py-2 whitespace-normal text-left h-auto"
+                              onClick={() => handleChoiceClick(typeof choice === 'string' ? choice : choice.name)}
                             >
                               {typeof choice === 'string' ? choice : choice.name}
                               {typeof choice !== 'string' && choice.description && (
