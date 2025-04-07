@@ -244,8 +244,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // パスワードのバリデーション
       const passwordValidation = validatePassword(password)
       if (!passwordValidation.isValid) {
-        setError(passwordValidation.error)
-        return { success: false, error: passwordValidation.error }
+        setError(passwordValidation.error ?? "パスワードが要件を満たしていません")
+        return { success: false, error: passwordValidation.error ?? "パスワードが要件を満たしていません" }
       }
 
       const { data, error } = await supabase.auth.signUp({

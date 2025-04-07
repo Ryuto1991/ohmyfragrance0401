@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useRef, useMemo, useEffect } from 'react'
 import { v4 as uuid } from 'uuid'
+import { nanoid } from 'nanoid'
 import { 
   Message, 
   ChatPhaseId, 
@@ -12,7 +13,6 @@ import {
   ChatResponse,
   STORAGE_KEYS
 } from '../types'
-import { sendChatMessage } from '@/lib/api/chat'
 
 const PHASE_ORDER: ChatPhase[] = [
   'welcome',
@@ -94,26 +94,206 @@ export function useChatState(options: Partial<ChatFlowOptions> = {}) {
     isLoadingRef.current = isLoading
   }, [messages, currentPhaseId, isLoading])
 
-  // フェーズ管理関数
-  const nextPhase = useCallback(() => {
-    const currentIndex = PHASE_ORDER.indexOf(currentPhaseId)
+  // フェーズ管理関数の宣言（最初に基本関数を宣言）
+  const setFinalPhase = useCallback((phase: ChatPhase) => {
+    setCurrentPhaseId(phase);
+  }, [setCurrentPhaseId]);
+
+  // 次のフェーズを取得する関数
+  const getNextPhase = useCallback((currentPhase: ChatPhase): ChatPhase => {
+    const currentIndex = PHASE_ORDER.indexOf(currentPhase);
     if (currentIndex < PHASE_ORDER.length - 1) {
-      setCurrentPhaseId(PHASE_ORDER[currentIndex + 1])
-      onPhaseAdvance?.()
+      return PHASE_ORDER[currentIndex + 1];
     }
-  }, [currentPhaseId, onPhaseAdvance, setCurrentPhaseId])
+    return currentPhase; // 既に最終フェーズの場合は同じフェーズを返す
+  }, []);
+
+  // フェーズの最終変更時間を記録する状態
+  const [lastPhaseChangeTime, setLastPhaseChangeTime] = useState<number>(Date.now());
+
+  // 自動進行用のタイマー参照
+  const autoProgressTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // 選択された香りを更新する関数
+  const updateSelectedScents = useCallback((message: string) => {
+    // メッセージから選択した香りを抽出
+    if (currentPhaseId === 'top' && message.includes('トップノート')) {
+      const match = message.match(/トップノート:.*?(\d+)\.\s*([^\d\s].+?)(?:\s|$)/);
+      if (match && match[2]) {
+        const selectedScent = match[2].trim();
+        setState(prev => ({
+          ...prev,
+          selectedScents: {
+            ...prev.selectedScents,
+            top: [...prev.selectedScents.top.filter(scent => scent !== selectedScent), selectedScent]
+          }
+        }));
+        console.log(`トップノートを選択: ${selectedScent}`);
+      }
+    } else if (currentPhaseId === 'middle' && message.includes('ミドルノート')) {
+      const match = message.match(/ミドルノート:.*?(\d+)\.\s*([^\d\s].+?)(?:\s|$)/);
+      if (match && match[2]) {
+        const selectedScent = match[2].trim();
+        setState(prev => ({
+          ...prev,
+          selectedScents: {
+            ...prev.selectedScents,
+            middle: [...prev.selectedScents.middle.filter(scent => scent !== selectedScent), selectedScent]
+          }
+        }));
+        console.log(`ミドルノートを選択: ${selectedScent}`);
+      }
+    } else if (currentPhaseId === 'base' && message.includes('ベースノート')) {
+      const match = message.match(/ベースノート:.*?(\d+)\.\s*([^\d\s].+?)(?:\s|$)/);
+      if (match && match[2]) {
+        const selectedScent = match[2].trim();
+        setState(prev => ({
+          ...prev,
+          selectedScents: {
+            ...prev.selectedScents,
+            base: [...prev.selectedScents.base.filter(scent => scent !== selectedScent), selectedScent]
+          }
+        }));
+        console.log(`ベースノートを選択: ${selectedScent}`);
+      }
+    }
+  }, [currentPhaseId, setState]);
+
+  // レシピが完成したときにローカルストレージに保存する関数
+  const saveRecipeWhenComplete = useCallback(() => {
+    // すべてのノートが選択されているか確認
+    if (selectedScents.top.length > 0 && 
+        selectedScents.middle.length > 0 && 
+        selectedScents.base.length > 0) {
+      
+      // レシピ情報を作成
+      const recipeInfo = {
+        top_notes: selectedScents.top,
+        middle_notes: selectedScents.middle,
+        base_notes: selectedScents.base
+      };
+      
+      // レシピ情報をローカルストレージに保存
+      localStorage.setItem('selected_recipe', JSON.stringify(recipeInfo));
+      sessionStorage.setItem('recipe_saved', 'true');
+      
+      console.log('レシピ情報を保存しました:', recipeInfo);
+    } else {
+      console.warn('レシピが不完全なため保存できませんでした', selectedScents);
+    }
+  }, [selectedScents]);
+
+  // 次のフェーズに進む関数の宣言（初期バージョン）
+  const nextPhase = useCallback(() => {
+    // 現在のフェーズに基づいて次のフェーズに進む
+    const nextPhaseId = getNextPhase(currentPhaseId);
+    console.log(`フェーズ変更: ${currentPhaseId} -> ${nextPhaseId}`);
+    
+    // フェーズ更新
+    setCurrentPhaseId(nextPhaseId);
+    setLastPhaseChangeTime(Date.now());
+  }, [currentPhaseId, setCurrentPhaseId, getNextPhase, setLastPhaseChangeTime]);
+
+  // フェーズ管理の高度な関数
+  const handlePhaseChange = useCallback((newPhase: ChatPhase) => {
+    console.log(`フェーズを更新: ${currentPhaseId} -> ${newPhase}`);
+    
+    // 現在のフェーズと同じ場合は何もしない
+    if (currentPhaseId === newPhase) return;
+
+    // フェーズを更新
+    setCurrentPhaseId(newPhase);
+    setLastPhaseChangeTime(Date.now());
+
+    // FinalizesフェーズからCompleteフェーズへの移行時にレシピ情報を保存
+    if (currentPhaseId === 'finalized' && newPhase === 'complete') {
+      saveRecipeWhenComplete();
+
+      // 自動的にボタンに関する通知メッセージを追加
+      const buttonNotificationMessage: Message = {
+        id: nanoid(),
+        role: 'assistant',
+        content: 'このルームフレグランスを実際に注文するには画面下のピンク色のボタンを押してね！リビングやベッドルーム、玄関などお好きな場所に置いて空間を彩るといいよ〜 ✨',
+        timestamp: Date.now()
+      };
+      setMessages(prev => [...prev, buttonNotificationMessage]);
+    }
+
+    // フェーズがbaseになったら自動的にfinalized, completeに移行するためのロジック追加
+    if (newPhase === 'base') {
+      setTimeout(() => {
+        // ユーザーがベースノートを選択した後、finalizedフェーズに自動的に移行
+        if (messagesRef.current.some(msg => 
+          msg.content?.includes('ベースノート') && msg.role === 'user'
+        )) {
+          nextPhase();
+        }
+      }, 5000); // 5秒後
+    }
+  }, [currentPhaseId, setCurrentPhaseId, saveRecipeWhenComplete, setMessages, nextPhase, setLastPhaseChangeTime]);
+
+  // nextPhase関数を拡張版に上書き
+  const enhancedNextPhase = useCallback(() => {
+    // 現在のフェーズに基づいて次のフェーズに進む
+    const nextPhaseId = getNextPhase(currentPhaseId);
+    
+    // フェーズ変更のログ
+    console.log(`フェーズ変更: ${currentPhaseId} -> ${nextPhaseId}`);
+    
+    // レシピが完成していて、finalizedからcompleteに移行する場合はレシピを保存
+    if (currentPhaseId === 'finalized' && nextPhaseId === 'complete') {
+      saveRecipeWhenComplete();
+    }
+    
+    // 次のフェーズをセット
+    setCurrentPhaseId(nextPhaseId);
+    setLastPhaseChangeTime(Date.now());
+    // 次のフェーズがcompleteならUI更新用タイマーをクリア
+    if (nextPhaseId === 'complete') {
+      if (autoProgressTimeoutRef.current) {
+        clearTimeout(autoProgressTimeoutRef.current);
+        autoProgressTimeoutRef.current = null;
+      }
+    }
+  }, [currentPhaseId, setCurrentPhaseId, getNextPhase, saveRecipeWhenComplete, setLastPhaseChangeTime]);
+  
+  // 拡張版に参照を上書き
+  Object.assign(nextPhase, enhancedNextPhase);
+  
+  // 特定のフェーズに直接設定する関数
+  const setPhase = useCallback((phaseId: ChatPhase) => {
+    // 前のフェーズからの移行をログに記録
+    console.log(`フェーズを直接設定: ${currentPhaseId} -> ${phaseId}`);
+    
+    // finalized -> completeの移行時にはレシピ情報を保存
+    if (currentPhaseId === 'finalized' && phaseId === 'complete') {
+      saveRecipeWhenComplete();
+    }
+    
+    // フェーズを設定
+    setCurrentPhaseId(phaseId);
+    setLastPhaseChangeTime(Date.now());
+    
+    // completeフェーズに設定する場合はUI更新用タイマーをクリア
+    if (phaseId === 'complete') {
+      if (autoProgressTimeoutRef.current) {
+        clearTimeout(autoProgressTimeoutRef.current);
+        autoProgressTimeoutRef.current = null;
+      }
+    }
+  }, [currentPhaseId, setCurrentPhaseId, saveRecipeWhenComplete, setLastPhaseChangeTime]);
 
   const previousPhase = useCallback(() => {
     const currentIndex = PHASE_ORDER.indexOf(currentPhaseId)
     if (currentIndex > 0) {
-      setCurrentPhaseId(PHASE_ORDER[currentIndex - 1])
+      setFinalPhase(PHASE_ORDER[currentIndex - 1])
     }
-  }, [currentPhaseId, setCurrentPhaseId])
+  }, [currentPhaseId, setFinalPhase])
 
   const resetPhase = useCallback(() => {
-    setCurrentPhaseId("welcome")
+    setFinalPhase("welcome")
     phaseHistoryRef.current = []
-  }, [setCurrentPhaseId])
+  }, [setFinalPhase])
 
   // メッセージキューとプロセス中フラグ
   const messageQueueRef = useRef<Message[]>([])
@@ -172,7 +352,40 @@ export function useChatState(options: Partial<ChatFlowOptions> = {}) {
         // フェーズの更新
         if (data.nextPhase && data.nextPhase !== currentPhaseIdRef.current) {
           console.log(`フェーズを更新します: ${currentPhaseIdRef.current} -> ${data.nextPhase}`);
-          setCurrentPhaseId(data.nextPhase);
+          
+          // 直接フェーズを更新する
+          const newPhase = data.nextPhase;
+          
+          // フェーズが完了（complete）に変わった場合、自動的に現在のレシピ情報をローカルストレージに保存
+          if (newPhase === 'complete') {
+            // レシピ情報を保存
+            saveRecipeWhenComplete();
+            
+            // 注文ボタンの通知メッセージを追加
+            const buttonNotificationMessage: Message = {
+              id: nanoid(),
+              role: 'assistant',
+              content: 'このルームフレグランスを実際に注文するには画面下のピンク色のボタンを押してね！リビングやベッドルーム、玄関などお好きな場所に置いて空間を彩るといいよ〜 ✨',
+              timestamp: Date.now()
+            };
+            setMessages(prev => [...prev, buttonNotificationMessage]);
+          }
+          
+          // フェーズを設定
+          setCurrentPhaseId(newPhase);
+          setLastPhaseChangeTime(Date.now());
+          
+          // baseフェーズの場合、自動的に次のフェーズに進むタイマーを設定
+          if (newPhase === 'base') {
+            setTimeout(() => {
+              // ユーザーがベースノートを選択した後、finalizedフェーズに自動的に移行
+              if (messagesRef.current.some(msg => 
+                msg.content?.includes('ベースノート') && msg.role === 'user'
+              )) {
+                nextPhase();
+              }
+            }, 5000); // 5秒後
+          }
         }
         
         addSplitMessages(aiMessage)
@@ -204,7 +417,7 @@ export function useChatState(options: Partial<ChatFlowOptions> = {}) {
     
     // リクエスト送信開始
     sendRequest();
-  }, [setIsLoading, setError, setMessages, setCurrentPhaseId])
+  }, [setIsLoading, setError, setMessages, saveRecipeWhenComplete])
   
   // メッセージを再送信する関数
   const retryLastMessage = useCallback(() => {
@@ -445,8 +658,17 @@ export function useChatState(options: Partial<ChatFlowOptions> = {}) {
   // 初期メッセージを追加（チャットが空の場合）
   useEffect(() => {
     const addInitialMessage = () => {
-      // 既にメッセージがある場合、処理中の場合は何もしない
-      if (messages.length > 0 || isLoading) return;
+      // 既にメッセージがある場合は何もしない
+      if (messages.length > 0) return;
+      
+      // セッションストレージをチェックして、初期メッセージが既に追加されているか確認
+      const initialMessageAdded = sessionStorage.getItem('initialMessageAdded');
+      if (initialMessageAdded === 'true') return;
+      
+      // ローディング中で、かつURLパラメータからの初期クエリがある場合は初期メッセージを追加しない
+      const params = new URLSearchParams(window.location.search);
+      const urlQuery = params.get('query') || params.get('q');
+      if (isLoading && urlQuery) return;
 
       // 初期メッセージを作成
       const initialMessage: Message = {
@@ -460,11 +682,14 @@ export function useChatState(options: Partial<ChatFlowOptions> = {}) {
       
       // 状態を更新
       setMessages([initialMessage]);
+      
+      // セッションストレージに記録
+      sessionStorage.setItem('initialMessageAdded', 'true');
     };
     
     // コンポーネントマウント時に一度だけ実行
     addInitialMessage();
-  }, []);
+  }, [messages.length, isLoading, setMessages]);
 
   useEffect(() => {
     // セッション情報の復元
@@ -512,30 +737,22 @@ export function useChatState(options: Partial<ChatFlowOptions> = {}) {
   }, [state.messages, state.currentPhaseId, state.selectedScents])
 
   const resetChat = useCallback(() => {
-    // 状態のリセット
+    // 新しいセッションIDを生成
+    const newSessionId = uuid();
+    
+    // チャットの状態をリセット
     setState({
       messages: [],
-      currentPhaseId: 'welcome',
+      currentPhaseId: 'welcome', // 明示的にwelcomeフェーズに設定
       selectedScents: {
         top: [],
         middle: [],
         base: []
       },
       isLoading: false,
-      sessionId: state.sessionId, // セッションIDは維持
+      sessionId: newSessionId,
       error: null
     });
-
-    // ローカルストレージのクリア
-    localStorage.removeItem(STORAGE_KEYS.CHAT_HISTORY);
-    localStorage.removeItem(STORAGE_KEYS.SESSION_ID);
-    localStorage.removeItem(STORAGE_KEYS.LAST_VISIT);
-    localStorage.removeItem(STORAGE_KEYS.SESSION);
-
-    // 新しいセッションIDの生成
-    const newSessionId = uuid();
-    localStorage.setItem(STORAGE_KEYS.SESSION_ID, newSessionId);
-    setState(prev => ({ ...prev, sessionId: newSessionId }));
 
     // セッション情報の更新
     const sessionInfo = {
@@ -544,6 +761,12 @@ export function useChatState(options: Partial<ChatFlowOptions> = {}) {
       lastVisit: new Date().toISOString()
     };
     localStorage.setItem(STORAGE_KEYS.SESSION, JSON.stringify(sessionInfo));
+    
+    // ローカルストレージからレシピ情報もクリア
+    localStorage.removeItem('selected_recipe');
+    
+    // 初期メッセージフラグをリセット
+    sessionStorage.removeItem('initialMessageAdded');
     
     // 初期メッセージの表示を0.5秒後に行う
     setTimeout(() => {
@@ -558,7 +781,25 @@ export function useChatState(options: Partial<ChatFlowOptions> = {}) {
       setMessages([initialMessage]);
     }, 500);
     
-  }, [setState, state.sessionId, setMessages]);
+  }, [setState, setMessages]);
+
+  // ユーザーメッセージを監視して選択された香りを更新
+  useEffect(() => {
+    if (messages.length > 0) {
+      const lastMessage = messages[messages.length - 1];
+      
+      // ユーザーからのメッセージの場合
+      if (lastMessage.role === 'user') {
+        // 現在のフェーズに応じて選択された香りを更新
+        updateSelectedScents(lastMessage.content);
+        
+        // レシピが完成していてcompleteフェーズなら保存
+        if (currentPhaseId === 'complete') {
+          saveRecipeWhenComplete();
+        }
+      }
+    }
+  }, [messages, currentPhaseId, updateSelectedScents, saveRecipeWhenComplete]);
 
   return {
     // フェーズ関連
@@ -566,6 +807,7 @@ export function useChatState(options: Partial<ChatFlowOptions> = {}) {
     isLastPhase,
     isFirstPhase,
     nextPhase,
+    setPhase,
     previousPhase,
     resetPhase,
 
@@ -578,12 +820,14 @@ export function useChatState(options: Partial<ChatFlowOptions> = {}) {
     retryLastMessage,
     addSplitMessages,
     clearMessages,
+    setMessages,
 
     // 状態
     selectedScents,
     isLoading,
     error,
     sessionId: state.sessionId,
-    resetChat
+    resetChat,
+    setState
   };
 } 

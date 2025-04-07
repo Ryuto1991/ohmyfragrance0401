@@ -1,10 +1,10 @@
-import { useState } from "react"
+import { useState, useCallback } from "react"
 import { Info, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 
 type TipsSidebarProps = {
-  currentStep: "intro" | "top" | "middle" | "base" | "bottle" | "complete"
+  currentStep: "welcome" | "intro" | "themeSelected" | "top" | "middle" | "base" | "finalized" | "complete" | string
   selectedScents: {
     top: string | null
     middle: string | null
@@ -175,6 +175,84 @@ export function TipsSidebar({ currentStep, selectedScents }: TipsSidebarProps) {
         return getStepContent()
     }
   }
+
+  const getTips = useCallback(() => {
+    switch (currentStep) {
+      case 'welcome':
+      case 'intro':
+        return {
+          title: 'イメージを伝えよう',
+          points: [
+            '香りのイメージを自由に伝えてみましょう',
+            '「爽やかな」「落ち着いた」などの形容詞',
+            '「森」「海」などの場所や風景',
+            '「朝」「夜」などの時間帯'
+          ]
+        };
+      case 'themeSelected':
+        return {
+          title: 'トップノートを選ぼう',
+          points: [
+            'トップノートは最初に香る印象的な香り',
+            '香水をつけた直後に感じる香り',
+            '好みの香りを選んでみましょう'
+          ]
+        };
+      case 'top':
+        return {
+          title: 'ミドルノートを選ぼう',
+          points: [
+            'ミドルノートは香りの中心',
+            'トップノートが消えた後に現れる',
+            `トップノート「${selectedScents.top || '未選択'}」と調和する香りを選びましょう`
+          ]
+        };
+      case 'middle':
+        return {
+          title: 'ベースノートを選ぼう',
+          points: [
+            'ベースノートは香りの土台',
+            '長時間持続する深みのある香り',
+            `ミドルノート「${selectedScents.middle || '未選択'}」を支える香りを選びましょう`
+          ]
+        };
+      case 'base':
+      case 'finalized':
+        const allSelected = selectedScents.top && selectedScents.middle && selectedScents.base;
+        return {
+          title: 'レシピの確認',
+          points: allSelected ? [
+            `トップノート: ${selectedScents.top}`,
+            `ミドルノート: ${selectedScents.middle}`,
+            `ベースノート: ${selectedScents.base}`,
+            '組み合わせの確認をしましょう'
+          ] : [
+            '選択した香りの組み合わせを確認',
+            'AIに質問や変更希望を伝えられます',
+            '納得したらレシピ完成！'
+          ]
+        };
+      case 'complete':
+        return {
+          title: 'レシピ完成！',
+          points: [
+            '素敵なルームフレグランスが完成しました',
+            '下のピンク色のボタンから注文へ進めます',
+            'ボタンをクリックすると注文ページに移動します',
+            'チャットをリセットして新しい香りも作れます'
+          ]
+        };
+      default:
+        return {
+          title: 'ヒント',
+          points: [
+            '自由に会話を楽しみましょう',
+            '香りのイメージを伝えてみてください',
+            '質問があればAIに聞いてみましょう'
+          ]
+        };
+    }
+  }, [currentStep, selectedScents]);
 
   if (!isOpen) {
     return (

@@ -13,6 +13,19 @@ export async function POST(req: Request) {
       )
     }
 
+    // 不適切ワードのチェック（シンプルなチェックの例）
+    const inappropriateWords = ["セックス", "エロ", "アダルト", "ポルノ", "暴力", "殺人", "麻薬", "ドラッグ"]
+    const containsInappropriateWord = inappropriateWords.some(word => 
+      query.toLowerCase().includes(word.toLowerCase())
+    )
+
+    if (containsInappropriateWord) {
+      return NextResponse.json(
+        { error: "不適切なワードが含まれています。他のキーワードをお試しください。" },
+        { status: 400 }
+      )
+    }
+
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
@@ -79,8 +92,20 @@ export async function POST(req: Request) {
     }
   } catch (error) {
     console.error("Generator API error:", error)
+    
+    // エラーメッセージの改善
+    let errorMessage = "香りの生成中にエラーが発生しました。もう一度お試しください。"
+    
+    // OpenAIのcontent filteringによるエラーを検出
+    if (error instanceof Error && 
+        (error.message.includes("content_filter") || 
+         error.message.includes("content policy") || 
+         error.message.includes("moderation"))) {
+      errorMessage = "不適切なワードが含まれている可能性があります。他のキーワードをお試しください。"
+    }
+    
     return NextResponse.json(
-      { error: "香りの生成中にエラーが発生しました。もう一度お試しください。" },
+      { error: errorMessage },
       { status: 500 }
     )
   }

@@ -136,53 +136,78 @@ export default function PerfumeOrderingPage() {
   // AIで生成された香りのデータを取得
   useEffect(() => {
     console.log('Current mode:', mode);
-    if (mode === 'lab' && recipe) {
-      const labFragrance = {
-        id: 'lab-generated',
-        name: recipe.name,
-        category: 'Fragrance Lab',
-        emoji: '✨',
-        description: recipe.description,
-        notes: {
-          top: recipe.top_notes,
-          middle: recipe.middle_notes,
-          last: recipe.base_notes
-        }
-      };
-      setAiGeneratedFragrance(labFragrance);
-      setSelectedFragrance(labFragrance);
-    }
-  }, [mode, recipe])
-
-  // レシピデータの初期化
-  useEffect(() => {
-    if (mode === 'lab' && recipeParam) {
+    if (mode === 'lab') {
       try {
-        const recipe = JSON.parse(decodeURIComponent(recipeParam))
-        // レシピデータから香水を選択
-        const matchingFragrance = fragrances.find(f => 
-          f.notes.top.some(note => recipe.top_notes.includes(note)) &&
-          f.notes.middle.some(note => recipe.middle_notes.includes(note)) &&
-          f.notes.last.some(note => recipe.base_notes.includes(note))
-        )
-        if (matchingFragrance) {
-          setSelectedFragrance(matchingFragrance)
-          setExpandedSection(2) // ボトル選択セクションを開く
+        const savedRecipe = localStorage.getItem('selected_recipe');
+        if (!savedRecipe) {
+          console.error('レシピデータがローカルストレージに見つかりません。');
+          setError('レシピデータが見つかりません。再度チャットから香りを作成してください。');
+          return;
         }
+        
+        const parsedRecipe = JSON.parse(savedRecipe);
+        console.log('Loaded recipe from localStorage:', parsedRecipe);
+        
+        // レシピデータの検証（フィールド名の変換に対応）
+        const hasOldFormat = parsedRecipe.top !== undefined || parsedRecipe.middle !== undefined || parsedRecipe.base !== undefined;
+        const hasNewFormat = parsedRecipe.top_notes !== undefined || parsedRecipe.middle_notes !== undefined || parsedRecipe.base_notes !== undefined;
+        
+        if (!hasOldFormat && !hasNewFormat) {
+          console.error('レシピデータの形式が不正です。', parsedRecipe);
+          setError('レシピデータの形式が不正です。再度チャットから香りを作成してください。');
+          return;
+        }
+        
+        // レシピデータを正規化（古い形式と新しい形式の両方に対応）
+        const normalizedRecipe = {
+          name: parsedRecipe.name || "カスタムルームフレグランス",
+          description: parsedRecipe.description || "あなただけのオリジナルの香り",
+          top_notes: parsedRecipe.top_notes || (Array.isArray(parsedRecipe.top) ? parsedRecipe.top : []),
+          middle_notes: parsedRecipe.middle_notes || (Array.isArray(parsedRecipe.middle) ? parsedRecipe.middle : []),
+          base_notes: parsedRecipe.base_notes || (Array.isArray(parsedRecipe.base) ? parsedRecipe.base : []),
+          mode: 'lab' as OrderMode
+        };
+        
+        setRecipe(normalizedRecipe);
+        
+        // Fragranceオブジェクトの作成
+        const labFragrance = {
+          id: 'lab-generated',
+          name: normalizedRecipe.name || "カスタムルームフレグランス",
+          category: 'AIブレンド系',
+          emoji: '✨',
+          description: normalizedRecipe.description || "あなただけのオリジナルの香り",
+          notes: {
+            top: normalizedRecipe.top_notes,
+            middle: normalizedRecipe.middle_notes,
+            last: normalizedRecipe.base_notes
+          }
+        };
+        
+        setAiGeneratedFragrance(labFragrance);
+        setSelectedFragrance(labFragrance);
+        console.log('AIで生成された香りデータをセットしました:', labFragrance);
       } catch (error) {
-        console.error('Error parsing recipe:', error)
+        console.error('レシピデータの処理中にエラーが発生しました:', error);
+        setError('レシピデータの読み込みに失敗しました。再度チャットから香りを作成してください。');
       }
     }
-  }, [mode, recipeParam])
+  }, [mode]);
 
   const saveRecipeToSupabase = async (recipeData: Recipe) => {
     try {
+      // レシピデータの検証
+      if (!recipeData || !recipeData.top_notes || !recipeData.middle_notes || !recipeData.base_notes) {
+        console.error('保存するレシピデータが不完全です:', recipeData);
+        return;
+      }
+      
       const { error } = await supabase
         .from('recipes')
         .insert([
           {
-            name: recipeData.name,
-            description: recipeData.description,
+            name: recipeData.name || "カスタムルームフレグランス",
+            description: recipeData.description || "あなただけのオリジナルの香り",
             top_notes: recipeData.top_notes,
             middle_notes: recipeData.middle_notes,
             base_notes: recipeData.base_notes,
@@ -204,7 +229,7 @@ export default function PerfumeOrderingPage() {
         });
       }
     } catch (error) {
-      console.error('Error in Supabase operation:', error);
+      console.error('Error saving to Supabase:', error);
       toast({
         title: "エラーが発生しました",
         description: "レシピの保存中にエラーが発生しました",

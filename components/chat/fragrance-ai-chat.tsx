@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { Loader2, RefreshCw, Info, X } from "lucide-react"
+import { Loader2, RefreshCw, Info, X, ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useRouter } from 'next/navigation'
@@ -12,6 +12,8 @@ import { ChatProgressSteps } from "@/app/fragrance-lab/chat/components/ChatProgr
 import Image from "next/image"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { TipsSidebar } from "./tips-sidebar"
+import { v4 as uuid } from 'uuid'
+import { nanoid } from 'nanoid'
 
 export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
   const router = useRouter()
@@ -23,7 +25,12 @@ export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
     addMessage,
     resetChat,
     nextPhase,
-    selectedScents
+    setPhase,
+    selectedScents,
+    setIsLoading,
+    setError,
+    setMessages,
+    setState
   } = useChatState()
 
   const [input, setInput] = useState("")
@@ -31,6 +38,7 @@ export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
   const scrollAreaRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const [initialMessageSent, setInitialMessageSent] = useState(false)
+  const [lastPhaseChangeTime, setLastPhaseChangeTime] = useState(Date.now())
 
   // メッセージが追加されたときに最下部にスクロールする
   useEffect(() => {
@@ -47,28 +55,48 @@ export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
   // 初期クエリまたは初期メッセージを処理
   useEffect(() => {
     const handleInitialInteraction = async () => {
+      // URLからクエリパラメータを確認
+      const params = new URLSearchParams(window.location.search);
+      const urlQuery = params.get('query') || params.get('q');
+      
+      // クエリパラメータがあれば、URLから削除する（最初にURLを更新）
+      if (urlQuery) {
+        const url = new URL(window.location.href);
+        url.searchParams.delete('query');
+        url.searchParams.delete('q');
+        window.history.replaceState({}, document.title, url.toString());
+        console.log("URLからクエリパラメータを削除しました");
+      }
+      
       // すでに初期メッセージが送信済みか、または処理中の場合は何もしない
-      if (initialMessageSent || isLoading || messages.length > 0) return;
+      if (initialMessageSent || isLoading || messages.length > 1) return;
       
       // 初期クエリがある場合はそれを使用
       if (initialQuery) {
         console.log("初期クエリを送信します:", initialQuery);
         await addMessage(initialQuery);
         setInitialMessageSent(true);
-      } else {
-        // URLからクエリパラメータも確認（直接URLアクセスの場合）
-        const params = new URLSearchParams(window.location.search);
-        const urlQuery = params.get('query') || params.get('q');
+      } else if (urlQuery) {
+        // ローカルストレージで初期クエリが処理済みかチェック
+        const processedQueries = JSON.parse(localStorage.getItem('processedQueries') || '[]');
         
-        if (urlQuery) {
+        // このクエリが処理済みでない場合のみ処理する
+        if (!processedQueries.includes(urlQuery)) {
           console.log("URLから初期クエリを送信します:", urlQuery);
           await addMessage(urlQuery);
-          setInitialMessageSent(true);
+          
+          // 処理済みクエリとして記録
+          processedQueries.push(urlQuery);
+          localStorage.setItem('processedQueries', JSON.stringify(processedQueries));
         } else {
-          // 初期クエリがない場合は、何もしない（AIからのメッセージはAPIの初期メッセージに依存）
-          console.log("初期メッセージを待機中...");
-          setInitialMessageSent(true);
+          console.log("このクエリは既に処理済みです:", urlQuery);
         }
+        
+        setInitialMessageSent(true);
+      } else {
+        // 初期クエリがない場合は、何もしない（AIからのメッセージはAPIの初期メッセージに依存）
+        console.log("初期メッセージを待機中...");
+        setInitialMessageSent(true);
       }
       
       // スクロールを更新
@@ -118,35 +146,24 @@ export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
   };
 
   const handleReset = () => {
+    // チャットをリセット（useChatState内のresetChat関数を呼び出す）
     resetChat()
+    
     // リセット後は再度inputにフォーカス
     if (inputRef.current) {
       inputRef.current.focus();
     }
     
-    // 初期メッセージフラグをリセットし、次のレンダリングで初期メッセージが再表示されるようにする
+    // 初期メッセージフラグをリセット
     setInitialMessageSent(false);
+    
+    // 処理済みクエリをクリア
+    localStorage.removeItem('processedQueries');
     
     // スクロールリセット
     setTimeout(scrollToBottom, 300);
     
     console.log("チャットをリセットしました。初期メッセージが再表示されます。");
-    
-    // 0.5秒後にチャットの状態を確認し、メッセージがなければ初期メッセージを追加
-    setTimeout(() => {
-      if (messages.length === 0 && !isLoading) {
-        console.log("チャットリセット後にメッセージがないため、初期メッセージを再表示します");
-        const initialAIMessage = {
-          id: Date.now().toString(),
-          role: 'assistant' as const,
-          content: '今日はどんな香りつくる？',
-          timestamp: Date.now()
-        };
-        
-        // 初期メッセージを直接APIに送るのではなく、useChatStateフックを使用
-        addMessage("よろしくお願いします");
-      }
-    }, 500);
   }
 
   const getStepName = (phase: ChatPhase) => {
@@ -230,6 +247,171 @@ export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
     return null;
   };
 
+  // 「おまかせでレシピ作成」ボタンのハンドラー関数
+  const handleAutoCreateRecipe = async () => {
+    // 既にローディング中なら何もしない
+    if (isLoading) return;
+    
+    // ローディング状態を設定
+    setIsLoading(true);
+    
+    try {
+      // デバッグ用にステータスを表示
+      console.log('現在のフェーズ:', currentPhaseId);
+      console.log('選択された香り:', selectedScents);
+      
+      // フラグメント生成APIを呼び出す
+      const response = await fetch('/api/generator', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          query: "柔軟剤のような爽やかなルームフレグランス"
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error('レシピの生成に失敗しました');
+      }
+      
+      const recipe = await response.json();
+      console.log('生成されたレシピ:', recipe);
+      
+      if (!recipe || !recipe.notes) {
+        throw new Error('無効なレシピデータです');
+      }
+      
+      // トップ、ミドル、ベースノートを抽出
+      const topNotes = recipe.notes.top.map((item: any) => item.name);
+      const middleNotes = recipe.notes.middle.map((item: any) => item.name);
+      const baseNotes = recipe.notes.base.map((item: any) => item.name);
+      
+      // ノート選択を状態に反映
+      setState((prev: any) => ({
+        ...prev,
+        selectedScents: {
+          top: topNotes,
+          middle: middleNotes,
+          base: baseNotes
+        }
+      }));
+      
+      // メッセージを表示
+      setMessages((prev: any) => [
+        ...prev,
+        {
+          id: nanoid(),
+          role: 'assistant',
+          content: `おまかせレシピの準備ができたよ！✨ トップノート: ${topNotes[0]}`,
+          timestamp: Date.now()
+        },
+        {
+          id: nanoid(),
+          role: 'assistant',
+          content: `ミドルノート: ${middleNotes[0]}`,
+          timestamp: Date.now() + 100
+        },
+        {
+          id: nanoid(),
+          role: 'assistant',
+          content: `ベースノート: ${baseNotes[0]}`,
+          timestamp: Date.now() + 200
+        },
+        {
+          id: nanoid(),
+          role: 'assistant',
+          content: `よっしゃ完成！この組み合わせめっちゃいい感じ！✨「${recipe.title}」のレシピが完成したよ！${recipe.description}`,
+          timestamp: Date.now() + 300,
+          recipe: {
+            name: recipe.title,
+            description: recipe.description,
+            notes: {
+              top: topNotes,
+              middle: middleNotes,
+              base: baseNotes
+            }
+          }
+        }
+      ]);
+      
+      // レシピ情報をローカルストレージに保存
+      const recipeInfo = {
+        top_notes: topNotes,
+        middle_notes: middleNotes,
+        base_notes: baseNotes
+      };
+      localStorage.setItem('selected_recipe', JSON.stringify(recipeInfo));
+      sessionStorage.setItem('recipe_saved', 'true');
+      console.log('おまかせ機能でレシピ情報を保存:', recipeInfo);
+      
+      // completeフェーズに設定
+      setPhase('complete');
+      
+      // 注文ボタンの通知メッセージを追加
+      const buttonNotificationMessage = {
+        id: nanoid(),
+        role: 'assistant',
+        content: 'このルームフレグランスを実際に注文するには画面下のピンク色のボタンを押してね！リビングやベッドルーム、玄関などお好きな場所に置いて空間を彩るといいよ〜 ✨',
+        timestamp: Date.now() + 400
+      };
+      setMessages((prev: any) => [...prev, buttonNotificationMessage]);
+      
+      setIsLoading(false);
+    } catch (error) {
+      console.error('おまかせレシピ作成中にエラーが発生しました:', error);
+      setError('レシピの作成に失敗しました。もう一度お試しください。');
+      setIsLoading(false);
+    }
+  };
+
+  // 注文ページに進む関数
+  const handleGoToOrder = () => {
+    // デバッグ: 現在の状態を確認
+    console.log('注文ボタンクリック時の状態:', {
+      currentPhaseId,
+      selectedScents,
+      isTopSelected: selectedScents.top.length > 0,
+      isMiddleSelected: selectedScents.middle.length > 0, 
+      isBaseSelected: selectedScents.base.length > 0
+    });
+    
+    // 現在のレシピ情報をローカルストレージに保存
+    const recipeInfo = {
+      top_notes: selectedScents.top,
+      middle_notes: selectedScents.middle,
+      base_notes: selectedScents.base
+    };
+    
+    // すべてのノートが選択されているか確認
+    if (recipeInfo.top_notes.length > 0 && recipeInfo.middle_notes.length > 0 && recipeInfo.base_notes.length > 0) {
+      try {
+        // レシピ情報をローカルストレージに保存
+        localStorage.setItem('selected_recipe', JSON.stringify(recipeInfo));
+        console.log('注文ボタンクリック時にレシピ情報を保存:', recipeInfo);
+        
+        // 注文ページへリダイレクト
+        console.log('注文ページに遷移します: /custom-order?mode=lab');
+        setTimeout(() => {
+          window.location.href = '/custom-order?mode=lab';
+        }, 100);
+      } catch (error) {
+        console.error('注文ページへの遷移エラー:', error);
+        alert('注文ページへの遷移中にエラーが発生しました。もう一度お試しください。');
+      }
+    } else {
+      console.warn('レシピが不完全なため注文ページに進めません');
+      alert('レシピが完成していないため、注文ページに進めません。トップ、ミドル、ベースノートがすべて選択されているか確認してください。');
+    }
+  };
+
+  // 注文ボタンの有効状態を計算
+  const isOrderButtonEnabled = 
+    (currentPhaseId === 'finalized' || currentPhaseId === 'complete') && 
+    selectedScents.top.length > 0 && 
+    selectedScents.middle.length > 0 && 
+    selectedScents.base.length > 0;
+
   // 選択肢をクリックしたときの処理
   const handleChoiceClick = async (choice: string) => {
     // 現在のフェーズに基づいて次のフェーズを決定
@@ -267,8 +449,73 @@ export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
     }
   };
 
+  // 「おわり？」などのユーザー入力に反応して自動的に完了段階に進む処理
+  useEffect(() => {
+    if (messages.length > 0 && (currentPhaseId === 'finalized' || currentPhaseId === 'base')) {
+      const lastMessage = messages[messages.length - 1];
+      if (lastMessage.role === 'user') {
+        const lowerContent = lastMessage.content.toLowerCase();
+        // 「おわり」「完了」「終わり」などのキーワードを検出
+        if (lowerContent.includes('おわり') || 
+            lowerContent.includes('終わり') || 
+            lowerContent.includes('完了') || 
+            lowerContent.includes('終了') ||
+            lowerContent.includes('次') || 
+            lowerContent.match(/^(ok|オッケー|はい|うん|そう|せや)$/)) {
+          
+          // finalizedフェーズならcompleteに進む
+          if (currentPhaseId === 'finalized') {
+            setTimeout(() => {
+              console.log("ユーザーの完了確認を検出しました。completeフェーズに進みます");
+              nextPhase();
+            }, 1500);
+          }
+          // baseフェーズならfinalizedに進む
+          else if (currentPhaseId === 'base') {
+            setTimeout(() => {
+              console.log("ユーザーの完了確認を検出しました。finalizedフェーズに進みます");
+              nextPhase();
+            }, 1500);
+          }
+        }
+      }
+    }
+  }, [messages, currentPhaseId, nextPhase]);
+
+  // フェーズが変わったら時間をリセット
+  useEffect(() => {
+    setLastPhaseChangeTime(Date.now());
+  }, [currentPhaseId]);
+
+  // 一定時間後に自動的に次のフェーズに進める
+  useEffect(() => {
+    // base、finalized フェーズで10秒以上停滞したら自動的に次へ
+    if ((currentPhaseId === 'base' || currentPhaseId === 'finalized') && selectedScents.top.length > 0 && selectedScents.middle.length > 0) {
+      const timeoutId = setTimeout(() => {
+        // 選択されている内容に基づいて次のフェーズに進む条件をチェック
+        const timeSinceLastChange = Date.now() - lastPhaseChangeTime;
+        if (timeSinceLastChange > 10000) { // 10秒
+          console.log(`${currentPhaseId}フェーズで${timeSinceLastChange}ms経過したため、自動的に次のフェーズに進みます`);
+          nextPhase();
+        }
+      }, 10000); // 10秒後にチェック
+      
+      return () => clearTimeout(timeoutId);
+    }
+  }, [currentPhaseId, lastPhaseChangeTime, nextPhase, selectedScents]);
+
   return (
     <div className="flex flex-col h-[calc(100vh-140px)] w-full">
+      {/* ステータス表示（開発時のデバッグ用、本番では非表示にする） */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="bg-black/5 p-2 text-xs">
+          <div>フェーズ: {currentPhaseId}</div>
+          <div>トップ: {selectedScents.top.join(', ') || 'なし'}</div>
+          <div>ミドル: {selectedScents.middle.join(', ') || 'なし'}</div>
+          <div>ベース: {selectedScents.base.join(', ') || 'なし'}</div>
+          <div>注文ボタン: {isOrderButtonEnabled ? '有効' : '無効'}</div>
+        </div>
+      )}
       <div className="flex justify-center mb-2 text-base text-muted-foreground">
         <span>{getStepName(currentPhaseId)}</span>
       </div>
@@ -450,32 +697,42 @@ export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
           </Button>
         </div>
         <div className="max-w-4xl lg:max-w-6xl mx-auto w-full flex flex-col gap-2">
-          {(currentPhaseId === 'finalized' || currentPhaseId === 'complete') && selectedScents.top.length > 0 && selectedScents.middle.length > 0 && selectedScents.base.length > 0 && (
+          {/* 注文ボタンは常に表示し、条件を満たさない場合は無効化 */}
+          <Button
+            type="button"
+            variant="default"
+            className={`w-full h-9 md:h-10 text-sm md:text-base ${
+              isOrderButtonEnabled
+                ? 'bg-primary hover:bg-primary/90 text-white shadow-sm'
+                : 'bg-gray-300 text-gray-600 cursor-not-allowed opacity-70'
+            }`}
+            onClick={handleGoToOrder}
+            disabled={!isOrderButtonEnabled}
+            title={isOrderButtonEnabled 
+              ? "注文ページに進む" 
+              : "レシピが完成したら注文できるようになります"}
+          >
+            ルームフレグランスを注文する
+            {!isOrderButtonEnabled && (
+              <span className="ml-2 text-xs">（レシピ完成後に有効化）</span>
+            )}
+            {(currentPhaseId === 'complete') && isOrderButtonEnabled && (
+              <span className="ml-2 flex items-center animate-pulse">
+                <ChevronRight className="h-4 w-4" />
+              </span>
+            )}
+          </Button>
+          {/* おまかせでレシピ作成ボタン */}
+          {currentPhaseId !== 'complete' && currentPhaseId !== 'finalized' && (
             <Button
               type="button"
-              variant="default"
-              className="w-full h-9 md:h-10 text-sm md:text-base bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
-              onClick={() => {
-                // レシピデータを作成
-                const recipeData = {
-                  name: messages.filter(msg => msg.role === 'assistant' && msg.recipe?.name).pop()?.recipe?.name || 'カスタムルームフレグランス',
-                  description: messages.filter(msg => msg.role === 'assistant' && msg.recipe?.description).pop()?.recipe?.description || '自分だけの特別な香り',
-                  top_notes: selectedScents.top,
-                  middle_notes: selectedScents.middle,
-                  base_notes: selectedScents.base,
-                  mode: 'lab'
-                };
-                
-                // ローカルストレージにレシピを保存
-                localStorage.setItem('selected_recipe', JSON.stringify(recipeData));
-                
-                console.log('保存したレシピデータ:', recipeData);
-                
-                // 注文ページへ遷移
-                router.push('/custom-order?mode=lab');
-              }}
+              variant="secondary"
+              className="w-full h-9 md:h-10 text-sm md:text-base bg-secondary/90 hover:bg-secondary/80"
+              onClick={handleAutoCreateRecipe}
+              disabled={isLoading}
             >
-              ルームフレグランスを注文する
+              <span className="mr-2">✨</span>
+              おまかせでレシピ作成
             </Button>
           )}
           <Button

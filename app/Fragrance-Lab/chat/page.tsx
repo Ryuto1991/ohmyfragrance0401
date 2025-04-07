@@ -58,8 +58,8 @@ export default function ChatPage() {
         selectedScents.base.length > 0
       ) {
         // レシピ名を生成（最新のメッセージから取得できるかチェック）
-        let recipeName = "オリジナル香水";
-        let recipeDescription = "あなただけのカスタム香水";
+        let recipeName = "オリジナルルームフレグランス";
+        let recipeDescription = "あなただけのカスタムルームフレグランス";
 
         // 最新のアシスタントメッセージからレシピ情報を探す
         const recentMessages = [...messages].reverse();
@@ -168,9 +168,13 @@ export default function ChatPage() {
             <div className="flex justify-center space-x-4">
               <button 
                 onClick={handlePurchase}
-                className="px-6 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+                className={`px-6 py-2 ${
+                  currentPhaseId === 'complete' 
+                    ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white animate-pulse shadow-lg' 
+                    : 'bg-primary text-primary-foreground'
+                } rounded-md hover:bg-primary/90`}
               >
-                この香水を注文する
+                このルームフレグランスを注文する
               </button>
               <button 
                 onClick={async () => {

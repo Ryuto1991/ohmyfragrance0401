@@ -16,7 +16,7 @@ export default function FragranceLabPage() {
       <SiteHeader />
       <main className="flex-1 flex items-center justify-center px-4 py-12">
         <div className="w-full max-w-3xl text-center">
-          <h1 className="text-3xl font-bold mb-4">⚡ 香りをつくる</h1>
+          <h1 className="text-3xl font-bold mb-4">香りをつくる</h1>
           {query && (
             <p className="text-muted-foreground mb-8">
               検索キーワード: 「{query}」
