@@ -4,7 +4,7 @@ import { useSearchParams } from "next/navigation"
 import { useState, useEffect } from "react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Loader2 } from "lucide-react"
+import { Loader2, AlertTriangle, Info } from "lucide-react"
 import SiteHeader from "@/components/site-header"
 import SiteFooter from "@/components/site-footer"
 import { createClient } from '@supabase/supabase-js'
@@ -61,6 +61,38 @@ const EXAMPLE_PHRASES = [
   "大切な人との休日",
   "二度と戻れない夏",
 ]
+
+// 不適切ワードエラーかどうかを判断する関数
+const isInappropriateWordError = (error: string | null) => {
+  return error?.includes("不適切なワード") || false;
+}
+
+// エラーメッセージのコンポーネント
+const ErrorMessage = ({ error }: { error: string | null }) => {
+  if (!error) return null;
+  
+  const isInappropriate = isInappropriateWordError(error);
+  
+  return (
+    <div className={`${isInappropriate ? "bg-amber-50" : "bg-destructive/10"} 
+                    ${isInappropriate ? "text-amber-700" : "text-destructive"} 
+                    p-4 rounded-lg max-w-xl mx-auto flex items-start gap-3`}>
+      {isInappropriate ? (
+        <Info className="h-5 w-5 mt-0.5 flex-shrink-0" />
+      ) : (
+        <AlertTriangle className="h-5 w-5 mt-0.5 flex-shrink-0" />
+      )}
+      <div>
+        <p className="font-medium">{error}</p>
+        {isInappropriate && (
+          <p className="text-sm mt-1">
+            香りの生成には適切な表現をお使いください。別のキーワードをお試しください。
+          </p>
+        )}
+      </div>
+    </div>
+  );
+};
 
 export default function FragranceGeneratorPage() {
   const searchParams = useSearchParams()
@@ -223,7 +255,7 @@ export default function FragranceGeneratorPage() {
                   <Button 
                     onClick={handleGenerate} 
                     disabled={isLoading || !query.trim()}
-                    className="absolute right-1 top-1 bottom-1 rounded-full px-6"
+                    className="absolute right-1 top-1 h-12 rounded-full px-6"
                   >
                     {isLoading ? <Loader2 className="animate-spin h-5 w-5" /> : "生成する"}
                   </Button>
@@ -274,11 +306,8 @@ export default function FragranceGeneratorPage() {
                 </Button>
               </form>
 
-              {error && (
-                <div className="bg-destructive/10 text-destructive p-4 rounded-lg max-w-xl mx-auto">
-                  {error}
-                </div>
-              )}
+              {/* エラーメッセージの表示を改善したコンポーネントに置き換え */}
+              {error && <ErrorMessage error={error} />}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="bg-white p-6 rounded-lg shadow-md space-y-4">
@@ -362,12 +391,8 @@ export default function FragranceGeneratorPage() {
             </div>
           )}
           
-          {/* エラーメッセージがあり、レシピがない場合 */}
-          {error && !recipe && (
-            <div className="bg-destructive/10 text-destructive p-4 rounded-lg max-w-xl mx-auto mt-4">
-              {error}
-            </div>
-          )}
+          {/* エラーメッセージの表示を改善したコンポーネントに置き換え */}
+          {error && !recipe && <ErrorMessage error={error} />}
         </div>
       </main>
       <SiteFooter />
