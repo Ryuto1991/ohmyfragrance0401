@@ -67,19 +67,37 @@ export async function verifyAuth(identifier: string) {
     }
 
     // セッションをキャッシュに保存
-    authCache.setSession(session)
+    if (session && 
+        typeof session.expires_at === 'number' &&
+        session.user && 
+        typeof session.user.email === 'string') {
+      authCache.setSession({
+        expires_at: session.expires_at,
+        user: {
+          id: session.user.id,
+          email: session.user.email,
+          email_confirmed_at: session.user.email_confirmed_at || null,
+        }
+      });
+    } else {
+      // 条件を満たさない場合はキャッシュを無効化
+      authCache.invalidate();
+      console.warn('verifyAuth: Session, expires_at, user, or user.email is invalid, invalidating cache.');
+    }
 
     // ログイン履歴の記録（非同期で実行）
-    supabase.from('login_history').insert([
+    const { error: insertError } = await supabase.from('login_history').insert([
       {
         user_id: user.id,
         email: user.email,
         status: 'success',
         device: typeof window !== 'undefined' ? window.navigator.userAgent : 'server',
       }
-    ]).catch(error => {
-      console.error('ログイン履歴の記録に失敗:', error)
-    })
+    ]);
+
+    if (insertError) {
+      console.error('ログイン履歴の記録に失敗:', insertError);
+    }
 
     // 成功時にレート制限をリセット
     rateLimiter.reset(identifier)

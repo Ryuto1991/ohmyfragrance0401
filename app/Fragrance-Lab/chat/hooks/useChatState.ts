@@ -115,49 +115,33 @@ export function useChatState(options: Partial<ChatFlowOptions> = {}) {
   const autoProgressTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // 選択された香りを更新する関数
-  const updateSelectedScents = useCallback((message: string) => {
-    // メッセージから選択した香りを抽出
-    if (currentPhaseId === 'top' && message.includes('トップノート')) {
-      const match = message.match(/トップノート:.*?(\d+)\.\s*([^\d\s].+?)(?:\s|$)/);
-      if (match && match[2]) {
-        const selectedScent = match[2].trim();
-        setState(prev => ({
-          ...prev,
-          selectedScents: {
-            ...prev.selectedScents,
-            top: [...prev.selectedScents.top.filter(scent => scent !== selectedScent), selectedScent]
-          }
-        }));
-        console.log(`トップノートを選択: ${selectedScent}`);
+  const updateSelectedScents = useCallback((selectedChoice: string) => {
+    setState(prev => {
+      const currentPhase = prev.currentPhaseId;
+      const newSelectedScents = { ...prev.selectedScents };
+
+      // ユーザーが入力した選択肢を対応するフェーズのノートとして記録
+      if (currentPhase === 'top') {
+        newSelectedScents.top = [selectedChoice]; // 配列に選択肢をセット (単一選択)
+        console.log(`トップノートを選択: ${selectedChoice}`);
+      } else if (currentPhase === 'middle') {
+        newSelectedScents.middle = [selectedChoice];
+        console.log(`ミドルノートを選択: ${selectedChoice}`);
+      } else if (currentPhase === 'base') {
+        newSelectedScents.base = [selectedChoice];
+        console.log(`ベースノートを選択: ${selectedChoice}`);
+      } else {
+        // 対象フェーズ以外では何もしない
+        return prev;
       }
-    } else if (currentPhaseId === 'middle' && message.includes('ミドルノート')) {
-      const match = message.match(/ミドルノート:.*?(\d+)\.\s*([^\d\s].+?)(?:\s|$)/);
-      if (match && match[2]) {
-        const selectedScent = match[2].trim();
-        setState(prev => ({
-          ...prev,
-          selectedScents: {
-            ...prev.selectedScents,
-            middle: [...prev.selectedScents.middle.filter(scent => scent !== selectedScent), selectedScent]
-          }
-        }));
-        console.log(`ミドルノートを選択: ${selectedScent}`);
-      }
-    } else if (currentPhaseId === 'base' && message.includes('ベースノート')) {
-      const match = message.match(/ベースノート:.*?(\d+)\.\s*([^\d\s].+?)(?:\s|$)/);
-      if (match && match[2]) {
-        const selectedScent = match[2].trim();
-        setState(prev => ({
-          ...prev,
-          selectedScents: {
-            ...prev.selectedScents,
-            base: [...prev.selectedScents.base.filter(scent => scent !== selectedScent), selectedScent]
-          }
-        }));
-        console.log(`ベースノートを選択: ${selectedScent}`);
-      }
-    }
-  }, [currentPhaseId, setState]);
+
+      // 新しい selectedScents を含む状態を返す
+      return {
+        ...prev,
+        selectedScents: newSelectedScents
+      };
+    });
+  }, [setState]); // 依存配列を setState のみに変更
 
   // レシピが完成したときにローカルストレージに保存する関数
   const saveRecipeWhenComplete = useCallback(() => {
@@ -219,6 +203,26 @@ export function useChatState(options: Partial<ChatFlowOptions> = {}) {
       setMessages(prev => [...prev, buttonNotificationMessage]);
     }
 
+    // フェーズに特化した自動処理
+    if (newPhase === 'middle') {
+      // ミドルノートフェーズに入った場合、ユーザーがミドルノートを選択した後にベースノートフェーズに自動的に移行
+      setTimeout(() => {
+        if (messagesRef.current.some(msg => 
+          msg.content?.includes('ミドルノート') && msg.role === 'user'
+        )) {
+          // 最新のミドルノートの選択メッセージを検索
+          const middleNoteSelection = [...messagesRef.current]
+            .reverse()
+            .find(msg => msg.role === 'user' && msg.content?.includes('ミドルノート'));
+          
+          if (middleNoteSelection && currentPhaseIdRef.current === 'middle') {
+            console.log('ミドルノートが選択されました。ベースノートフェーズに自動的に移行します');
+            nextPhase();
+          }
+        }
+      }, 1000); // 1秒後に確認
+    }
+    
     // フェーズがbaseになったら自動的にfinalized, completeに移行するためのロジック追加
     if (newPhase === 'base') {
       setTimeout(() => {
@@ -315,6 +319,69 @@ export function useChatState(options: Partial<ChatFlowOptions> = {}) {
     }
     
     setMessages(prev => [...prev, userMessage])
+    
+    // ★追加: ユーザーの選択を selectedScents に反映
+    updateSelectedScents(content);
+    
+    // ユーザーがミドルノートを選択した場合を検出（例：「カモミール」というメッセージ）
+    if (currentPhaseIdRef.current === 'middle') {
+      const lastAssistantMessage = [...messagesRef.current].reverse().find(m => m.role === 'assistant');
+      
+      // 最後のAIメッセージにミドルノートの候補が含まれている場合
+      if (lastAssistantMessage && lastAssistantMessage.content && 
+          lastAssistantMessage.content.includes('ミドルノート')) {
+        // ユーザーが選択したノート名を含む短いメッセージ（例：「カモミール」）を検出
+        const userSelection = content.trim();
+        if (userSelection.length < 30 && lastAssistantMessage.content.includes(userSelection)) {
+          console.log(`ユーザーがミドルノート「${userSelection}」を選択しました`);
+          
+          // ミドルノートの選択を記録し、次のメッセージ応答後にベースノートフェーズに移行するためのフラグ
+          localStorage.setItem('middle_note_selected', 'true');
+          
+          // 1.5秒後にベースノートフェーズに自動的に移行
+          setTimeout(() => {
+            if (currentPhaseIdRef.current === 'middle') {
+              console.log('ミドルノートの選択を検出、ベースノートフェーズに移行します');
+              nextPhase();
+            }
+          }, 1500);
+        }
+      }
+    }
+    
+    // ユーザーがベースノートを選択した場合を検出
+    if (currentPhaseIdRef.current === 'base') {
+      const lastAssistantMessage = [...messagesRef.current].reverse().find(m => m.role === 'assistant');
+      
+      // 最後のAIメッセージにベースノートの候補が含まれている場合
+      if (lastAssistantMessage && lastAssistantMessage.content && 
+          lastAssistantMessage.content.includes('ベースノート')) {
+        // ユーザーが選択したノート名を含む短いメッセージ（例：「ムスク」）を検出
+        const userSelection = content.trim();
+        if (userSelection.length < 30 && lastAssistantMessage.content.includes(userSelection)) {
+          console.log(`ユーザーがベースノート「${userSelection}」を選択しました`);
+          
+          // ベースノートの選択を記録
+          localStorage.setItem('base_note_selected', 'true');
+          
+          // 4秒後にfinalizedフェーズに自動的に移行
+          setTimeout(() => {
+            if (currentPhaseIdRef.current === 'base') {
+              console.log('ベースノートの選択を検出、finalizedフェーズに移行します');
+              nextPhase();
+              
+              // さらに4秒後にcompleteフェーズに移行
+              setTimeout(() => {
+                if (currentPhaseIdRef.current === 'finalized') {
+                  console.log('finalizedフェーズから自動的にcompleteフェーズに移行します');
+                  nextPhase();
+                }
+              }, 4000);
+            }
+          }, 4000);
+        }
+      }
+    }
     
     // APIリクエストを送信する関数（リトライロジック付き）
     const sendRequest = async (retryCount = 0, maxRetries = 2) => {
@@ -417,7 +484,7 @@ export function useChatState(options: Partial<ChatFlowOptions> = {}) {
     
     // リクエスト送信開始
     sendRequest();
-  }, [setIsLoading, setError, setMessages, saveRecipeWhenComplete])
+  }, [setIsLoading, setError, setMessages, updateSelectedScents])
   
   // メッセージを再送信する関数
   const retryLastMessage = useCallback(() => {
@@ -558,7 +625,12 @@ export function useChatState(options: Partial<ChatFlowOptions> = {}) {
           should_split: jsonContent.should_split || false
         };
         
-        setMessages(prev => [...prev, newMessage]);
+        // ★追加: content が空でないかチェック
+        if (newMessage.content && newMessage.content.trim() !== '') {
+          setMessages(prev => [...prev, newMessage])
+        } else {
+          console.warn("空のメッセージコンテンツ（分割）を検出したため、追加をスキップしました:", newMessage);
+        }
         
         if (message.recipe && 
             message.recipe.topNotes && 
@@ -605,7 +677,12 @@ export function useChatState(options: Partial<ChatFlowOptions> = {}) {
             recipe: isLast ? message.recipe : undefined
           }
 
-          setMessages(prev => [...prev, newMessage])
+          // ★追加: content が空でないかチェック
+          if (newMessage.content && newMessage.content.trim() !== '') {
+            setMessages(prev => [...prev, newMessage])
+          } else {
+            console.warn("空のメッセージコンテンツ（分割）を検出したため、追加をスキップしました:", newMessage);
+          }
 
           if (isLast) {
             if (message.recipe && 
@@ -631,7 +708,12 @@ export function useChatState(options: Partial<ChatFlowOptions> = {}) {
         id: uuid()
       }
       
-      setMessages(prev => [...prev, newMessage])
+      // ★追加: content が空でないかチェック
+      if (newMessage.content && newMessage.content.trim() !== '') {
+        setMessages(prev => [...prev, newMessage])
+      } else {
+        console.warn("空のメッセージコンテンツ（分割）を検出したため、追加をスキップしました:", newMessage);
+      }
       
       if (message.recipe && 
           message.recipe.topNotes && 

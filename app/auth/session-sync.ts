@@ -57,7 +57,22 @@ class SessionSync {
         );
 
         // キャッシュを更新
-        authCache.setSession(session);
+        if (session && 
+            typeof session.expires_at === 'number' &&
+            session.user && 
+            typeof session.user.email === 'string') {
+          authCache.setSession({
+            expires_at: session.expires_at,
+            user: {
+              id: session.user.id,
+              email: session.user.email,
+              email_confirmed_at: session.user.email_confirmed_at || null,
+            }
+          });
+        } else {
+          authCache.invalidate();
+          console.warn('Session, expires_at, user, or user.email is invalid, invalidating cache.');
+        }
       } else {
         // セッションが無効な場合はキャッシュをクリア
         authCache.invalidate();

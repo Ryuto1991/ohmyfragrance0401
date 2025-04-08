@@ -256,23 +256,23 @@ export function TipsSidebar({ currentStep, selectedScents }: TipsSidebarProps) {
 
   if (!isOpen) {
     return (
-      <button
+      <Button 
+        variant="outline" 
+        size="icon" 
+        className="fixed bottom-20 right-4 z-50 hidden sm:flex"
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-4 left-4 flex items-center justify-center bg-primary text-primary-foreground rounded-full w-10 h-10 shadow-md z-20 hover:bg-primary/90 transition-colors"
-        aria-label="香水作成ガイドを表示"
       >
-        <Info className="h-5 w-5" />
-      </button>
+        <Info className="h-4 w-4" />
+      </Button>
     )
   }
 
   return (
-    <div className="fixed bottom-4 left-4 w-72 bg-white p-4 rounded-lg shadow-md z-20 animate-fadeIn">
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center">
-          <Info className="h-4 w-4 text-primary mr-2" />
-          <h2 className="text-sm font-medium">香水作成ガイド</h2>
-        </div>
+    <div 
+      className="fixed bottom-20 right-4 z-50 w-64 bg-white p-4 rounded-lg shadow-lg border hidden sm:block"
+    >
+      <div className="flex justify-between items-center mb-3">
+        <h2 className="text-sm font-medium">香水作成ガイド</h2>
         <Button
           variant="ghost"
           size="sm"

@@ -2,10 +2,6 @@ import dynamic from 'next/dynamic';
 import { LoadingSpinner } from './ui/a11y';
 
 // カート関連
-export const CartDrawer = dynamic(() => import('./cart/cart-drawer').then(mod => mod.CartDrawer), {
-  loading: () => <LoadingSpinner />,
-  ssr: false
-});
 
 // 商品詳細
 export const ProductDetail = dynamic(() => import('./product/product-detail').then(mod => mod.ProductDetail), {

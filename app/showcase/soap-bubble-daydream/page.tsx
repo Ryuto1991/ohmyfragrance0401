@@ -10,7 +10,6 @@ import SiteHeader from "@/components/site-header"
 import SiteFooter from "@/components/site-footer"
 import { Button } from "@/components/ui/button"
 import { useStripeCart } from "@/contexts/stripe-cart-context"
-import RelatedProducts from "@/components/related-products"
 
 export default function SoapBubbleDaydreamPage() {
   const { addToCart } = useStripeCart()
@@ -257,9 +256,6 @@ export default function SoapBubbleDaydreamPage() {
             </div>
           </div>
         </section>
-
-        {/* 関連商品セクション */}
-        <RelatedProducts />
       </main>
 
       <SiteFooter />

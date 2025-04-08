@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react"
 import { Loader2, RefreshCw, Info, X, ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { cn } from "@/lib/utils"
 import { useChatState } from "@/app/fragrance-lab/chat/hooks/useChatState"
 import { ChatPhase } from "@/app/fragrance-lab/chat/types"
@@ -17,6 +17,7 @@ import { nanoid } from 'nanoid'
 
 export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const {
     messages,
     currentPhaseId,
@@ -55,21 +56,19 @@ export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
   // 初期クエリまたは初期メッセージを処理
   useEffect(() => {
     const handleInitialInteraction = async () => {
-      // URLからクエリパラメータを確認
-      const params = new URLSearchParams(window.location.search);
-      const urlQuery = params.get('query') || params.get('q');
+      // URLからクエリパラメータを確認 (useSearchParams を使用)
+      const urlQuery = searchParams.get('query') || searchParams.get('q');
       
-      // クエリパラメータがあれば、URLから削除する（最初にURLを更新）
+      // クエリパラメータがあれば、URLから削除する (router.replace を使用)
       if (urlQuery) {
-        const url = new URL(window.location.href);
-        url.searchParams.delete('query');
-        url.searchParams.delete('q');
-        window.history.replaceState({}, document.title, url.toString());
-        console.log("URLからクエリパラメータを削除しました");
+        const newPath = window.location.pathname; // 現在のパス名を取得
+        router.replace(newPath, { scroll: false }); // パス名だけで replace (クエリ削除)
+        console.log("URLからクエリパラメータを削除しました (useRouter)");
       }
       
       // すでに初期メッセージが送信済みか、または処理中の場合は何もしない
-      if (initialMessageSent || isLoading || messages.length > 1) return;
+      // messages.length > 1 のチェックを messages.length > 0 に変更 (初期メッセージがない場合も考慮)
+      if (initialMessageSent || isLoading || messages.length > 0) return;
       
       // 初期クエリがある場合はそれを使用
       if (initialQuery) {
@@ -104,7 +103,7 @@ export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
     };
     
     handleInitialInteraction();
-  }, [initialQuery, addMessage, initialMessageSent, isLoading, messages.length]);
+  }, [searchParams, router, initialQuery, addMessage, initialMessageSent, isLoading, messages.length]);
 
   // 確実に最下部までスクロールする関数
   const scrollToBottom = () => {
@@ -487,25 +486,32 @@ export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
     setLastPhaseChangeTime(Date.now());
   }, [currentPhaseId]);
 
-  // 一定時間後に自動的に次のフェーズに進める
+  // 一定時間後に自動的に次のフェーズに進める (修正)
   useEffect(() => {
-    // base、finalized フェーズで10秒以上停滞したら自動的に次へ
-    if ((currentPhaseId === 'base' || currentPhaseId === 'finalized') && selectedScents.top.length > 0 && selectedScents.middle.length > 0) {
+    // finalized フェーズで、全てのノートが選択済みの場合に10秒以上停滞したら complete へ
+    if (currentPhaseId === 'finalized' &&
+        selectedScents.top.length > 0 &&
+        selectedScents.middle.length > 0 &&
+        selectedScents.base.length > 0) { // baseノートの選択も確認
       const timeoutId = setTimeout(() => {
-        // 選択されている内容に基づいて次のフェーズに進む条件をチェック
         const timeSinceLastChange = Date.now() - lastPhaseChangeTime;
         if (timeSinceLastChange > 10000) { // 10秒
-          console.log(`${currentPhaseId}フェーズで${timeSinceLastChange}ms経過したため、自動的に次のフェーズに進みます`);
-          nextPhase();
+          console.log(`finalizedフェーズで${timeSinceLastChange}ms経過、全ノート選択済みのため、自動的にcompleteに進みます`);
+          nextPhase(); // finalized -> complete
         }
-      }, 10000); // 10秒後にチェック
-      
+      }, 10000);
       return () => clearTimeout(timeoutId);
     }
+    // base フェーズでの自動進行は削除
   }, [currentPhaseId, lastPhaseChangeTime, nextPhase, selectedScents]);
 
   return (
     <div className="flex flex-col h-[calc(100vh-140px)] w-full">
+      {/* ★ここに ChatProgressSteps を追加 */}
+      <div className="px-4 pt-4"> {/* 上下のパディング調整用 */}
+        <ChatProgressSteps currentPhaseId={currentPhaseId} />
+      </div>
+
       {/* ステータス表示（開発時のデバッグ用、本番では非表示にする） */}
       {process.env.NODE_ENV === 'development' && (
         <div className="bg-black/5 p-2 text-xs">
