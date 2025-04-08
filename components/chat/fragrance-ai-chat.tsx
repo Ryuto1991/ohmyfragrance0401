@@ -420,7 +420,7 @@ export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
     console.log(`現在のフェーズ: ${currentPhaseId}, 次のフェーズ: ${nextPhaseId}`);
     
     // メッセージ送信
-    await addMessage(choice);
+    await addMessage(choice, true);
     
     // フェーズを自動的に進める
     if (nextPhaseId) {

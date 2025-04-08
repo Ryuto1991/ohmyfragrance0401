@@ -49,6 +49,9 @@ export function useChatState(options: Partial<ChatFlowOptions> = {}) {
     error: null
   })
 
+  // ★移動: followUpSent の定義をここへ移動
+  const [followUpSent, setFollowUpSent] = useState<boolean>(false);
+
   // 分割された状態を利用しやすくするために展開
   const { messages, currentPhaseId, selectedScents, isLoading, error } = state
 
@@ -60,12 +63,14 @@ export function useChatState(options: Partial<ChatFlowOptions> = {}) {
     }))
   }, [])
 
+  // setCurrentPhaseId を setFollowUpSent の後で定義
   const setCurrentPhaseId = useCallback((newPhaseId: ChatPhase) => {
+    setFollowUpSent(false); // ここで setFollowUpSent を使用
     setState(prev => ({
       ...prev,
       currentPhaseId: newPhaseId
     }))
-  }, [])
+  }, [setFollowUpSent])
 
   const setIsLoading = useCallback((loading: boolean) => {
     setState(prev => ({
@@ -114,6 +119,11 @@ export function useChatState(options: Partial<ChatFlowOptions> = {}) {
   // 自動進行用のタイマー参照
   const autoProgressTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // ★追加: 追いメッセージ用タイマー
+  const followUpTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // ★追加: 最後のメッセージ時刻ステート
+  const [lastMessageTimestamp, setLastMessageTimestamp] = useState<number>(Date.now());
+
   // 選択された香りを更新する関数
   const updateSelectedScents = useCallback((selectedChoice: string) => {
     setState(prev => {
@@ -142,6 +152,56 @@ export function useChatState(options: Partial<ChatFlowOptions> = {}) {
       };
     });
   }, [setState]); // 依存配列を setState のみに変更
+
+  // ★追加: 最後のメッセージ時刻を更新する useEffect
+  useEffect(() => {
+    if (messages.length > 0) {
+      setLastMessageTimestamp(messages[messages.length - 1].timestamp);
+    } else {
+      setLastMessageTimestamp(Date.now()); // メッセージがない場合は現在時刻
+    }
+  }, [messages]);
+
+  // ★追加: 追いメッセージ用の useEffect
+  useEffect(() => {
+    // タイマーをクリア
+    if (followUpTimeoutRef.current) {
+      clearTimeout(followUpTimeoutRef.current);
+      followUpTimeoutRef.current = null;
+    }
+
+    // isLoading が true の場合、追いメッセージが不要なフェーズ、または既に追いメッセージ送信済みならタイマーを設定しない
+    const shouldSendFollowUp = !['welcome', 'finalized', 'complete'].includes(currentPhaseId);
+    if (isLoading || !shouldSendFollowUp || followUpSent) {
+      return;
+    }
+
+    // 最後のメッセージから一定時間後に追いメッセージを送るタイマーを設定
+    const FOLLOW_UP_DELAY = 20000; // 20秒
+    const timeSinceLastMessage = Date.now() - lastMessageTimestamp;
+
+    if (timeSinceLastMessage < FOLLOW_UP_DELAY) {
+      followUpTimeoutRef.current = setTimeout(() => {
+        const followUpMessage: Message = {
+          id: uuid(),
+          role: 'assistant',
+          content: 'どうかな？😊 何か迷ってることがあったら気軽に聞いてね！',
+          timestamp: Date.now()
+        };
+        console.log("追いメッセージを追加:", followUpMessage.content);
+        setMessages(prev => [...prev, followUpMessage]);
+        setFollowUpSent(true);
+        followUpTimeoutRef.current = null; // タイマー実行後はクリア
+      }, FOLLOW_UP_DELAY - timeSinceLastMessage);
+    }
+
+    // クリーンアップ関数でタイマーをクリア
+    return () => {
+      if (followUpTimeoutRef.current) {
+        clearTimeout(followUpTimeoutRef.current);
+      }
+    };
+  }, [messages, isLoading, currentPhaseId, lastMessageTimestamp, setMessages, followUpSent]); // 依存配列に注意
 
   // レシピが完成したときにローカルストレージに保存する関数
   const saveRecipeWhenComplete = useCallback(() => {
@@ -304,8 +364,11 @@ export function useChatState(options: Partial<ChatFlowOptions> = {}) {
   const isProcessingRef = useRef(false)
 
   // メッセージを追加する関数
-  const addMessage = useCallback(async (content: string) => {
+  const addMessage = useCallback(async (content: string, isUserSelection: boolean = false) => {
     if (isLoadingRef.current) return
+    
+    // ★追加: 追いメッセージ送信フラグをリセット
+    setFollowUpSent(false);
     
     isLoadingRef.current = true
     setIsLoading(true)
@@ -320,8 +383,10 @@ export function useChatState(options: Partial<ChatFlowOptions> = {}) {
     
     setMessages(prev => [...prev, userMessage])
     
-    // ★追加: ユーザーの選択を selectedScents に反映
-    updateSelectedScents(content);
+    // ★変更: isUserSelection が true の場合のみ selectedScents を更新
+    if (isUserSelection) {
+      updateSelectedScents(content);
+    }
     
     // ユーザーがミドルノートを選択した場合を検出（例：「カモミール」というメッセージ）
     if (currentPhaseIdRef.current === 'middle') {
@@ -844,6 +909,9 @@ export function useChatState(options: Partial<ChatFlowOptions> = {}) {
     };
     localStorage.setItem(STORAGE_KEYS.SESSION, JSON.stringify(sessionInfo));
     
+    // ★追加: チャット履歴もクリア
+    localStorage.removeItem(STORAGE_KEYS.CHAT_HISTORY);
+
     // ローカルストレージからレシピ情報もクリア
     localStorage.removeItem('selected_recipe');
     
@@ -864,24 +932,6 @@ export function useChatState(options: Partial<ChatFlowOptions> = {}) {
     }, 500);
     
   }, [setState, setMessages]);
-
-  // ユーザーメッセージを監視して選択された香りを更新
-  useEffect(() => {
-    if (messages.length > 0) {
-      const lastMessage = messages[messages.length - 1];
-      
-      // ユーザーからのメッセージの場合
-      if (lastMessage.role === 'user') {
-        // 現在のフェーズに応じて選択された香りを更新
-        updateSelectedScents(lastMessage.content);
-        
-        // レシピが完成していてcompleteフェーズなら保存
-        if (currentPhaseId === 'complete') {
-          saveRecipeWhenComplete();
-        }
-      }
-    }
-  }, [messages, currentPhaseId, updateSelectedScents, saveRecipeWhenComplete]);
 
   return {
     // フェーズ関連
