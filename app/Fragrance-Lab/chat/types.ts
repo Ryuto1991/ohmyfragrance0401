@@ -81,6 +81,8 @@ export interface ChatState {
   isLoading: boolean
   sessionId: string
   error: Error | null
+  followUpSent: boolean
+  lastPhaseChangeTime: number
 }
 
 // APIレスポンスの型定義

@@ -48,6 +48,13 @@ export default function ChatPage() {
     currentPhaseId
   } = useChatState()
 
+  useEffect(() => {
+    if (!router) {
+      console.error('Router is not initialized');
+      return;
+    }
+  }, [router]);
+
   // selectedScentsからレシピ情報を更新
   useEffect(() => {
     // 全てのフェーズが完了し、選択された香料がある場合にレシピを生成

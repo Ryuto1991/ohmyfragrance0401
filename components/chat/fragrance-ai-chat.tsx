@@ -15,23 +15,49 @@ import { TipsSidebar } from "./tips-sidebar"
 import { v4 as uuid } from 'uuid'
 import { nanoid } from 'nanoid'
 
+// クライアントコンポーネントとして明示的に宣言
+const ChoiceButton = ({ choice, onClick }: { 
+  choice: { name: string, description?: string } | string, 
+  onClick: () => void 
+}) => {
+  const choiceText = typeof choice === 'string' ? choice : choice.name;
+  const description = typeof choice === 'string' ? undefined : choice.description;
+
+  return (
+    <Button
+      variant="outline"
+      onClick={onClick}
+      className="w-full text-sm md:text-base py-2 whitespace-normal text-left h-auto justify-start border-primary/30 hover:bg-primary/10 hover:text-primary-foreground/90"
+    >
+      <div className="flex flex-col w-full">
+        <div className="font-medium">{choiceText}</div>
+        {description && (
+          <div className="text-xs text-muted-foreground mt-1">{description}</div>
+        )}
+      </div>
+    </Button>
+  );
+};
+
 export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const {
     messages,
     currentPhaseId,
+    selectedScents,
     isLoading,
+    isSubmitting,
     error,
     addMessage,
+    sendMessage,
+    handleError,
+    isOrderButtonEnabled,
+    updatePhase,
+    updateSelectedScents,
     resetChat,
-    nextPhase,
-    setPhase,
-    selectedScents,
-    setIsLoading,
-    setError,
-    setMessages,
-    setState
+    handleGoToOrder,
+    handleAutoCreateRecipe
   } = useChatState()
 
   const [input, setInput] = useState("")
@@ -40,6 +66,13 @@ export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [initialMessageSent, setInitialMessageSent] = useState(false)
   const [lastPhaseChangeTime, setLastPhaseChangeTime] = useState(Date.now())
+
+  useEffect(() => {
+    if (!router) {
+      console.error('Router is not initialized');
+      return;
+    }
+  }, [router]);
 
   // メッセージが追加されたときに最下部にスクロールする
   useEffect(() => {
@@ -114,55 +147,24 @@ export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
     }
   }
 
-  const handleSend = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    
-    // 入力が空なら何もしない
-    const message = input.trim();
-    if (!message) return;
-    
-    // まず入力をクリアし、フォーカスを設定する
-    setInput('');
-    if (inputRef.current) {
-      inputRef.current.focus();
-    }
-    
-    console.log("送信中:", message); // デバッグ用
-    
-    // 保存した入力値を使ってメッセージを送信
-    await addMessage(message);
-    
-    // メッセージ送信後も明示的にスクロール
-    setTimeout(scrollToBottom, 100);
+  // メッセージ送信の処理
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    if (isSubmitting || !input.trim()) return
+
+    const content = input.trim()
+    setInput('')
+    await sendMessage(content)
   }
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      console.log("Enterキーが押されました"); // デバッグ用
-      e.preventDefault();
-      handleSend();
-    }
-  };
-
-  const handleReset = () => {
-    // チャットをリセット（useChatState内のresetChat関数を呼び出す）
-    resetChat()
-    
-    // リセット後は再度inputにフォーカス
-    if (inputRef.current) {
-      inputRef.current.focus();
-    }
-    
-    // 初期メッセージフラグをリセット
-    setInitialMessageSent(false);
-    
-    // 処理済みクエリをクリア
-    localStorage.removeItem('processedQueries');
-    
-    // スクロールリセット
-    setTimeout(scrollToBottom, 300);
-    
-    console.log("チャットをリセットしました。初期メッセージが再表示されます。");
+  // エラー表示の改善
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full">
+        <div className="text-red-500 mb-4">{error.message}</div>
+        <Button onClick={() => handleError(null)}>再試行</Button>
+      </div>
+    )
   }
 
   const getStepName = (phase: ChatPhase) => {
@@ -180,7 +182,16 @@ export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
   }
 
   // メッセージからテキスト部分と選択肢部分を分離する関数
-  const parseMessageContent = (content: string) => {
+  const parseMessageContent = (content: string | { name: string, description?: string }[]) => {
+    // オブジェクトの配列の場合は、そのまま返す
+    if (Array.isArray(content)) {
+      return {
+        text: '',
+        choices: content
+      };
+    }
+
+    // 文字列の場合は従来の処理を行う
     if (!content) return { text: '', choices: [] };
 
     // 複数の選択肢パターンに対応
@@ -246,264 +257,79 @@ export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
     return null;
   };
 
-  // 「おまかせでレシピ作成」ボタンのハンドラー関数
-  const handleAutoCreateRecipe = async () => {
-    // 既にローディング中なら何もしない
-    if (isLoading) return;
-    
-    // ローディング状態を設定
-    setIsLoading(true);
-    
-    try {
-      // デバッグ用にステータスを表示
-      console.log('現在のフェーズ:', currentPhaseId);
-      console.log('選択された香り:', selectedScents);
-      
-      // フラグメント生成APIを呼び出す
-      const response = await fetch('/api/generator', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          query: "柔軟剤のような爽やかなルームフレグランス"
-        })
-      });
-      
-      if (!response.ok) {
-        throw new Error('レシピの生成に失敗しました');
-      }
-      
-      const recipe = await response.json();
-      console.log('生成されたレシピ:', recipe);
-      
-      if (!recipe || !recipe.notes) {
-        throw new Error('無効なレシピデータです');
-      }
-      
-      // トップ、ミドル、ベースノートを抽出
-      const topNotes = recipe.notes.top.map((item: any) => item.name);
-      const middleNotes = recipe.notes.middle.map((item: any) => item.name);
-      const baseNotes = recipe.notes.base.map((item: any) => item.name);
-      
-      // ノート選択を状態に反映
-      setState((prev: any) => ({
-        ...prev,
-        selectedScents: {
-          top: topNotes,
-          middle: middleNotes,
-          base: baseNotes
-        }
-      }));
-      
-      // メッセージを表示
-      setMessages((prev: any) => [
-        ...prev,
-        {
-          id: nanoid(),
-          role: 'assistant',
-          content: `おまかせレシピの準備ができたよ！✨ トップノート: ${topNotes[0]}`,
-          timestamp: Date.now()
-        },
-        {
-          id: nanoid(),
-          role: 'assistant',
-          content: `ミドルノート: ${middleNotes[0]}`,
-          timestamp: Date.now() + 100
-        },
-        {
-          id: nanoid(),
-          role: 'assistant',
-          content: `ベースノート: ${baseNotes[0]}`,
-          timestamp: Date.now() + 200
-        },
-        {
-          id: nanoid(),
-          role: 'assistant',
-          content: `よっしゃ完成！この組み合わせめっちゃいい感じ！✨「${recipe.title}」のレシピが完成したよ！${recipe.description}`,
-          timestamp: Date.now() + 300,
-          recipe: {
-            name: recipe.title,
-            description: recipe.description,
-            notes: {
-              top: topNotes,
-              middle: middleNotes,
-              base: baseNotes
-            }
-          }
-        }
-      ]);
-      
-      // レシピ情報をローカルストレージに保存
-      const recipeInfo = {
-        top_notes: topNotes,
-        middle_notes: middleNotes,
-        base_notes: baseNotes
-      };
-      localStorage.setItem('selected_recipe', JSON.stringify(recipeInfo));
-      sessionStorage.setItem('recipe_saved', 'true');
-      console.log('おまかせ機能でレシピ情報を保存:', recipeInfo);
-      
-      // completeフェーズに設定
-      setPhase('complete');
-      
-      // 注文ボタンの通知メッセージを追加
-      const buttonNotificationMessage = {
-        id: nanoid(),
-        role: 'assistant',
-        content: 'このルームフレグランスを実際に注文するには画面下のピンク色のボタンを押してね！リビングやベッドルーム、玄関などお好きな場所に置いて空間を彩るといいよ〜 ✨',
-        timestamp: Date.now() + 400
-      };
-      setMessages((prev: any) => [...prev, buttonNotificationMessage]);
-      
-      setIsLoading(false);
-    } catch (error) {
-      console.error('おまかせレシピ作成中にエラーが発生しました:', error);
-      setError('レシピの作成に失敗しました。もう一度お試しください。');
-      setIsLoading(false);
-    }
+  // フェーズ更新を統合した関数
+  const updatePhaseWithAutoProgress = (nextPhase: ChatPhase) => {
+    console.log(`フェーズを更新: ${currentPhaseId} → ${nextPhase}`);
+    updatePhase(nextPhase);
+    setLastPhaseChangeTime(Date.now());
   };
-
-  // 注文ページに進む関数
-  const handleGoToOrder = () => {
-    // デバッグ: 現在の状態を確認
-    console.log('注文ボタンクリック時の状態:', {
-      currentPhaseId,
-      selectedScents,
-      isTopSelected: selectedScents.top.length > 0,
-      isMiddleSelected: selectedScents.middle.length > 0, 
-      isBaseSelected: selectedScents.base.length > 0
-    });
-    
-    // 現在のレシピ情報をローカルストレージに保存
-    const recipeInfo = {
-      top_notes: selectedScents.top,
-      middle_notes: selectedScents.middle,
-      base_notes: selectedScents.base
-    };
-    
-    // すべてのノートが選択されているか確認
-    if (recipeInfo.top_notes.length > 0 && recipeInfo.middle_notes.length > 0 && recipeInfo.base_notes.length > 0) {
-      try {
-        // レシピ情報をローカルストレージに保存
-        localStorage.setItem('selected_recipe', JSON.stringify(recipeInfo));
-        console.log('注文ボタンクリック時にレシピ情報を保存:', recipeInfo);
-        
-        // 注文ページへリダイレクト
-        console.log('注文ページに遷移します: /custom-order?mode=lab');
-        setTimeout(() => {
-          window.location.href = '/custom-order?mode=lab';
-        }, 100);
-      } catch (error) {
-        console.error('注文ページへの遷移エラー:', error);
-        alert('注文ページへの遷移中にエラーが発生しました。もう一度お試しください。');
-      }
-    } else {
-      console.warn('レシピが不完全なため注文ページに進めません');
-      alert('レシピが完成していないため、注文ページに進めません。トップ、ミドル、ベースノートがすべて選択されているか確認してください。');
-    }
-  };
-
-  // 注文ボタンの有効状態を計算
-  const isOrderButtonEnabled = 
-    (currentPhaseId === 'finalized' || currentPhaseId === 'complete') && 
-    selectedScents.top.length > 0 && 
-    selectedScents.middle.length > 0 && 
-    selectedScents.base.length > 0;
 
   // 選択肢をクリックしたときの処理
-  const handleChoiceClick = async (choice: string) => {
-    // 現在のフェーズに基づいて次のフェーズを決定
+  const handleChoiceClick = async (choice: { name: string, description?: string } | string) => {
     const nextPhaseId = getNextPhase(currentPhaseId as ChatPhase);
     
-    console.log(`選択肢クリック: ${choice}`);
-    console.log(`現在のフェーズ: ${currentPhaseId}, 次のフェーズ: ${nextPhaseId}`);
+    // 選択肢のテキストを取得
+    const choiceText = typeof choice === 'string' ? choice : choice.name;
     
-    // メッセージ送信
-    await addMessage(choice, true);
+    console.log(`選択肢クリック: ${choiceText}`);
     
-    // フェーズを自動的に進める
-    if (nextPhaseId) {
-      if (['themeSelected', 'top', 'middle', 'base'].includes(currentPhaseId as string)) {
-        // 選択肢を選んだ場合は次のフェーズに自動的に進む
-        console.log(`フェーズを自動更新: ${currentPhaseId} → ${nextPhaseId}`);
-        
-        // nextPhase関数を使用してフェーズを進める
-        setTimeout(() => {
-          nextPhase();
-          console.log("フェーズ更新完了:", nextPhaseId);
-        }, 1000); // メッセージ表示後に少し遅延させてフェーズを更新
+    try {
+      if (currentPhaseId === 'welcome') {
+        console.log('welcomeフェーズでは香りの選択は無効です');
+        return;
       }
+
+      if (['top', 'middle', 'base'].includes(currentPhaseId)) {
+        updateSelectedScents(choiceText);
+      }
+
+      await sendMessage(choiceText, true);
       
-      // baseフェーズで選択後、finalizedへの移行が確実に行われるようにする
-      if (currentPhaseId === 'base') {
-        setTimeout(() => {
-          // 現在のフェーズを確認し、まだbaseの場合は強制的に次へ進める
-          if (currentPhaseId === 'base') {
-            console.log("baseフェーズから強制的に次のフェーズへ移行");
-            nextPhase();
-          }
-        }, 3000); // より長い遅延を設定
+      if (nextPhaseId && ['themeSelected', 'top', 'middle', 'base'].includes(currentPhaseId as string)) {
+        updatePhaseWithAutoProgress(nextPhaseId);
       }
+    } catch (error) {
+      console.error('選択肢クリック時のエラー:', error);
+      handleError(error instanceof Error ? error : new Error('選択肢の処理中にエラーが発生しました'));
     }
   };
 
-  // 「おわり？」などのユーザー入力に反応して自動的に完了段階に進む処理
+  // フェーズの自動進行を統合したuseEffect
   useEffect(() => {
-    if (messages.length > 0 && (currentPhaseId === 'finalized' || currentPhaseId === 'base')) {
-      const lastMessage = messages[messages.length - 1];
-      if (lastMessage.role === 'user') {
-        const lowerContent = lastMessage.content.toLowerCase();
-        // 「おわり」「完了」「終わり」などのキーワードを検出
-        if (lowerContent.includes('おわり') || 
-            lowerContent.includes('終わり') || 
-            lowerContent.includes('完了') || 
-            lowerContent.includes('終了') ||
-            lowerContent.includes('次') || 
-            lowerContent.match(/^(ok|オッケー|はい|うん|そう|せや)$/)) {
-          
-          // finalizedフェーズならcompleteに進む
-          if (currentPhaseId === 'finalized') {
-            setTimeout(() => {
-              console.log("ユーザーの完了確認を検出しました。completeフェーズに進みます");
-              nextPhase();
-            }, 1500);
-          }
-          // baseフェーズならfinalizedに進む
-          else if (currentPhaseId === 'base') {
-            setTimeout(() => {
-              console.log("ユーザーの完了確認を検出しました。finalizedフェーズに進みます");
-              nextPhase();
-            }, 1500);
-          }
+    const handleAutoProgress = () => {
+      if (currentPhaseId === 'finalized' && 
+          selectedScents.top.length > 0 && 
+          selectedScents.middle.length > 0 && 
+          selectedScents.base.length > 0) {
+        const timeSinceLastChange = Date.now() - lastPhaseChangeTime;
+        if (timeSinceLastChange > 10000) {
+          updatePhaseWithAutoProgress('complete');
         }
       }
-    }
-  }, [messages, currentPhaseId, nextPhase]);
+    };
 
-  // フェーズが変わったら時間をリセット
-  useEffect(() => {
-    setLastPhaseChangeTime(Date.now());
-  }, [currentPhaseId]);
+    const timeoutId = setTimeout(handleAutoProgress, 10000);
+    return () => clearTimeout(timeoutId);
+  }, [currentPhaseId, lastPhaseChangeTime, selectedScents]);
 
-  // 一定時間後に自動的に次のフェーズに進める (修正)
+  // ユーザー入力による自動進行
   useEffect(() => {
-    // finalized フェーズで、全てのノートが選択済みの場合に10秒以上停滞したら complete へ
-    if (currentPhaseId === 'finalized' &&
-        selectedScents.top.length > 0 &&
-        selectedScents.middle.length > 0 &&
-        selectedScents.base.length > 0) { // baseノートの選択も確認
-      const timeoutId = setTimeout(() => {
-        const timeSinceLastChange = Date.now() - lastPhaseChangeTime;
-        if (timeSinceLastChange > 10000) { // 10秒
-          console.log(`finalizedフェーズで${timeSinceLastChange}ms経過、全ノート選択済みのため、自動的にcompleteに進みます`);
-          nextPhase(); // finalized -> complete
-        }
-      }, 10000);
-      return () => clearTimeout(timeoutId);
+    if (!messages.length) return;
+
+    const lastMessage = messages[messages.length - 1];
+    if (lastMessage.role !== 'user') return;
+
+    const lowerContent = lastMessage.content.toLowerCase();
+    const isCompletionKeyword = lowerContent.match(/^(おわり|終わり|完了|終了|次|ok|オッケー|はい|うん|そう|せや)$/);
+
+    if (isCompletionKeyword) {
+      if (currentPhaseId === 'finalized') {
+        setTimeout(() => updatePhaseWithAutoProgress('complete'), 1500);
+      } else if (currentPhaseId === 'base') {
+        setTimeout(() => updatePhaseWithAutoProgress('finalized'), 1500);
+      }
     }
-    // base フェーズでの自動進行は削除
-  }, [currentPhaseId, lastPhaseChangeTime, nextPhase, selectedScents]);
+  }, [messages, currentPhaseId]);
 
   return (
     <div className="flex flex-col h-[calc(100vh-140px)] w-full">
@@ -528,13 +354,7 @@ export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
       <div ref={scrollAreaRef} className="flex-1 p-3 md:p-5 overflow-y-auto mb-16">
         <div className="space-y-4 max-w-4xl lg:max-w-6xl mx-auto">
           {messages.map((message) => {
-            // 既存の選択肢がある場合はそのまま使用
-            const hasExistingChoices = message.choices && message.choices.length > 0;
-            // それ以外の場合は、コンテンツからパースして選択肢を抽出
-            const parsedContent = !hasExistingChoices && message.role === 'assistant' 
-              ? parseMessageContent(message.content)
-              : { text: message.content, choices: [] };
-            
+            const parsedContent = parseMessageContent(message.content);
             return (
               <div
                 key={message.id}
@@ -570,55 +390,18 @@ export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
                           return <p>{message.content}</p>;
                         }
                       })()
-                    : <p>{hasExistingChoices ? message.content : parsedContent.text}</p>
+                    : <p>{parsedContent.text}</p>
                   }
                   
-                  {/* 既存の選択肢があればそれを表示 */}
-                  {hasExistingChoices && message.choices && (
+                  {parsedContent.choices.length > 0 && (
                     <div className="mt-3 space-y-2 grid md:grid-cols-1 lg:grid-cols-3 lg:gap-2 lg:space-y-0">
-                      {message.choices.map((choice, index) => (
-                        <Button
+                      {parsedContent.choices.map((choice, index) => (
+                        <ChoiceButton
                           key={index}
-                          variant="outline"
-                          className="w-full text-sm md:text-base py-2 whitespace-normal text-left h-auto justify-start border-primary/30 hover:bg-primary/10 hover:text-primary-foreground/90"
+                          choice={choice}
                           onClick={() => handleChoiceClick(choice)}
-                        >
-                          <div className="flex flex-col w-full">
-                            <div className="font-medium">{choice}</div>
-                            {message.choices_descriptions && message.choices_descriptions[index] && (
-                              <div className="text-xs md:text-sm text-muted-foreground mt-1">
-                                {message.choices_descriptions[index]}
-                              </div>
-                            )}
-                          </div>
-                        </Button>
+                        />
                       ))}
-                    </div>
-                  )}
-                  
-                  {/* パースした選択肢があれば表示 */}
-                  {!hasExistingChoices && parsedContent.choices.length > 0 && (
-                    <div className="mt-3 space-y-2 grid md:grid-cols-1 lg:grid-cols-3 lg:gap-2 lg:space-y-0">
-                      {Array.isArray(parsedContent.choices) 
-                        ? parsedContent.choices.map((choice, index) => (
-                            <Button
-                              key={index}
-                              variant="outline"
-                              className="w-full text-sm md:text-base py-2 whitespace-normal text-left h-auto justify-start border-primary/30 hover:bg-primary/10 hover:text-primary-foreground/90"
-                              onClick={() => handleChoiceClick(typeof choice === 'string' ? choice : choice.name)}
-                            >
-                              <div className="flex flex-col w-full">
-                                <div className="font-medium">{typeof choice === 'string' ? choice : choice.name}</div>
-                                {typeof choice !== 'string' && choice.description && (
-                                  <div className="text-xs md:text-sm text-muted-foreground mt-1">
-                                    {choice.description}
-                                  </div>
-                                )}
-                              </div>
-                            </Button>
-                          ))
-                        : null
-                      }
                     </div>
                   )}
                 </div>
@@ -653,28 +436,13 @@ export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
               </div>
             </div>
           )}
-          {error && (
-            <div className="flex items-start">
-              <div className="w-8 h-8 md:w-10 md:h-10 rounded-full overflow-hidden mr-2 md:mr-3 flex-shrink-0">
-                <Image 
-                  src="/images/Fragrance Lab.png" 
-                  alt="AI" 
-                  width={40} 
-                  height={40}
-                />
-              </div>
-              <div className="md:max-w-[80%] lg:max-w-[70%] px-3 md:px-4 py-2 md:py-2.5 text-sm md:text-base leading-relaxed break-words rounded-2xl bg-destructive/10 text-destructive rounded-tl-none shadow-sm">
-                {typeof error === 'string' ? error : error.message}
-              </div>
-            </div>
-          )}
           {/* 自動スクロール用の空のdiv */}
           <div ref={messagesEndRef} />
         </div>
       </div>
 
       <form 
-        onSubmit={handleSend}
+        onSubmit={handleSubmit}
         className="sticky bottom-0 bg-white/95 backdrop-blur-sm shadow-md px-4 md:px-5 py-3 md:py-4 flex flex-col gap-2 md:gap-3 z-10 border-t"
       >
         <div className="flex gap-2 md:gap-3 items-center max-w-4xl lg:max-w-6xl mx-auto w-full">
@@ -685,19 +453,14 @@ export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
               const value = e.target.value;
               setInput(value);
             }}
-            onKeyDown={handleKeyDown}
             placeholder="メッセージを入力..."
-            disabled={isLoading}
+            disabled={isLoading || isSubmitting}
             className="focus:ring-2 focus:ring-primary text-sm md:text-base h-10 md:h-11 border-primary/20"
           />
           <Button 
             type="submit" 
-            disabled={isLoading} 
+            disabled={isLoading || isSubmitting} 
             className="flex-shrink-0 h-10 md:h-11 px-3 md:px-5 text-sm md:text-base"
-            onClick={(e) => {
-              e.preventDefault();
-              handleSend();
-            }}
           >
             {isLoading ? <Loader2 className="h-4 w-4 md:h-5 md:w-5 animate-spin" /> : '送信'}
           </Button>
@@ -741,14 +504,15 @@ export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
               おまかせでレシピ作成
             </Button>
           )}
+          {/* リセットボタンを追加 */}
           <Button
             type="button"
             variant="outline"
-            className="w-full h-9 md:h-10 text-sm md:text-base border-primary/20 hover:bg-primary/5"
-            onClick={handleReset}
+            className="w-full h-9 md:h-10 text-sm md:text-base border-red-300 hover:bg-red-50"
+            onClick={() => resetChat()}
             disabled={isLoading}
           >
-            <RefreshCw className="h-4 w-4 md:h-5 md:w-5 mr-2" />
+            <RefreshCw className="h-4 w-4 mr-2" />
             チャットをリセット
           </Button>
         </div>

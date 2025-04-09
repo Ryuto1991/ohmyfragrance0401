@@ -12,6 +12,7 @@ export async function sendChatMessage(
   choices?: string[];
   choices_descriptions?: string[];
   should_split?: boolean;
+  followUp?: string;
 }> {
   try {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -29,13 +30,14 @@ export async function sendChatMessage(
             content: msg.content
           }))
         ],
+        response_format: { type: "json_object" }, // JSON形式を強制
         temperature: 0.7,
         max_tokens: 1000
       })
     });
 
     if (!response.ok) {
-      throw new Error('OpenAI API request failed');
+      throw new Error(`OpenAI API リクエストに失敗: ${response.status} ${response.statusText}`);
     }
 
     const data = await response.json();
@@ -45,45 +47,10 @@ export async function sendChatMessage(
 
     // レスポンスのパース
     try {
-      // APIからの応答が正しいJSONかどうかをチェック
-      // 時々JSONが壊れた状態で返ってくるので修正を試みる
-      let contentToProcess = content;
+      // JSONとして解析を試みる
+      const parsedContent = JSON.parse(content);
       
-      // JSONが途中で切れている場合の処理
-      if (content.includes('{ "content": "') && !content.endsWith('"}')) {
-        console.log('JSONが不完全: 修正を試みます');
-        // 不完全なJSONを修正して完全なJSONにする
-        contentToProcess = content.replace(/\{ "content": "(.*?)$/, '{"content": "$1"}');
-        contentToProcess = contentToProcess.replace(/\n/g, '\\n'); // 改行をエスケープ
-      }
-
-      let parsedContent;
-      try {
-        parsedContent = JSON.parse(contentToProcess);
-      } catch (parseError) {
-        console.log('最初のJSON解析に失敗、代替形式を試行');
-        
-        // コンテンツからJSONっぽい部分を抽出
-        const jsonMatch = content.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          try {
-            // マッチしたJSON部分を解析
-            const extractedJson = jsonMatch[0].replace(/\n/g, '\\n');
-            parsedContent = JSON.parse(extractedJson);
-            console.log('抽出したJSONを解析に成功');
-          } catch (extractError) {
-            console.log('JSON抽出にも失敗');
-            throw parseError; // 元のエラーをスロー
-          }
-        } else {
-          throw parseError; // 元のエラーをスロー
-        }
-      }
-
-      // should_splitフラグの設定ロジックを改善
-      // 1. コンテンツが20文字以上ある場合は分割
-      // 2. 選択肢がある場合も分割
-      // 3. parsedContent内にshould_splitが既に指定されている場合はそれを尊重
+      // should_splitフラグの設定
       const shouldSplit = 
         (parsedContent.content && parsedContent.content.length > 20) || 
         (parsedContent.choices && parsedContent.choices.length > 0) ||
@@ -99,26 +66,66 @@ export async function sendChatMessage(
         content: parsedContent.content || '',
         choices: parsedContent.choices || [],
         choices_descriptions: parsedContent.choices_descriptions || [],
-        should_split: shouldSplit
+        should_split: shouldSplit,
+        followUp: parsedContent.followUp
       };
-    } catch (error) {
-      console.log('JSON解析に失敗しました。通常のテキストとして処理します:', error);
+    } catch (parseError) {
+      console.log('JSON解析に失敗: ', parseError);
       
-      // JSONとして解析できない場合は、そのままのテキストを返す
-      // 選択肢をテキストから抽出してみる
+      // マークダウンJSON形式の場合（```json ... ```）
+      const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/);
+      if (jsonMatch) {
+        try {
+          const extractedJson = jsonMatch[1].trim();
+          const parsedContent = JSON.parse(extractedJson);
+          
+          console.log('マークダウンJSONの解析に成功');
+          
+          const shouldSplit = 
+            (parsedContent.content && parsedContent.content.length > 20) || 
+            (parsedContent.choices && parsedContent.choices.length > 0) ||
+            parsedContent.should_split === true;
+            
+          return {
+            id: crypto.randomUUID(),
+            role: 'assistant',
+            timestamp: Date.now(),
+            content: parsedContent.content || '',
+            choices: parsedContent.choices || [],
+            choices_descriptions: parsedContent.choices_descriptions || [],
+            should_split: shouldSplit,
+            followUp: parsedContent.followUp
+          };
+        } catch (markdownError) {
+          console.log('マークダウンJSON解析にも失敗: ', markdownError);
+        }
+      }
+      
+      // 選択肢をテキストから抽出
       const choices: string[] = [];
-      const choicesMatch = content.match(/\d+\.\s*(.*?)(:|\n|$)/g);
-      if (choicesMatch) {
-        choicesMatch.forEach((match: string) => {
-          const choice = match.replace(/\d+\.\s*/, '').replace(/[:：].*$/, '').trim();
-          if (choice) choices.push(choice);
+      const descriptions: string[] = [];
+      
+      // 番号付きリスト形式の選択肢を抽出（「1. 選択肢 - 説明」形式）
+      const optionMatches = content.match(/\d+\.\s*([^-\n]+)(?:\s*-\s*([^\n]+))?/g);
+      if (optionMatches && optionMatches.length > 0) {
+        optionMatches.forEach(match => {
+          const parts = match.match(/\d+\.\s*([^-\n]+)(?:\s*-\s*([^\n]+))?/);
+          if (parts) {
+            const choice = parts[1].trim();
+            const description = parts[2] ? parts[2].trim() : '';
+            
+            if (choice) {
+              choices.push(choice);
+              if (description) descriptions.push(description);
+            }
+          }
         });
       }
       
-      // 通常テキストでも長さが20文字を超える場合は分割
+      // 通常テキストとして処理
       const shouldSplit = content.length > 20 || choices.length > 0;
       
-      console.log(`テキストメッセージを分割: ${shouldSplit} (長さ: ${content.length}, 選択肢: ${choices.length})`);
+      console.log(`テキストメッセージとして処理: ${shouldSplit} (長さ: ${content.length}, 選択肢: ${choices.length})`);
       
       return {
         id: crypto.randomUUID(),
@@ -126,6 +133,7 @@ export async function sendChatMessage(
         timestamp: Date.now(),
         content: content,
         choices: choices.length > 0 ? choices : undefined,
+        choices_descriptions: descriptions.length > 0 ? descriptions : undefined,
         should_split: shouldSplit
       };
     }

@@ -159,9 +159,11 @@ const getNextPhase = (currentPhase: ChatPhase): ChatPhase | null => {
 
 export async function POST(req: Request) {
   try {
-    const { messages, currentPhase } = await req.json() as {
+    const { messages, currentPhase, selectedScents, isUserSelection = false } = await req.json() as {
       messages: Message[];
       currentPhase: ChatPhase;
+      selectedScents: any;
+      isUserSelection?: boolean;
     };
 
     if (!messages || !Array.isArray(messages)) {
@@ -176,6 +178,7 @@ export async function POST(req: Request) {
     const systemPrompt = `${prompts.base}\n\n${phasePrompt}`;
 
     console.log('フェーズ:', currentPhase);
+    console.log('ユーザー選択:', isUserSelection ? 'はい' : 'いいえ');
     
     // 最後のメッセージをログ
     if (messages.length > 0) {
@@ -209,7 +212,12 @@ export async function POST(req: Request) {
 3. レシピが完成したことを祝福するメッセージ
 4. この後の流れについての案内（注文方法など）
 
-マークダウン形式ではなく、シンプルなテキストで返答してください。
+以下の形式で返答してください:
+{
+  "content": "メッセージ本文",
+  "should_split": true,
+  "choices": [] 
+}
 `;
         // システムプロンプトに追加
         const enhancedPrompt = systemPrompt + '\n\n' + selectionPrompt;
@@ -240,10 +248,58 @@ export async function POST(req: Request) {
       }
     }
 
+    // ユーザーが選択肢を選んだ場合の特別なプロンプト
+    let customPrompt = '';
+    if (isUserSelection && userMessage && userMessage.role === 'user') {
+      const userSelection = userMessage.content.trim();
+      
+      if (currentPhase === 'intro') {
+        customPrompt = `
+ユーザーが「${userSelection}」というテーマや雰囲気を選びました。
+トップノートの選択肢を3つ提案して下さい。返答の最後は必ず選択肢で終わるようにしてください。
+
+返答は以下のJSON形式で返して下さい:
+{
+  "content": "メッセージ本文",
+  "should_split": true,
+  "choices": ["選択肢1", "選択肢2", "選択肢3"],
+  "choices_descriptions": ["説明1", "説明2", "説明3"]
+}
+`;
+      } else if (currentPhase === 'top') {
+        customPrompt = `
+ユーザーがトップノートとして「${userSelection}」を選びました。次に選ぶミドルノートの選択肢を3つ提案して下さい。
+
+返答は以下のJSON形式で返して下さい:
+{
+  "content": "メッセージ本文",
+  "should_split": true,
+  "choices": ["選択肢1", "選択肢2", "選択肢3"],
+  "choices_descriptions": ["説明1", "説明2", "説明3"]
+}
+`;
+      } else if (currentPhase === 'middle') {
+        customPrompt = `
+ユーザーがミドルノートとして「${userSelection}」を選びました。次に選ぶべきベースノートの選択肢を3つ提案して下さい。
+
+返答は以下のJSON形式で返して下さい:
+{
+  "content": "メッセージ本文",
+  "should_split": true,
+  "choices": ["選択肢1", "選択肢2", "選択肢3"],
+  "choices_descriptions": ["説明1", "説明2", "説明3"]
+}
+`;
+      }
+    }
+
+    // カスタムプロンプトがある場合は追加
+    const finalPrompt = customPrompt ? `${systemPrompt}\n\n${customPrompt}` : systemPrompt;
+
     // 通常のリクエスト処理
     const response = await sendChatMessage(
       messages,
-      systemPrompt
+      finalPrompt
     );
     
     console.log('レスポンス受信:', response.content ? response.content.substr(0, 50) + '...' : 'なし');
