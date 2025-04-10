@@ -5,6 +5,7 @@ import { useState, useEffect } from "react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Loader2, AlertTriangle, Info } from "lucide-react"
+import Link from 'next/link'; // Add Link import
 import SiteHeader from "@/components/site-header"
 import SiteFooter from "@/components/site-footer"
 import { createClient } from '@supabase/supabase-js'
@@ -277,6 +278,19 @@ export default function FragranceGeneratorPage() {
                     </Button>
                   ))}
                 </div>
+
+                {/* Add the Chat Mode button */}
+                <div className="mt-12 text-center"> {/* text-center を追加 */}
+                  <Link href="/fragrance-lab/chat" passHref legacyBehavior>
+                    <Button
+                      variant="outline"
+                      className="rounded-full px-6 py-2 text-lg border border-input bg-background hover:bg-accent hover:text-accent-foreground"
+                    >
+                      💬 チャットモードはこちら
+                    </Button>
+                  </Link>
+                </div>
+
               </div>
             </div>
           ) : (
@@ -398,4 +412,4 @@ export default function FragranceGeneratorPage() {
       <SiteFooter />
     </div>
   )
-} 
+}
