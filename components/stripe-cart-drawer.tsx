@@ -119,10 +119,12 @@ export default function StripeCartDrawer({ open, onOpenChange }: StripeCartDrawe
             // --- APIに渡すトップレベルの情報をcustomDetailsから取得 ---
             fragranceName: customDetails.fragranceName,
             bottleType: customDetails.bottleName,
-            imageKey: customDetails.imageKey, // 修正: customDetailsから取得
-            finalImageKey: customDetails.finalImageKey, // 修正: customDetailsから取得
-            originalImageUrl: customDetails.originalImageUrl, // 追加
-            recipe: customDetails.recipe, // 追加
+            // imageKey, finalImageKey は削除
+            originalImageUrl: customDetails.originalImageUrl,
+            finalImageUrl: customDetails.finalImageUrl, // 追加: キャプチャ画像のURL
+            recipe: customDetails.recipe,
+            // DEBUG LOG: Check originalImageUrl before sending to API
+            _debug_originalImageUrl: customDetails.originalImageUrl,
             mode: customDetails.recipe ? JSON.parse(customDetails.recipe).mode : 'custom', // recipeからmodeを抽出 (なければ'custom')
             // --- ここまで ---
             userId: userId,

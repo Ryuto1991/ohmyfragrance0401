@@ -12,216 +12,20 @@ import { LABEL_SIZES } from '@/app/utils/size-utils'
 import WelcomePopup from '@/components/welcome-popup'
 import { useStripeCart } from '@/contexts/stripe-cart-context'
 import { useCartDrawer } from '@/contexts/cart-drawer-context'
-import StripeCartButton from '@/components/stripe-cart-button'
-import StripeCartDrawer from '@/components/stripe-cart-drawer'
-import { loadStripe } from '@stripe/stripe-js'
-import { uploadImage } from './actions'
-import { toast } from "@/components/ui/use-toast"
-import { savePreviewImage } from './utils/savePreviewImage'
+import StripeCartButton from '@/components/stripe-cart-button';
+import StripeCartDrawer from '@/components/stripe-cart-drawer';
+import { loadStripe } from '@stripe/stripe-js';
+// import { uploadImage } from './actions'; // Remove Server Action import
+import { toast } from "@/components/ui/use-toast";
+import { savePreviewImage } from './utils/savePreviewImage';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import SiteHeader from "@/components/site-header"
 import SiteFooter from "@/components/site-footer"
 import { Badge } from "@/components/ui/badge"
-import { compressImage, validateImageType, validateFileSize, getImageDimensions } from './utils/imageCompression'
-
-
-// --- ImageUploadSection Component Definition ---
-interface ImageUploadSectionProps {
-  isAgreed: boolean;
-  setIsAgreed: (value: boolean) => void;
-  isDragging: boolean;
-  handleDragOver: (e: React.DragEvent) => void;
-  handleDragLeave: () => void;
-  handleDrop: (e: React.DragEvent) => void;
-  handleFileUpload: (file: File) => void;
-  handleTemplateSelect: () => void;
-  uploadedImage: string | null;
-  fileInputRef: React.RefObject<HTMLInputElement>;
-}
-
-const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({
-  isAgreed,
-  setIsAgreed,
-  isDragging,
-  handleDragOver,
-  handleDragLeave,
-  handleDrop,
-  handleFileUpload,
-  handleTemplateSelect,
-  uploadedImage,
-  fileInputRef
-}) => {
-  return (
-    <div className="space-y-4">
-      <div
-        className={cn(
-          "border-2 border-dashed rounded-lg p-4 sm:p-6 transition-colors",
-          isDragging ? "border-[#FF6B6B] bg-[#FF6B6B]/5" : "border-gray-300",
-          "hover:border-[#FF6B6B] hover:bg-[#FF6B6B]/5",
-          !isAgreed && "opacity-50 cursor-not-allowed"
-        )}
-        onDragOver={(e) => {
-          if (!isAgreed) {
-            e.preventDefault();
-            return;
-          }
-          handleDragOver(e);
-        }}
-        onDragLeave={() => {
-          if (!isAgreed) return;
-          handleDragLeave();
-        }}
-        onDrop={(e) => {
-          if (!isAgreed) {
-            e.preventDefault();
-            toast({
-              title: "画像利用の同意が必要です",
-              description: "著作権に関する注意事項に同意してください。",
-              variant: "destructive",
-            });
-            return;
-          }
-          handleDrop(e);
-        }}
-      >
-        <div className="text-center">
-          <div className="mb-4">
-            <div className="w-12 h-12 rounded-full bg-gray-50 mx-auto flex items-center justify-center">
-              <Upload className="h-6 w-6 text-gray-400" />
-            </div>
-          </div>
-          <div className="text-sm text-gray-600 mb-4">
-            <p className="font-medium mb-2">推奨サイズ: 600 × 480 px以上</p>
-            <p className="text-xs mb-2">対応フォーマット: PNG, JPG（300dpi）</p>
-            <p className="text-xs mb-2">ファイルサイズ制限: 5MBまで</p>
-            <p className="text-xs text-gray-500">
-              ここにファイルをドラッグ＆ドロップ
-              <br />
-              または
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              className="flex-1"
-              onClick={() => {
-                if (!isAgreed) {
-                  toast({
-                    title: "画像利用の同意が必要です",
-                    description: "著作権に関する注意事項に同意してください。",
-                    variant: "destructive",
-                  });
-                  return;
-                }
-                fileInputRef.current?.click();
-              }}
-              disabled={!isAgreed}
-            >
-              {uploadedImage ? '画像を変更' : '画像をアップロード'}
-            </Button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(e) => {
-                if (e.target.files) {
-                  handleFileUpload(e.target.files[0]);
-                }
-              }}
-              disabled={!isAgreed}
-            />
-          </div>
-        </div>
-      </div>
-
-      <div className="flex flex-col sm:flex-row justify-center gap-4">
-        <Button
-          variant="outline"
-          className="w-full"
-          onClick={handleTemplateSelect}
-        >
-          テンプレートを選択
-        </Button>
-      </div>
-
-      {/* 著作権に関する注意書き */}
-      <p className="text-xs text-gray-500 mt-2">
-        ※ 著作権を侵害する画像（アニメキャラ、芸能人、ブランドロゴ等）の使用は禁止されています。
-        <br />
-        ※ 利用規約に違反する画像を使った注文は、キャンセルさせていただくことがあります。
-      </p>
-
-      {/* 同意チェックボックス */}
-      <div className="flex items-start mt-4">
-        <input
-          type="checkbox"
-          id="copyright-agree"
-          className="mr-2 mt-1 h-4 w-4 accent-red-500 border-2 border-red-500"
-          required
-          checked={isAgreed}
-          onChange={() => setIsAgreed(!isAgreed)}
-        />
-        <label htmlFor="copyright-agree" className="text-sm text-red-500 font-medium">
-          アップロードする画像が第三者の権利を侵害していないことを確認しました
-        </label>
-      </div>
-    </div>
-  );
-};
-// --- End of ImageUploadSection Component Definition ---
-
-
-// --- PreviewControls Component Definition ---
-interface PreviewControlsProps {
-  isMoving: boolean;
-  setIsMoving: (value: boolean) => void;
-  handleRotateLeft: () => void;
-  handleRotateRight: () => void;
-}
-
-const PreviewControls: React.FC<PreviewControlsProps> = ({
-  isMoving,
-  setIsMoving,
-  handleRotateLeft,
-  handleRotateRight,
-}) => {
-  return (
-    <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => setIsMoving(!isMoving)}
-        className={`flex items-center gap-2 flex-1 sm:flex-none justify-center ${isMoving ? 'bg-gray-100' : ''}`}
-      >
-        <Move className="h-4 w-4" />
-        <span className="hidden sm:inline">移動</span>
-      </Button>
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={handleRotateLeft}
-        className="flex items-center gap-2 flex-1 sm:flex-none justify-center"
-      >
-        <RotateCcw className="h-4 w-4" />
-        <span className="hidden sm:inline">左回転</span>
-      </Button>
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={handleRotateRight}
-        className="flex items-center gap-2 flex-1 sm:flex-none justify-center"
-      >
-        <RotateCw className="h-4 w-4" />
-        <span className="hidden sm:inline">右回転</span>
-      </Button>
-    </div>
-  );
-};
-// --- End of PreviewControls Component Definition ---
-
+import { compressImage, validateImageType, validateFileSize, getImageDimensions } from './utils/imageCompression';
+import PreviewControls from '@/components/custom-order/PreviewControls'; // Import the new component
 
 interface FormData {
   customerName: string;
@@ -286,11 +90,10 @@ interface CartItem {
       scale: number;
       rotation: number;
     };
-    // 追加: recipe, originalImageUrl, imageKey, finalImageKeyをcustomDetailsに追加
+    // 追加: recipe, originalImageUrl, finalImageUrlをcustomDetailsに追加
     recipe: string;
     originalImageUrl: string;
-    imageKey: string | null;
-    finalImageKey: string | null;
+    finalImageUrl: string | null; // キャプチャされたプレビュー画像のURL
   }; // ここが customDetails の閉じ括弧
   quantity?: number;
 } // ここが CartItem の閉じ括弧
@@ -347,20 +150,20 @@ export default function PerfumeOrderingPage() {
           setError('レシピデータが見つかりません。再度チャットから香りを作成してください。');
           return;
         }
-        
+
         const parsedRecipe = JSON.parse(savedRecipe);
         console.log('Loaded recipe from localStorage:', parsedRecipe);
-        
+
         // レシピデータの検証（フィールド名の変換に対応）
         const hasOldFormat = parsedRecipe.top !== undefined || parsedRecipe.middle !== undefined || parsedRecipe.base !== undefined;
         const hasNewFormat = parsedRecipe.top_notes !== undefined || parsedRecipe.middle_notes !== undefined || parsedRecipe.base_notes !== undefined;
-        
+
         if (!hasOldFormat && !hasNewFormat) {
           console.error('レシピデータの形式が不正です。', parsedRecipe);
           setError('レシピデータの形式が不正です。再度チャットから香りを作成してください。');
           return;
         }
-        
+
         // レシピデータを正規化（古い形式と新しい形式の両方に対応）
         const normalizedRecipe = {
           name: parsedRecipe.name || "カスタムルームフレグランス",
@@ -370,9 +173,9 @@ export default function PerfumeOrderingPage() {
           base_notes: parsedRecipe.base_notes || (Array.isArray(parsedRecipe.base) ? parsedRecipe.base : []),
           mode: 'lab' as OrderMode
         };
-        
+
         setRecipe(normalizedRecipe);
-        
+
         // Fragranceオブジェクトの作成
         const labFragrance = {
           id: 'lab-generated',
@@ -386,7 +189,7 @@ export default function PerfumeOrderingPage() {
             last: normalizedRecipe.base_notes
           }
         };
-        
+
         setAiGeneratedFragrance(labFragrance);
         setSelectedFragrance(labFragrance);
         console.log('AIで生成された香りデータをセットしました:', labFragrance);
@@ -404,7 +207,7 @@ export default function PerfumeOrderingPage() {
         console.error('保存するレシピデータが不完全です:', recipeData);
         return;
       }
-      
+
       const { error } = await supabase
         .from('recipes')
         .insert([
@@ -590,6 +393,164 @@ export default function PerfumeOrderingPage() {
       name: "ブルーウェイブ",
       category: "マリン系",
       emoji: "🌊",
+      description: "海辺の風とハーブの清涼感が広がる、爽快マリン系。",
+      notes: {
+        top: ["ペパーミント", "シトロネラ"],
+        middle: ["ジュニパー", "ローズマリー"],
+        last: ["ベルガモット"]
+      }
+    },
+    {
+      id: "hot-spice",
+      name: "ホットスパイス",
+      category: "スパイシー系",
+      emoji: "🌶",
+      description: "心と身体を温める、エネルギッシュなスパイシー系。",
+      notes: {
+        top: ["シナモン", "クローブ"],
+        middle: ["ジンジャー", "バニラ"],
+        last: ["サンダルウッド"]
+      }
+    },
+    {
+      id: "herbal-green",
+      name: "ハーバルグリーン",
+      category: "ハーバル系",
+      emoji: "🎨",
+      description: "ハーブと木の力強さが調和した、爽やかで芯のある香り。",
+      notes: {
+        top: ["ジンジャー", "ペパーミント"],
+        middle: ["ローズマリー", "クラリセージ"],
+        last: ["シダーウッド", "ベチバー"]
+      }
+    },
+    {
+      id: "eternal-smoke",
+      name: "エターナルスモーク",
+      category: "スモーキー系",
+      emoji: "🪵",
+      description: "神聖でスモーキーな香りが長く残る、静謐なブレンド。",
+      notes: {
+        top: ["ミルラ"],
+        middle: ["フランキンセンス", "ベチバー"],
+        last: ["パチュリ", "サンダルウッド"]
+      }
+    },
+    {
+      id: "fruity-blossom",
+      name: "フルーティブロッサム",
+      category: "フルーティフローラル系",
+      emoji: "💐",
+      description: "花と果実のハーモニーが弾ける、明るく軽やかな香り。",
+      notes: {
+        top: ["レモン", "タンジェリン"],
+        middle: ["ジャスミン", "イランイラン"],
+        last: ["ローズ"]
+      }
+    }
+  ]
+
+  const bottles: Bottle[] = [
+    { id: "clear", name: "クリアガラス", image: "/labels/Clear_bottle.png", price: 4980 },
+    { id: "black", name: "マットブラック", image: "/labels/Black_bottle.png", price: 4980 },
+  ]
+
+  const labelSizes = [
+    {
+      id: "large",
+      name: "大",
+      description: "縦5.5cm × 横4.0cm",
+      width: 4.0,
+      height: 5.5
+    },
+    {
+      id: "medium",
+      name: "中",
+      description: "縦5.0cm × 横3.5cm",
+      width: 3.5,
+      height: 5.0
+    },
+    {
+      id: "small",
+      name: "小",
+      description: "縦4.5cm × 横3.0cm",
+      width: 3.0,
+      height: 4.5
+    },
+    {
+      id: "square",
+      name: "スクエア",
+      description: "縦4.5cm × 横4.5cm",
+      width: 4.5,
+      height: 4.5
+    }
+  ]
+
+  // Toggle section expansion
+  const toggleSection = (sectionNumber: number) => {
+    setExpandedSection(expandedSection === sectionNumber ? 0 : sectionNumber)
+  }
+
+  // Handle file upload
+  const handleFileUpload = async (file: File) => {
+    try {
+      setIsLoading(true);
+
+      // ファイルの検証
+      if (!validateImageType(file)) {
+        toast({
+          title: "対応していないファイル形式です",
+          description: "JPG、PNG、またはWEBP形式の画像のみアップロード可能です",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (!validateFileSize(file)) {
+        toast({
+          title: "ファイルサイズが大きすぎます",
+          description: "ファイルサイズは5MB以下にしてください",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // 画像の圧縮
+      const compressedFile = await compressImage(file);
+
+      // プレビュー用のURL生成
+      const previewUrl = URL.createObjectURL(compressedFile);
+      setUploadedImage(previewUrl);
+
+      // 画像のサイズを取得
+      const dimensions = await getImageDimensions(compressedFile);
+      setInitialImageSize(dimensions);
+
+      // Upload using the new API route
+      const formData = new FormData();
+      formData.append('file', compressedFile);
+
+      const response = await fetch('/api/upload-image', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const result = await response.json();
+      // console.log('[handleFileUpload] API upload result:', result); // DEBUG LOG REMOVED
+
+      if (!response.ok || !result.success || !result.publicUrl) { // Check response.ok and result.success
+        throw new Error(result.error || 'アップロードに失敗しました');
+      }
+
+      // アップロード成功時の処理
+      setImageKey(result.imageKey || null);
+      setOriginalImageUrl(result.publicUrl); // オリジナル画像URLをセット
+      // console.log('[handleFileUpload] Set originalImageUrl:', result.publicUrl); // DEBUG LOG REMOVED
+      setUseTemplate(false); // <-- Add this line
+      toast({
+        title: "アップロード完了",
+        description: "画像が正常にアップロードされました",
+      });
 
     } catch (error) {
       console.error('Upload error:', error);
@@ -645,15 +606,27 @@ export default function PerfumeOrderingPage() {
         return;
       }
 
-      const result = await uploadImage(file);
-      if (!result.success) {
+      // Upload using the new API route
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('/api/upload-image', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const result = await response.json();
+      // console.log('[handleDrop] API upload result:', result); // DEBUG LOG REMOVED
+
+      if (!response.ok || !result.success) { // Check response.ok and result.success
         throw new Error(result.error || "アップロードに失敗しました");
       }
 
       setImageKey(result.imageKey!);
-      setFinalImageKey(result.finalKey!);
+      // setFinalImageKey(result.finalKey!); // finalKey is not returned by API route
       setUploadedImage(result.publicUrl!);
       setOriginalImageUrl(result.publicUrl!); // オリジナル画像URLをセット
+      // console.log('[handleDrop] Set originalImageUrl:', result.publicUrl!); // DEBUG LOG REMOVED
       setUseTemplate(false);
       setSelectLater(false);
       setImageTransform({
@@ -726,20 +699,20 @@ export default function PerfumeOrderingPage() {
   // ラベルサイズのスケーリング係数を計算
   const getLabelScale = () => {
     if (screenWidth === 0) return 1;
-    
+
     // プレビューエリアの実際のサイズを取得
     const previewElement = document.querySelector('.preview-container');
     if (!previewElement) return 1;
-    
+
     const previewWidth = previewElement.clientWidth;
     const previewHeight = previewElement.clientHeight;
-    
+
     // 基準となるサイズ（デスクトップでの表示サイズ）
     const baseWidth = 800; // デスクトップでのプレビュー幅
-    
+
     // スケーリング係数を計算（アスペクト比を維持）
     const scale = previewWidth / baseWidth;
-    
+
     // 最小・最大スケールを設定
     return Math.min(Math.max(scale, 0.5), 1.2);
   };
@@ -783,18 +756,18 @@ export default function PerfumeOrderingPage() {
   const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
     const img = e.target as HTMLImageElement
     setInitialImageSize({ width: img.naturalWidth, height: img.naturalHeight })
-    
+
     const currentLabel = labelSizes.find(s => s.id === selectedLabelSize)
     if (currentLabel) {
       // ラベルサイズに合わせて画像を自動調整（ピクセル換算）
       const labelWidth = currentLabel.width * 37.795275591 // cmをピクセルに変換
       const labelHeight = currentLabel.height * 37.795275591
-      
+
       // 画像のアスペクト比を維持しながら、ラベルに収まるように調整
       const widthRatio = labelWidth / img.naturalWidth
       const heightRatio = labelHeight / img.naturalHeight
       const scale = Math.min(2, Math.max(1, Math.max(widthRatio, heightRatio) * 1.2)) // 最小1倍、最大2倍、20%大きめに
-      
+
       setImageTransform(prev => ({
         ...prev,
         scale: scale,
@@ -830,7 +803,7 @@ export default function PerfumeOrderingPage() {
     const labelHeight = currentLabel.height * 37.795275591
     const scaledImageWidth = initialImageSize.width * imageTransform.scale
     const scaledImageHeight = initialImageSize.height * imageTransform.scale
-    
+
     // 移動可能な最大範囲を計算
     const maxX = Math.max(0, (scaledImageWidth - labelWidth) / 2)
     const maxY = Math.max(0, (scaledImageHeight - labelHeight) / 2)
@@ -907,7 +880,11 @@ export default function PerfumeOrderingPage() {
       }
 
       const customProductId = generateCustomProductId(selectedFragrance.id, selectedBottle);
-      await savePreviewImage(customProductId);
+      // savePreviewImage を呼び出し、結果のURLを取得
+      const capturedPreviewUrl = await savePreviewImage(customProductId);
+
+      // console.log('[handleOrder] originalImageUrl state before adding to cart:', originalImageUrl); // DEBUG LOG REMOVED
+      // console.log('[handleOrder] useTemplate state before adding to cart:', useTemplate); // DEBUG LOG REMOVED
 
       const cartItem: CartItem = {
         priceId: getPriceIdByMode(mode),
@@ -929,15 +906,14 @@ export default function PerfumeOrderingPage() {
             scale: imageTransform.scale,
             rotation: imageTransform.rotation
           },
-          // recipe, originalImageUrl, imageKey, finalImageKeyを追加
+          // recipe, originalImageUrl, finalImageUrlを追加
           recipe: recipe ? JSON.stringify(recipe) : '',
-          originalImageUrl: originalImageUrl,
-          imageKey: imageKey, // imageKeyを追加
-          finalImageKey: finalImageKey, // finalImageKeyを追加
+          originalImageUrl: useTemplate ? '' : originalImageUrl, // テンプレート時は空
+          finalImageUrl: capturedPreviewUrl, // キャプチャした画像のURLを設定
         }
       };
 
-      console.log("Adding to cart:", cartItem); // デバッグ用ログ追加
+      // console.log("Adding to cart:", cartItem); // DEBUG LOG REMOVED
 
       addToCart(cartItem);
       setIsCartOpen(true);
@@ -1525,9 +1501,9 @@ export default function PerfumeOrderingPage() {
                 {/* Render the PreviewControls component */}
                 <PreviewControls
                   isMoving={isMoving}
-                  setIsMoving={setIsMoving}
-                  handleRotateLeft={handleRotateLeft}
-                  handleRotateRight={handleRotateRight}
+                  onToggleMove={() => setIsMoving(!isMoving)}
+                  onRotateLeft={handleRotateLeft}
+                  onRotateRight={handleRotateRight}
                 />
               </div>
 

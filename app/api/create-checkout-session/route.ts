@@ -9,12 +9,10 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     console.log('Received checkout request body:', body);
-    
-    // リクエストボディからデータを抽出 (originalImageUrl, finalImageUrl をトップレベルで受け取る)
-    const { line_items, orderDetails, fragranceName, bottleType, imageKey, finalImageKey, userId, anonymousId, mode, recipe, originalImageUrl, finalImageUrl } = body;
-    console.log('Extracted data:', { line_items, orderDetails, fragranceName, bottleType, imageKey, finalImageKey, userId, anonymousId, mode, recipe, originalImageUrl, finalImageUrl });
 
-    // orderDetails から画像URLを取得するロジックは不要になったため削除
+    // リクエストボディからデータを抽出 (imageKey, finalImageKey は削除し、finalImageUrl を受け取る)
+    const { line_items, orderDetails, fragranceName, bottleType, userId, anonymousId, mode, recipe, originalImageUrl, finalImageUrl } = body;
+    console.log('Extracted data:', { line_items, orderDetails, fragranceName, bottleType, userId, anonymousId, mode, recipe, originalImageUrl, finalImageUrl });
 
 
     if (!line_items || !Array.isArray(line_items) || line_items.length === 0) {
@@ -45,12 +43,11 @@ export async function POST(request: Request) {
       success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/custom-order?mode=custom`, // リンク修正
       metadata: {
-        fragranceName,
-        bottleType,
-        imageKey: imageKey ?? null,
-        finalImageKey: finalImageKey ?? null,
-        originalImageUrl: originalImageUrl ?? null, // トップレベルから取得したURLを使用
-        finalImageUrl: finalImageUrl ?? null, // トップレベルから取得したURLを使用
+        fragranceName: fragranceName ?? null,
+        bottleType: bottleType ?? null,
+        // imageKey, finalImageKey は削除
+        originalImageUrl: originalImageUrl ?? null,
+        finalImageUrl: finalImageUrl ?? null, // キャプチャ画像のURL
         userId: userId ?? null,
         anonymousId: anonymousId ?? null,
         mode: mode ?? null, // mode をメタデータに追加

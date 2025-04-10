@@ -41,10 +41,10 @@ export async function POST(req: NextRequest) {
       const {
         fragranceName,
         bottleType,
-        imageKey,
-        finalImageKey,
+        // imageKey, finalImageKey は削除
         customerName,
         customerEmail,
+        // originalImageUrl, finalImageUrl を直接取得
         originalImageUrl,
         originalImageSize,
         originalImageFormat,
@@ -141,37 +141,7 @@ export async function POST(req: NextRequest) {
       }
       // --- カートクリア処理ここまで ---
 
-      // --- 画像移動処理を try...catch で囲む (メインtryの内側) ---
-      let finalImageUrlResult: string | undefined; // 移動後のURLを格納する変数
-      let imageMoveErrorOccurred = false; // 画像移動エラーフラグ
-      try {
-        // imageKey と finalImageKey が存在し、かつテンプレートでない場合のみ移動処理
-        if (imageKey && finalImageKey && imageKey !== 'template/default' && finalImageKey !== 'template/default') {
-          // moveImageToFinal が期待する形式にキーを整形 (既に actions で整形済みのはずだが念のため)
-          const tempKey = imageKey.startsWith('temp/') ? imageKey : `temp/${imageKey.split('/').pop()}`;
-          const finalKey = finalImageKey.startsWith('orders/') ? finalImageKey : `orders/${finalImageKey.split('/').pop()}`;
-
-          console.log(`🛠 Moving image from ${tempKey} to ${finalKey}...`);
-          const moveResult = await moveImageToFinal(tempKey, finalKey);
-          if (!moveResult.success) {
-             console.error('❌ Failed to move image:', moveResult.error);
-             imageMoveErrorOccurred = true; // エラーフラグを立てる
-          } else {
-            console.log('✅ Image moved to:', moveResult.publicUrl);
-            finalImageUrlResult = moveResult.publicUrl; // 結果を保存
-          }
-        } else if (imageKey === 'template/default') {
-          console.log('ℹ️ Template image selected, skipping move.');
-          finalImageUrlResult = 'テンプレート'; // スプレッドシート用にテンプレートを示す
-        } else {
-          console.log('ℹ️ Image keys not provided or invalid for moving.');
-          imageMoveErrorOccurred = true; // キーがない場合もエラー扱いとする
-        }
-      } catch (imageMoveError) {
-        console.error('❌ Error during image move:', imageMoveError);
-        imageMoveErrorOccurred = true; // 予期せぬエラーもフラグを立てる
-      }
-      // --- 画像移動処理ここまで ---
+      // --- 画像移動処理は不要になったため削除 ---
 
       // --- スプレッドシート書き込み処理: アイテムごとにループ ---
       if (Array.isArray(parsedOrderDetails) && parsedOrderDetails.length > 0) {
@@ -195,21 +165,9 @@ export async function POST(req: NextRequest) {
               itemLabelType = 'オリジナル';
             }
             // 画像URLの取得ロジックを修正
-            // 1. orderDetails内のアイテムごとのURLを優先 (item.u)
-            // 2. なければメタデータのトップレベルのURLを使用 (metaOriginalImageUrl)
-            const itemImageUrl = item.originalImageUrl || metaOriginalImageUrl || ''; 
-            // finalImageUrl の設定ロジックを修正
-            let itemFinalImageUrl = '';
-            // テンプレートの場合を最優先でチェック
-            if (finalImageUrlResult === 'テンプレート' || itemLabelType === 'テンプレート') {
-              itemFinalImageUrl = 'テンプレート';
-            } else if (finalImageUrlResult) { // 移動成功時のURL
-              itemFinalImageUrl = finalImageUrlResult;
-            } else if (imageMoveErrorOccurred) { // 移動失敗時
-              itemFinalImageUrl = '移動エラー';
-            } else { // それ以外（オリジナル画像でURL取得失敗など）
-              itemFinalImageUrl = ''; // 空文字
-            }
+            // 画像URLをメタデータから取得
+            const itemImageUrl = metaOriginalImageUrl || ''; // オリジナル画像URL
+            const itemFinalImageUrl = metaFinalImageUrl || ''; // キャプチャされたプレビュー画像URL
 
 
             console.log(`📝 アイテム「${itemFragranceName}」のデータを準備中...`);

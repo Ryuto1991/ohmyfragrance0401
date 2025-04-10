@@ -25,34 +25,40 @@ export type UploadResult = {
 export type MoveResult = {
   success: boolean;
   publicUrl?: string;
+  labelId?: string; // Added labelId to the return type of uploadCroppedImage
   error?: string;
 };
 
-export async function uploadImage(file: File): Promise<UploadResult> {
+// Modify uploadImage to accept ArrayBuffer and file details
+export async function uploadImage(
+  fileBuffer: ArrayBuffer,
+  fileName: string,
+  fileType: string
+): Promise<UploadResult> {
   try {
-    // Check file size (5MB limit)
+    // Check file size (5MB limit) - Check buffer size
     const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB in bytes
-    if (file.size > MAX_FILE_SIZE) {
+    if (fileBuffer.byteLength > MAX_FILE_SIZE) {
       return {
         success: false,
         error: 'ファイルサイズは5MB以下にしてください。'
       };
     }
 
-    // ファイルタイプチェック
+    // ファイルタイプチェック - Use passed fileType
     const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
-    if (!allowedTypes.includes(file.type)) {
+    if (!allowedTypes.includes(fileType)) {
       return {
         success: false,
         error: 'JPG、PNG、GIF形式の画像のみアップロード可能です'
       };
     }
 
-    // ファイルをBlobとして取得
-    const blob = new Blob([file], { type: file.type });
+    // Convert ArrayBuffer to Buffer
+    const buffer = Buffer.from(fileBuffer);
 
-    // 画像をアップロード
-    return await uploadCroppedImage(blob);
+    // 画像をアップロード - Pass buffer, fileName, fileType
+    return await uploadCroppedImage(buffer, fileName, fileType);
   } catch (error) {
     console.error('Error uploading image:', error);
     return {
@@ -113,4 +119,4 @@ export async function moveImageToFinal(tempKey: string, finalKey: string): Promi
       error: 'Unexpected error occurred while moving image'
     };
   }
-} 
+}

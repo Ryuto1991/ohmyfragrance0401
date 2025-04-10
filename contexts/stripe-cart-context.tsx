@@ -26,11 +26,10 @@ interface CartItem {
       scale: number;
       rotation: number;
     };
-    // 追加: recipe, originalImageUrl, imageKey, finalImageKey を customDetails に追加
+    // 修正: recipe, originalImageUrl, finalImageUrl を customDetails に追加 (imageKey, finalImageKey は削除)
     recipe: string;
     originalImageUrl: string;
-    imageKey: string | null;
-    finalImageKey: string | null;
+    finalImageUrl: string | null; // キャプチャされたプレビュー画像のURL
   };
 }
 
