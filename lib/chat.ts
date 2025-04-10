@@ -1,6 +1,7 @@
 // lib/chat.ts に対するパッチ
 // OpenAI APIとの通信およびレスポンス処理を改善
 
+import OpenAI from 'openai'; // Import the OpenAI library
 import { Message } from '@/app/fragrance-lab/chat/types'
 import { ChatAPIError } from '@/lib/errors'
 import { processMessage } from '@/lib/chat-utils'
@@ -110,7 +111,8 @@ interface ChatResponse {
 export async function sendChatMessage(
   messages: Message[],
   systemPrompt: string,
-  requestBody?: any // Make requestBody optional
+  // Allow passing additional OpenAI request options like response_format
+  requestOptions?: Partial<OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming> 
 ): Promise<ChatResponse> {
   // グローバルタイムアウト処理（すべてのAPIリクエストおよび処理に対するタイムアウト）
   const timeoutPromise = new Promise<never>((_, reject) => {
@@ -133,9 +135,9 @@ export async function sendChatMessage(
     
     // APIリクエスト実行とタイムアウト処理を競合させる
     const apiRequestPromise = (async () => {
-      // リクエストボディのログ出力（開発環境のみ詳細に出力）
-      const requestBody = {
-        model: 'gpt-4o-mini',
+      // Construct the base request body
+      const baseRequestBody = {
+        model: 'gpt-4o-mini', // Consider making model configurable if needed
         messages: [
           { role: 'system', content: systemPrompt },
           ...messages.map(msg => ({
@@ -143,13 +145,19 @@ export async function sendChatMessage(
             content: msg.content
           }))
         ],
-        response_format: { type: "json_object" }, // JSON形式を強制
-        temperature: 0.7,
-        max_tokens: 1000
+        temperature: 0.7, // Default temperature
+        max_tokens: 1000, // Default max tokens
       };
-      
+
+      // Merge base body with any provided requestOptions
+      // requestOptions will override defaults if provided (e.g., response_format)
+      const finalRequestBody = {
+        ...baseRequestBody,
+        ...requestOptions // Apply overrides like response_format: { type: 'json_object' }
+      };
+
       if (process.env.NODE_ENV === 'development') {
-        console.log('OpenAI APIリクエスト:', JSON.stringify(requestBody, null, 2));
+        console.log('OpenAI APIリクエスト:', JSON.stringify(finalRequestBody, null, 2));
       } else {
         console.log('OpenAI APIリクエスト: メッセージ数', messages.length, 'システムプロンプト長', systemPrompt.length);
       }
@@ -161,7 +169,7 @@ export async function sendChatMessage(
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
         },
-        body: JSON.stringify(requestBody)
+        body: JSON.stringify(finalRequestBody)
       });
 
       // レスポンスJSONの取得（エラーハンドリングを強化）
@@ -196,34 +204,58 @@ export async function sendChatMessage(
         throw new Error('空の応答を受信しました');
       }
 
-      // レスポンスの処理
-      const processedMessage = processMessage(content);
-      console.log('処理済みメッセージ:', {
-        contentLength: processedMessage.content?.length || 0,
-        hasChoices: processedMessage.choices && processedMessage.choices.length > 0,
-        shouldSplit: processedMessage.should_split
-      });
+      let result: ChatResponse;
 
-      // 有効なレスポンスを構築
-      const result: ChatResponse = {
-        id: crypto.randomUUID(),
-        role: 'assistant',
-        timestamp: Date.now(),
-        content: processedMessage.content || fallbackContent.content,
-        choices: processedMessage.choices || fallbackContent.choices,
-        choices_descriptions: processedMessage.choices_descriptions,
-        should_split: processedMessage.should_split || fallbackContent.should_split,
-        followUp: processedMessage.followUp
-      };
-      
-      // 空レスポンス対策（content が空か極端に短い場合）
-      if (!result.content || result.content.length < 5) {
-        console.warn('空または極端に短いレスポンスを検出、フォールバックを使用します');
-        result.content = fallbackContent.content;
+      // Check if JSON mode was requested
+      const isJsonMode = finalRequestBody.response_format?.type === 'json_object';
+
+      if (isJsonMode) {
+        // JSON mode: Return the raw content directly, do not process it further.
+        console.log('JSONモード応答: processMessageをスキップします');
+        result = {
+          id: crypto.randomUUID(),
+          role: 'assistant',
+          timestamp: Date.now(),
+          content: content, // Use the raw JSON string
+          choices: undefined, // No choices expected in this mode
+          choices_descriptions: undefined,
+          should_split: false, // JSON should not be split
+          followUp: undefined // No follow-up expected in this mode
+        };
+      } else {
+        // Standard text mode: Process the message using processMessage
+        console.log('テキストモード応答: processMessageを実行します');
+        const processedMessage = processMessage(content);
+        console.log('処理済みメッセージ:', {
+          contentLength: processedMessage.content?.length || 0,
+          hasChoices: processedMessage.choices && processedMessage.choices.length > 0,
+          shouldSplit: processedMessage.should_split
+        });
+
+        result = {
+          id: crypto.randomUUID(),
+          role: 'assistant',
+          timestamp: Date.now(),
+          content: processedMessage.content || fallbackContent.content,
+          choices: processedMessage.choices || fallbackContent.choices,
+          choices_descriptions: processedMessage.choices_descriptions,
+          should_split: processedMessage.should_split !== undefined ? processedMessage.should_split : fallbackContent.should_split,
+          followUp: processedMessage.followUp
+        };
+
+        // Fallback for empty/short processed content
+        if (!result.content || result.content.length < 5) {
+          console.warn('空または極端に短い処理済みレスポンスを検出、フォールバックを使用します');
+          result.content = fallbackContent.content;
+          result.choices = fallbackContent.choices;
+          result.should_split = fallbackContent.should_split;
+          result.choices_descriptions = undefined;
+          result.followUp = undefined;
+        }
       }
       
-      // 結果をキャッシュに保存
-      if (cacheKey && result.content.length > 10) {
+      // 結果をキャッシュに保存 (Only cache non-empty results)
+      if (cacheKey && result.content && result.content.length > 10) {
         // キャッシュサイズ管理（100エントリに制限）
         if (responseCache.size >= 100) {
           const firstKey = responseCache.keys().next().value;

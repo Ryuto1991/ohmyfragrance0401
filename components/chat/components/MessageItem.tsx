@@ -2,39 +2,89 @@
 
 import React from "react"
 import { cn } from "@/lib/utils"
-import Image from "next/image"
-import { Message, ChoiceOption } from "@/app/fragrance-lab/chat/types"
-import { Button } from "@/components/ui/button"
+import Image from "next/image";
+import { Message, RecipeNoteWithAmount, FragranceRecipe } from "@/app/fragrance-lab/chat/types"; // Import FragranceRecipe
+import { Button } from "@/components/ui/button";
+// Remove ChoiceButton import
+// import { ChoiceButton } from "../choice-button";
+import { Separator } from "@/components/ui/separator";
+import { FragranceRadarChart } from "@/app/components/FragranceRadarChart"; // Import Radar Chart
+import { calculateFragranceScore } from "@/app/lib/fragrance-score"; // Import score calculation function
 
+// Remove unused props: onChoiceClick, selectedScents, currentNoteSelection
 interface MessageItemProps {
-  message: Message
-  onChoiceClick?: (choice: ChoiceOption) => void
+  message: Message;
+  // isLoading might still be useful for message-specific loading state
+  isLoading?: boolean;
+  onRegenerateClick?: () => void; // Add callback for re-generate button
+  onOrderClick?: (recipe: FragranceRecipe) => void; // Add callback for order button, passing the recipe
+  scentNames?: string[]; // Add list of known scent names
+  onScentClick?: (scentName: string) => void; // Add callback for scent button clicks
 }
 
 /**
  * メッセージアイテムコンポーネント
  * チャット内の単一メッセージを表示する
  */
-export const MessageItem = React.memo(({ message, onChoiceClick }: MessageItemProps) => {
-  // 選択肢と本文の分離処理
-  const parseContent = () => {
-    let textContent = message.content
-    const choices = message.choices || []
+export const MessageItem = React.memo(({
+  message,
+  isLoading, // Keep isLoading if needed
+  onRegenerateClick, // Get the regenerate handler
+  onOrderClick, // Get the order handler
+  scentNames = [], // Default to empty array
+  onScentClick // Get the scent click handler
+}: MessageItemProps) => {
 
-    return {
-      text: textContent,
-      choices
+  // Remove parsing logic related to choices
+  // const parseContent = () => { ... };
+  // const { text, choices } = parseContent();
+  const text = message.content; // Use content directly
+
+  // Remove choice click handler
+  // const handleChoiceClick = (choice: ChoiceOption) => { ... };
+
+  // Function to parse content and replace scent names with buttons
+  const renderContentWithScentButtons = (content: string) => {
+    if (!scentNames || scentNames.length === 0 || !onScentClick) {
+      return <p className="mb-3">{content}</p>; // Return plain text if no scents or handler
     }
-  }
 
-  const { text, choices } = parseContent()
+    // Create a regex to find all known scent names (case-insensitive for robustness)
+    // Escape special regex characters in scent names if necessary
+    const escapedScentNames = scentNames.map(name =>
+      name.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')
+    );
+    const regex = new RegExp(`(${escapedScentNames.join('|')})`, 'gi');
 
-  // 選択肢クリックハンドラ
-  const handleChoiceClick = (choice: ChoiceOption) => {
-    if (onChoiceClick) {
-      onChoiceClick(choice)
-    }
-  }
+    const parts = content.split(regex);
+
+    return (
+      <p className="mb-3 leading-relaxed">
+        {parts.map((part, index) => {
+          const lowerPart = part.toLowerCase();
+          const matchedScent = scentNames.find(name => name.toLowerCase() === lowerPart);
+
+          if (matchedScent) {
+            return (
+              <Button
+                key={index}
+                variant="link"
+                size="sm"
+                className="p-0 h-auto text-sm md:text-base text-primary hover:underline inline"
+                onClick={() => onScentClick(matchedScent)}
+                disabled={isLoading}
+              >
+                {part} {/* Display original casing */}
+              </Button>
+            );
+          } else {
+            return <span key={index}>{part}</span>;
+          }
+        })}
+      </p>
+    );
+  };
+
 
   return (
     <div
@@ -62,26 +112,76 @@ export const MessageItem = React.memo(({ message, onChoiceClick }: MessageItemPr
             : 'bg-white rounded-tl-none shadow-sm'
         )}
       >
-        {text && <p>{text}</p>}
-        
-        {choices && choices.length > 0 && (
-          <div className="mt-3 space-y-2 grid md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 lg:gap-2 lg:space-y-0">
-            {choices.map((choice, index: number) => {
-              // 文字列の場合はオブジェクトに変換
-              const normalizedChoice = typeof choice === 'string' 
-                ? { name: choice } 
-                : choice;
-              
-              return (
-                <ChoiceButton
-                  key={index}
-                  choice={normalizedChoice}
-                  onClick={handleChoiceClick}
-                />
-              )
-            })}
+        {/* Display message text content with scent buttons */}
+        {text && renderContentWithScentButtons(text)}
+
+        {/* Display recipe details if available */}
+        {message.recipe && (
+          <div className="mt-3 pt-3 border-t border-gray-200">
+            <h3 className="text-base font-semibold mb-2">
+              <span className="text-primary">🌿</span> レシピ: {message.recipe.name || "AI提案レシピ"}
+            </h3>
+            {message.recipe.description && (
+              <p className="text-sm text-muted-foreground mb-3 italic">
+                "{message.recipe.description}"
+              </p>
+            )}
+            <ul className="text-sm space-y-1 list-disc list-inside pl-1">
+              <li>
+                <strong>トップ:</strong>{" "}
+                {message.recipe.topNotes?.length > 0
+                  ? message.recipe.topNotes.map(note => `${note.name} (${note.amount})`).join(", ")
+                  : "なし"}
+              </li>
+              <li>
+                <strong>ミドル:</strong>{" "}
+                {message.recipe.middleNotes?.length > 0
+                  ? message.recipe.middleNotes.map(note => `${note.name} (${note.amount})`).join(", ")
+                  : "なし"}
+              </li>
+              <li>
+                <strong>ベース:</strong>{" "}
+                {message.recipe.baseNotes?.length > 0
+                  ? message.recipe.baseNotes.map(note => `${note.name} (${note.amount})`).join(", ")
+                  : "なし"}
+              </li>
+            </ul>
+            {/* Render Radar Chart */}
+            <div className="mt-4">
+              <h4 className="text-sm font-semibold mb-2">香りの特徴:</h4>
+              <FragranceRadarChart
+                scores={calculateFragranceScore([
+                  ...(message.recipe.topNotes || []),
+                  ...(message.recipe.middleNotes || []),
+                  ...(message.recipe.baseNotes || []),
+                ] as RecipeNoteWithAmount[])} // Combine notes and pass to calculator
+              />
+            </div>
+            {/* Add Re-generate and Order buttons */}
+            <div className="mt-4 flex flex-col sm:flex-row gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onRegenerateClick}
+                disabled={isLoading} // Disable if any loading is happening
+                className="flex-1"
+              >
+                🔁 別パターンで再生成
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => message.recipe && onOrderClick?.(message.recipe)} // Pass recipe to handler
+                disabled={isLoading} // Disable if any loading is happening
+                className="flex-1"
+              >
+                🛒 この香りにする
+              </Button>
+            </div>
           </div>
         )}
+
+        {/* Remove choice button rendering logic */}
+        {/* {choices && choices.length > 0 && ( ... )} */}
       </div>
       {message.role === 'user' && (
         <div className="w-8 h-8 md:w-10 md:h-10 rounded-full overflow-hidden ml-2 md:ml-3 flex-shrink-0">
@@ -98,38 +198,11 @@ export const MessageItem = React.memo(({ message, onChoiceClick }: MessageItemPr
   )
 })
 
-MessageItem.displayName = 'MessageItem'
+MessageItem.displayName = 'MessageItem';
 
-/**
- * 選択肢ボタンコンポーネント
- * チャット内の選択肢を表示するボタン
- */
-interface ChoiceButtonProps {
-  choice: ChoiceOption
-  onClick: (choice: ChoiceOption) => void
-}
-
-const ChoiceButton = React.memo(({ choice, onClick }: ChoiceButtonProps) => {
-  // 文字列か、オブジェクトかを判定
-  const isStringChoice = typeof choice === 'string';
-  const choiceName = isStringChoice ? choice : choice.name;
-  const choiceDescription = !isStringChoice ? choice.description : undefined;
-
-  return (
-    <Button
-      type="button"
-      variant="outline"
-      className="w-full justify-start text-left py-2 px-3 border-primary/30 hover:border-primary/50 hover:bg-primary/5 transition-colors"
-      onClick={() => onClick(choice)}
-    >
-      <div>
-        <div className="font-medium">{choiceName}</div>
-        {choiceDescription && (
-          <div className="text-xs text-muted-foreground">{choiceDescription}</div>
-        )}
-      </div>
-    </Button>
-  )
-})
-
-ChoiceButton.displayName = 'ChoiceButton'
+// Remove the internal ChoiceButton definition
+/*
+interface ChoiceButtonProps { ... }
+const ChoiceButton = React.memo(({ choice, onClick }: ChoiceButtonProps) => { ... });
+ChoiceButton.displayName = 'ChoiceButton';
+*/

@@ -1,34 +1,16 @@
-// チャットのフェーズ定義
+// チャットのフェーズ定義 (簡略化)
 export type ChatPhase =
-  | 'welcome'
-  | 'intro'
-  | 'themeSelected'
-  | 'top'
-  | 'middle'
-  | 'base'
-  | 'finalized'
-  | 'complete';
+  | 'start'      // 会話開始、好みヒアリング
+  | 'selecting'  // 香り選択中 (トップ/ミドル/ベース)
+  | 'complete';   // レシピ確定、注文へ
 
 // 選択肢の型定義
 export type ChoiceOption = string | { name: string; description?: string };
 
-export type ChatPhaseId = ChatPhase
+// selectingフェーズ内のノート選択状態
+export type NoteSelectionPhase = 'top' | 'middle' | 'base' | null;
 
-export interface ChatPhaseInfo {
-  id: ChatPhaseId
-  step: number
-}
-
-export const CHAT_PHASES: Record<ChatPhaseId, ChatPhaseInfo> = {
-  welcome: { id: 'welcome', step: 0 },
-  intro: { id: 'intro', step: 1 },
-  themeSelected: { id: 'themeSelected', step: 2 },
-  top: { id: 'top', step: 3 },
-  middle: { id: 'middle', step: 4 },
-  base: { id: 'base', step: 5 },
-  finalized: { id: 'finalized', step: 6 },
-  complete: { id: 'complete', step: 7 }
-}
+export type ChatPhaseId = ChatPhase // 互換性のため残す場合があるが、基本はChatPhaseを使用
 
 // メッセージの型定義
 export type MessageRole = 'user' | 'assistant' | 'system'
@@ -40,17 +22,24 @@ export interface Message {
   timestamp: number
   choices?: ChoiceOption[]
   choices_descriptions?: string[]
-  recipe?: FragranceRecipe
+  recipe?: FragranceRecipe // Add recipe property
   emotionScores?: EmotionScores
-  error?: string
+  error?: string // Existing property for error message text
   should_split?: boolean
+  isLoading?: boolean // Add back isLoading for message-specific loading state
 }
 
-// フレグランスレシピの型定義
+// Define the structure for a note with amount
+export interface RecipeNoteWithAmount {
+  name: string;
+  amount: number;
+}
+
+// フレグランスレシピの型定義 (Update notes to use RecipeNoteWithAmount)
 export interface FragranceRecipe {
-  topNotes: string[]
-  middleNotes: string[]
-  baseNotes: string[]
+  topNotes: RecipeNoteWithAmount[]
+  middleNotes: RecipeNoteWithAmount[]
+  baseNotes: RecipeNoteWithAmount[]
   name?: string
   description?: string
 }

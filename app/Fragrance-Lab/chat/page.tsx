@@ -1,177 +1,71 @@
 "use client"
 
-import { useState, useEffect } from 'react'
-import { useSearchParams, useRouter, usePathname } from 'next/navigation'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
-import { ChatProvider } from '@/components/chat/ChatProvider'
-import { FragranceChat } from '@/components/chat/FragranceChat'
-import SiteHeader from "@/components/site-header"
-import { Button } from "@/components/ui/button"
-import { ChevronLeft } from "lucide-react"
-import Link from "next/link"
-import { Analytics } from '@vercel/analytics/react'
-import { StorageService } from '@/utils/storage-service'
-import { ChatProgressSteps } from "./components/ChatProgressSteps"
+import { useState, useEffect } from 'react';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+// import { ChatProvider } from '@/components/chat/ChatProvider'; // 削除
+// import { FragranceChat } from '@/components/chat/FragranceChat'; // 削除
+import { FragranceAIChat } from '@/components/chat/fragrance-ai-chat'; // 新しいコンポーネントをインポート
+import SiteHeader from "@/components/site-header";
+import { Button } from "@/components/ui/button";
+import { ChevronLeft } from "lucide-react";
+import Link from "next/link";
+import { Analytics } from '@vercel/analytics/react';
+import { StorageService } from '@/utils/storage-service';
+// import { ChatProgressSteps } from "./components/ChatProgressSteps"; // 削除
 
 // カスタム型定義
 interface RecipeData {
-  title: string
-  description: string
+  title: string;
+  description: string;
   notes: {
-    top: string[]
-    middle: string[]
-    base: string[]
-  }
+    top: string[];
+    middle: string[];
+    base: string[];
+  };
 }
 
 // シングルトンパターンでSupabaseクライアントを管理
-let supabaseInstance: any = null
+let supabaseInstance: any = null;
 
 const getSupabaseClient = () => {
   if (!supabaseInstance) {
-    supabaseInstance = createClientComponentClient()
+    supabaseInstance = createClientComponentClient();
   }
-  return supabaseInstance
-}
+  return supabaseInstance;
+};
 
 export default function ChatPage() {
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const query = searchParams.get('q') || searchParams.get('query')
-  const autoCreateParam = searchParams.get('auto')
-  const pathname = usePathname()
-  
-  const [recipe, setRecipe] = useState<RecipeData | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [queryProcessed, setQueryProcessed] = useState(false)
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const query = searchParams.get('q') || searchParams.get('query');
+  const autoCreateParam = searchParams.get('auto'); // これはもう使わないが一応残す
+  const pathname = usePathname();
+
+  // このページレベルでの recipe, error 状態は不要になる可能性が高い
+  // const [recipe, setRecipe] = useState<RecipeData | null>(null);
+  // const [error, setError] = useState<string | null>(null);
+  // const [queryProcessed, setQueryProcessed] = useState(false); // これも不要になる可能性
 
   // クエリパラメータのクリーンアップ（URL履歴を汚さないため）
   useEffect(() => {
     if (query || autoCreateParam) {
-      const newPath = pathname
-      router.replace(newPath, { scroll: false })
+      const newPath = pathname;
+      router.replace(newPath, { scroll: false });
     }
-  }, [query, autoCreateParam, pathname, router])
+  }, [query, autoCreateParam, pathname, router]);
 
-  // レシピの監視 - StorageServiceからレシピが更新されたら取得
-  useEffect(() => {
-    const storedRecipe = StorageService.getRecipe()
-    
-    if (storedRecipe) {
-      setRecipe({
-        title: storedRecipe.name || "オリジナルルームフレグランス",
-        description: storedRecipe.description || "あなただけのカスタムルームフレグランス",
-        notes: {
-          top: storedRecipe.topNotes,
-          middle: storedRecipe.middleNotes,
-          base: storedRecipe.baseNotes
-        }
-      })
-    }
-    
-    // ローカルストレージの変更を監視するイベントリスナー
-    const handleStorageChange = () => {
-      const updatedRecipe = StorageService.getRecipe()
-      if (updatedRecipe) {
-        setRecipe({
-          title: updatedRecipe.name || "オリジナルルームフレグランス",
-          description: updatedRecipe.description || "あなただけのカスタムルームフレグランス",
-          notes: {
-            top: updatedRecipe.topNotes,
-            middle: updatedRecipe.middleNotes,
-            base: updatedRecipe.baseNotes
-          }
-        })
-      }
-    }
-    
-    // localStorageの変更イベントをリッスン
-    window.addEventListener('storage', handleStorageChange)
-    
-    // クリーンアップ
-    return () => {
-      window.removeEventListener('storage', handleStorageChange)
-    }
-  }, [])
+  // レシピの監視ロジックも useChatState に統合されているため、ここでは不要になる可能性
+  // useEffect(() => { ... }, [])
 
-  // レシピをSupabaseに保存してから注文ページへ移動
-  const handlePurchase = async () => {
-    if (!recipe) return
-
-    try {
-      const supabase = getSupabaseClient()
-      const { data, error } = await supabase
-        .from('recipes')
-        .insert({
-          name: recipe.title,
-          description: recipe.description,
-          top_notes: recipe.notes.top,
-          middle_notes: recipe.notes.middle,
-          base_notes: recipe.notes.base,
-          mode: 'chat'
-        })
-        .select()
-
-      if (error) throw error
-
-      // レシピをStorageServiceに保存（カスタムオーダーページで使用）
-      StorageService.saveRecipe({
-        name: recipe.title,
-        description: recipe.description,
-        topNotes: recipe.notes.top,
-        middleNotes: recipe.notes.middle,
-        baseNotes: recipe.notes.base
-      })
-
-      router.push('/custom-order?mode=lab')
-    } catch (error) {
-      console.error('Error saving recipe:', error)
-      setError('レシピの保存に失敗しました。')
-    }
-  }
-
-  // レシピを保存してホームに戻る
-  const handleSaveAndExit = async () => {
-    if (!recipe) return
-
-    try {
-      const supabase = getSupabaseClient()
-      const { data, error } = await supabase
-        .from('recipes')
-        .insert({
-          name: recipe.title,
-          description: recipe.description,
-          top_notes: recipe.notes.top,
-          middle_notes: recipe.notes.middle,
-          base_notes: recipe.notes.base,
-          mode: 'chat'
-        })
-        .select()
-
-      if (error) throw error
-
-      // Last saved recipeをローカルストレージに直接保存
-      if (typeof window !== 'undefined' && window.localStorage) {
-        localStorage.setItem('last_saved_recipe', JSON.stringify({
-          name: recipe.title,
-          description: recipe.description,
-          top_notes: recipe.notes.top,
-          middle_notes: recipe.notes.middle,
-          base_notes: recipe.notes.base
-        }))
-      }
-
-      router.push('/')
-    } catch (error) {
-      console.error('Error saving recipe:', error)
-      setError('レシピの保存に失敗しました。')
-    }
-  }
+  // handlePurchase, handleSaveAndExit も useChatState (または useRecipeManagement) に統合されているはず
+  // const handlePurchase = async () => { ... }
+  // const handleSaveAndExit = async () => { ... }
 
   return (
     <div className="h-screen flex flex-col bg-[#fef6f3] overflow-hidden">
       {pathname !== "/fragrance-lab/chat" && <SiteHeader />}
-      
+
       {/* 上部ナビゲーション */}
       <div className="border-b bg-white/70 backdrop-blur-sm sticky top-0 z-10">
         <div className="container max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
@@ -184,18 +78,18 @@ export default function ChatPage() {
           <div className="w-[70px]"></div> {/* 右側のスペーサー */}
         </div>
       </div>
-      
+
       <div className="flex-1 overflow-y-auto">
         <div className="container max-w-3xl mx-auto p-4 md:p-6">
-          {/* ChatProviderでラップして状態管理を提供 */}
-          <ChatProvider>
-            <FragranceChat initialQuery={query || undefined} />
-          </ChatProvider>
+          {/* ChatProvider を削除し、FragranceAIChat を直接レンダリング */}
+          {/* ChatProvider が状態を持っていた場合、FragranceAIChat に直接渡すか、
+              FragranceAIChat 内部の useChatState で初期化する必要がある */}
+          <FragranceAIChat initialQuery={query || undefined} />
         </div>
       </div>
 
-      {/* レシピ完成時の表示 */}
-      {recipe && (
+      {/* レシピ完成時の表示 (一旦コメントアウト) */}
+      {/* {recipe && (
         <div className="sticky bottom-0 left-0 w-full bg-white/95 backdrop-blur py-3 border-t border-muted z-20">
           <div className="container max-w-3xl mx-auto px-4">
             <div className="mb-2 text-center">
@@ -233,17 +127,17 @@ export default function ChatPage() {
             </div>
           </div>
         </div>
-      )}
-      
-      {/* エラー表示 */}
-      {error && (
+      )} */}
+
+      {/* エラー表示 (これも useChatState 側で管理されるはず) */}
+      {/* {error && (
         <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-destructive text-destructive-foreground px-4 py-2 rounded-md">
           {error}
         </div>
-      )}
-      
+      )} */}
+
       {/* Analytics */}
       <Analytics />
     </div>
-  )
+  );
 }
