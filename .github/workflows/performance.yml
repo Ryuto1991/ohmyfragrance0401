@@ -1,0 +1,141 @@
+name: Performance Tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  # 定期的に実行（毎日午前3時）
+  schedule:
+    - cron: '0 3 * * *'
+  # 手動実行をサポート
+  workflow_dispatch:
+
+jobs:
+  performance-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Build Next.js application
+      run: npm run build
+    
+    - name: Start Next.js server
+      run: |
+        npm run start &
+        # サーバーが起動するのを待つ
+        sleep 15
+    
+    - name: Install Lighthouse dependencies
+      run: npm install -g lighthouse chrome-launcher puppeteer
+    
+    - name: Run performance tests
+      run: node scripts/performance-monitor.js
+    
+    - name: Upload performance results
+      uses: actions/upload-artifact@v3
+      with:
+        name: performance-results
+        path: performance-results/
+        retention-days: 90
+    
+    - name: Check performance thresholds
+      run: |
+        if [ -f "performance-results/performance-trend.json" ]; then
+          # トレンドデータを読み込んで悪化傾向があるか確認
+          TREND_CHECK=$(node -e "
+            const fs = require('fs');
+            const trend = JSON.parse(fs.readFileSync('performance-results/performance-trend.json', 'utf8'));
+            let degrading = false;
+            
+            for (const page in trend) {
+              if (trend[page].performanceTrend === 'degrading' || 
+                  trend[page].lcpTrend === 'degrading' || 
+                  trend[page].clsTrend === 'degrading') {
+                degrading = true;
+                console.log(\`Warning: Performance degradation detected in \${page}\`);
+              }
+            }
+            
+            if (degrading) process.exit(1);
+            process.exit(0);
+          ")
+          
+          if [ $? -ne 0 ]; then
+            echo "::warning::Performance degradation detected! Check the performance trend report."
+          fi
+        fi
+    
+    - name: Create performance report comment
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v6
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          const fs = require('fs');
+          
+          try {
+            // 最新の測定結果を取得
+            const files = fs.readdirSync('./performance-results')
+              .filter(file => file.startsWith('performance-results-') && file.endsWith('.json'))
+              .sort();
+            
+            if (files.length === 0) {
+              console.log('No performance results found');
+              return;
+            }
+            
+            const latestFile = files[files.length - 1];
+            const results = JSON.parse(fs.readFileSync(`./performance-results/${latestFile}`, 'utf8'));
+            
+            // PRコメント用のマークダウンを作成
+            let comment = `## 📊 パフォーマンス測定結果\n\n`;
+            
+            for (const page of results) {
+              comment += `### ${page.name} (${page.url})\n\n`;
+              comment += `| 指標 | 値 | 目標 | 状態 |\n`;
+              comment += `| --- | --- | --- | --- |\n`;
+              
+              // パフォーマンススコア
+              const perfStatus = page.performance >= 80 ? '✅' : '❌';
+              comment += `| パフォーマンススコア | ${page.performance.toFixed(1)}% | 80% | ${perfStatus} |\n`;
+              
+              // FCP
+              const fcpStatus = page.fcp <= 1800 ? '✅' : '❌';
+              comment += `| 初回コンテンツ描画 (FCP) | ${(page.fcp/1000).toFixed(2)}秒 | 1.8秒 | ${fcpStatus} |\n`;
+              
+              // LCP
+              const lcpStatus = page.lcp <= 2500 ? '✅' : '❌';
+              comment += `| 最大コンテンツ描画 (LCP) | ${(page.lcp/1000).toFixed(2)}秒 | 2.5秒 | ${lcpStatus} |\n`;
+              
+              // TTI
+              const ttiStatus = page.tti <= 3500 ? '✅' : '❌';
+              comment += `| インタラクティブまでの時間 (TTI) | ${(page.tti/1000).toFixed(2)}秒 | 3.5秒 | ${ttiStatus} |\n`;
+              
+              // CLS
+              const clsStatus = page.cls <= 0.1 ? '✅' : '❌';
+              comment += `| 累積レイアウトシフト (CLS) | ${page.cls.toFixed(3)} | 0.1 | ${clsStatus} |\n\n`;
+            }
+            
+            comment += `\n詳細なレポートはCI/CDの成果物を確認してください。\n`;
+            
+            // PRにコメントを追加
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+          } catch (error) {
+            console.error('Error creating performance report comment:', error);
+          }

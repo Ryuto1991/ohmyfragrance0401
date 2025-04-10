@@ -1,5 +1,5 @@
 // チャットのフェーズ定義
-export type ChatPhase = 
+export type ChatPhase =
   | 'welcome'
   | 'intro'
   | 'themeSelected'
@@ -8,6 +8,9 @@ export type ChatPhase =
   | 'base'
   | 'finalized'
   | 'complete';
+
+// 選択肢の型定義
+export type ChoiceOption = string | { name: string; description?: string };
 
 export type ChatPhaseId = ChatPhase
 
@@ -35,7 +38,7 @@ export interface Message {
   role: MessageRole
   content: string
   timestamp: number
-  choices?: string[]
+  choices?: ChoiceOption[]
   choices_descriptions?: string[]
   recipe?: FragranceRecipe
   emotionScores?: EmotionScores
@@ -115,5 +118,6 @@ export const STORAGE_KEYS = {
   CHAT_HISTORY: 'chat_history',
   SESSION_ID: 'chat_session_id',
   LAST_VISIT: 'last_visit',
-  SESSION: 'chat_session'
-} as const 
+  SESSION: 'chat_session',
+  SELECTED_RECIPE: 'selected_recipe'
+} as const

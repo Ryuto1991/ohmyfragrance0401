@@ -1,11 +1,23 @@
 export class ChatAPIError extends Error {
+  public statusCode: number;
+  public details?: unknown;
+
   constructor(
     message: string,
-    public statusCode: number = 500,
-    public details?: unknown
+    statusCodeOrDetails: number | unknown = 500,
+    details?: unknown
   ) {
-    super(message)
-    this.name = 'ChatAPIError'
+    super(message);
+    this.name = 'ChatAPIError';
+    
+    // statusCodeOrDetails can be either a number (statusCode) or an object (details)
+    if (typeof statusCodeOrDetails === 'number') {
+      this.statusCode = statusCodeOrDetails;
+      this.details = details;
+    } else {
+      this.statusCode = 500;
+      this.details = statusCodeOrDetails;
+    }
   }
 }
 
@@ -27,4 +39,4 @@ export class NetworkError extends Error {
     super(message)
     this.name = 'NetworkError'
   }
-} 
+}

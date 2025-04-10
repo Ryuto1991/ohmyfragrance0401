@@ -1,0 +1,161 @@
+import { Message } from '@/app/fragrance-lab/chat/types'
+import { ChatAPIError } from '@/lib/errors'
+import { processMessage } from '@/lib/chat-utils'
+
+// リトライ処理をラップした関数
+async function fetchWithRetry(url: string, options: RequestInit, retries = 3, timeout = 30000): Promise<Response> {
+  // AbortControllerを使用してタイムアウトを実装
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+  
+  try {
+    // 元のオプションにsignalを追加
+    const fetchOptions = {
+      ...options,
+      signal: controller.signal
+    };
+    
+    return await fetch(url, fetchOptions);
+  } catch (error) {
+    if (retries <= 1) throw error;
+    
+    // エラーの種類に応じてリトライするかどうかを判断
+    if (error instanceof TypeError || 
+        error instanceof Error && error.name === 'AbortError') {
+      // ネットワークエラーやタイムアウトの場合は待機してリトライ
+      console.log(`API呼び出しエラー、リトライします (残り${retries - 1}回)...`);
+      await new Promise(resolve => setTimeout(resolve, 1000)); // 1秒待機
+      return fetchWithRetry(url, options, retries - 1, timeout);
+    }
+    
+    // その他のエラーはそのまま投げる
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+// レスポンス処理用のキャッシュ
+const responseCache = new Map<string, any>();
+
+// 空の応答やエラー時のフォールバックコンテンツ
+const fallbackContent = {
+  content: "申し訳ありません。一時的に応答が生成できませんでした。もう一度お試しください。",
+  choices: [] as string[],
+  should_split: true
+};
+
+// APIレスポンスの型定義
+interface ChatResponse {
+  id: string;
+  role: 'assistant';
+  content: string;
+  timestamp: number;
+  choices?: string[];
+  choices_descriptions?: string[];
+  should_split?: boolean;
+  followUp?: string;
+}
+
+export async function sendChatMessage(
+  messages: Message[],
+  systemPrompt: string
+): Promise<ChatResponse> {
+  try {
+    // キャッシュキーの生成（ユーザーの最後のメッセージのみを使用して軽量に）
+    let cacheKey = '';
+    if (messages.length > 0) {
+      const lastMessage = messages[messages.length - 1];
+      cacheKey = `${lastMessage.role}:${lastMessage.content.substring(0, 100)}:${systemPrompt.substring(0, 50)}`;
+      
+      // キャッシュにある場合はそれを返す
+      if (responseCache.has(cacheKey)) {
+        console.log('キャッシュからレスポンスを使用');
+        return responseCache.get(cacheKey);
+      }
+    }
+    
+    // タイムアウト付きのfetch
+    const response = await fetchWithRetry('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          ...messages.map(msg => ({
+            role: msg.role,
+            content: msg.content
+          }))
+        ],
+        response_format: { type: "json_object" }, // JSON形式を強制
+        temperature: 0.7,
+        max_tokens: 1000
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`OpenAI API リクエストに失敗: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    const content = data.choices[0].message.content;
+
+    console.log('OpenAI応答:', content ? content.substring(0, 50) + '...' : 'なし');
+
+    // レスポンスの処理
+    const processedMessage = processMessage(content);
+
+    // 有効なレスポンスを構築
+    const result: ChatResponse = {
+      id: crypto.randomUUID(),
+      role: 'assistant',
+      timestamp: Date.now(),
+      content: processedMessage.content || fallbackContent.content,
+      choices: processedMessage.choices || fallbackContent.choices,
+      choices_descriptions: processedMessage.choices_descriptions,
+      should_split: processedMessage.should_split || fallbackContent.should_split,
+      followUp: processedMessage.followUp
+    };
+    
+    // 空レスポンス対策（content が空か極端に短い場合）
+    if (!result.content || result.content.length < 5) {
+      console.warn('空のレスポンスを検出、フォールバックを使用します');
+      result.content = fallbackContent.content;
+    }
+    
+    // 結果をキャッシュに保存
+    if (cacheKey && result.content.length > 10) {
+      // キャッシュサイズ管理（100エントリに制限）
+      if (responseCache.size >= 100) {
+        const firstKey = responseCache.keys().next().value;
+        if (firstKey) {
+          responseCache.delete(firstKey);
+        }
+      }
+      
+      responseCache.set(cacheKey, result);
+    }
+    
+    return result;
+  } catch (error) {
+    console.error('Error in sendChatMessage:', error);
+    
+    // エラー時のフォールバック応答
+    const errorResponse: ChatResponse = {
+      id: crypto.randomUUID(),
+      role: 'assistant',
+      timestamp: Date.now(),
+      content: error instanceof Error 
+        ? `申し訳ありません、エラーが発生しました: ${error.message}。もう一度お試しください。` 
+        : fallbackContent.content,
+      choices: [],
+      should_split: true
+    };
+    
+    throw new ChatAPIError('チャットAPI呼び出しエラー', errorResponse);
+  }
+}
