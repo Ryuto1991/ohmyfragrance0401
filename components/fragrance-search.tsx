@@ -52,7 +52,7 @@ const MOBILE_EXAMPLE_PHRASES = [
   "君色の空とか",
   "秘密の香り",
   "月と君と推し",
-  "君がいた夏の色香",
+  "君がいた夏",
   "恋とカフェラテ",
   "最後の花火",
   "熱い雪の約束",
@@ -104,7 +104,13 @@ export default function FragranceSearch({ placeholder }: FragranceSearchProps) {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
-    router.push(`/fragrance-lab?query=${encodeURIComponent(searchQuery)}`)
+    // 遷移先を /fragrance-lab/chat に変更し、クエリを保持
+    if (!searchQuery.trim()) {
+      router.push(`/fragrance-lab/chat`); // クエリが空ならパラメータなしで遷移
+    } else {
+      const targetUrl = `/fragrance-lab/chat?query=${encodeURIComponent(searchQuery)}`;
+      router.push(targetUrl);
+    }
   }
 
   // placeholderを決定
@@ -134,4 +140,3 @@ export default function FragranceSearch({ placeholder }: FragranceSearchProps) {
     </form>
   )
 }
-

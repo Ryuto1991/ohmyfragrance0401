@@ -146,7 +146,7 @@ export async function sendChatMessage(
           }))
         ],
         temperature: 0.7, // Default temperature
-        max_tokens: 1000, // Default max tokens
+        max_tokens: 512, // Increase max tokens for recipe generation
       };
 
       // Merge base body with any provided requestOptions

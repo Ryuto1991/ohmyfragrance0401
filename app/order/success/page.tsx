@@ -131,7 +131,7 @@ export default function OrderSuccess() {
           >
             ラベル画像をダウンロード
           </Button>
-          <Link href="/oh-my-custom-order" className="block">
+          <Link href="/custom-order?mode=custom" className="block"> {/* リンク修正 */}
             <Button
               variant="outline"
               className="w-full py-3 rounded-lg"
@@ -143,4 +143,4 @@ export default function OrderSuccess() {
       </div>
     </div>
   );
-} 
+}

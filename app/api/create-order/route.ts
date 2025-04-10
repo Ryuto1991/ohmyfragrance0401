@@ -54,7 +54,7 @@ export async function POST(request: Request) {
       ],
       mode: 'payment',
       success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/oh-my-custom-order`,
+      cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/custom-order?mode=custom`, // リンク修正
       metadata: {
         orderId: body.orderId,
         label_id: body.label_id,
@@ -88,4 +88,4 @@ export async function POST(request: Request) {
       { status: 500 }
     )
   }
-} 
+}

@@ -69,13 +69,20 @@ export default function ChatPage() {
       {/* 上部ナビゲーション */}
       <div className="border-b bg-white/70 backdrop-blur-sm sticky top-0 z-10">
         <div className="container max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-          <Link href="/" className="flex items-center text-muted-foreground hover:text-foreground transition-colors">
-            <Button variant="ghost" size="sm" className="gap-1">
+          {/* 戻るボタンを目立たせる (variant="outline" に変更) */}
+          <Link href="/" className="flex items-center">
+            <Button variant="outline" size="sm" className="gap-1 border-primary/50 text-primary hover:bg-primary/5">
               <ChevronLeft className="h-4 w-4" />
               <span>戻る</span>
             </Button>
           </Link>
-          <div className="w-[70px]"></div> {/* 右側のスペーサー */}
+
+          {/* クイックモードボタンを追加 */}
+          <Link href={`/fragrance-lab/generator${query ? `?query=${encodeURIComponent(query)}` : ''}`}>
+            <Button variant="outline" size="sm" className="gap-1 border-accent-light/50 text-accent-light hover:bg-accent-light/5">
+              <span>クイックモード⚡はこちら</span>
+            </Button>
+          </Link>
         </div>
       </div>
 

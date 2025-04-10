@@ -26,6 +26,11 @@ interface CartItem {
       scale: number;
       rotation: number;
     };
+    // 追加: recipe, originalImageUrl, imageKey, finalImageKey を customDetails に追加
+    recipe: string;
+    originalImageUrl: string;
+    imageKey: string | null;
+    finalImageKey: string | null;
   };
 }
 
@@ -148,4 +153,4 @@ export const useStripeCart = (): StripeCartContextType => {
     throw new Error('useStripeCart must be used within a StripeCartProvider');
   }
   return context;
-}; 
+};

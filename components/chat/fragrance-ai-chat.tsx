@@ -18,6 +18,15 @@ import { Separator } from "@/components/ui/separator"; // Keep Separator
 import { MessageItem } from "./components/MessageItem"; // Import MessageItem
 import { STORAGE_KEYS } from "@/app/fragrance-lab/chat/types"; // Import storage keys
 import essentialOilsData from "@/components/chat/essential-oils.json"; // Import scent data
+import { TipsSidebar } from "./tips-sidebar"; // Import TipsSidebar
+
+const FOLLOW_UP_DELAY = 30000; // 30 seconds in milliseconds
+const FOLLOW_UP_MESSAGES = [
+  "どした？迷ってることあったら聞いてね！😉",
+  "他にはどんなイメージがあるかな？✨ 教えて〜！",
+  "どんな香りが好きか、もっとヒントちょうだい！💖",
+  "なんか困ってることある？🤔",
+];
 
 /**
  * フレグランスAIチャットコンポーネント
@@ -38,6 +47,7 @@ export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
     isOrderButtonEnabled,
     resetChat,
     generateRecipe, // Renamed function from useChatState
+    setMessages, // Get setMessages for follow-up
     // Removed: generatedRecipe, handleGenerateRecipeAndOrder
     // Removed: currentPhaseId, selectedScents, updatePhase, updateSelectedScents, handleGoToOrder, handleConfirmSelection, currentNoteSelection
   } = useChatState();
@@ -49,6 +59,7 @@ export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [initialMessageSent, setInitialMessageSent] = useState(false);
+  const followUpTimerRef = useRef<NodeJS.Timeout | null>(null); // Ref for the timer
   // Remove unused state: lastPhaseChangeTime
 
   // Scroll to bottom function (no change needed)
@@ -86,7 +97,8 @@ export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
   // Initial query processing (no change needed, relies on addMessage)
   useEffect(() => {
     const handleInitialInteraction = async () => {
-      if (initialMessageSent || isLoading || messages.length > 1) return;
+      // Check if initial message sent, loading, or if user has already sent a message (length > 2)
+      if (initialMessageSent || isLoading || messages.length > 2) return;
       try {
         const urlQuery = searchParams.get('query') || searchParams.get('q');
         if (urlQuery) {
@@ -142,6 +154,48 @@ export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
     },
     [input, isSubmitting, sendMessage, handleError] // Depends on simplified sendMessage
   );
+
+  // Function to add a follow-up message from the assistant
+  const addFollowUpMessage = useCallback(() => {
+    const randomMessage = FOLLOW_UP_MESSAGES[Math.floor(Math.random() * FOLLOW_UP_MESSAGES.length)];
+    const followUpMsg: Message = {
+      id: uuid(),
+      role: 'assistant',
+      content: randomMessage,
+      timestamp: Date.now(),
+    };
+    // Add message directly to state without calling API
+    setMessages((prev: Message[]) => [...prev, followUpMsg]); // Add type annotation for prev
+    console.log("Follow-up message added.");
+  }, [setMessages]); // Dependency on setMessages
+
+  // Effect to handle the follow-up timer
+  useEffect(() => {
+    // Clear existing timer if it exists
+    if (followUpTimerRef.current) {
+      clearTimeout(followUpTimerRef.current);
+    }
+
+    // Don't start timer if loading or if messages array is empty or only has initial message
+    if (isLoading || messages.length <= 1) {
+      return;
+    }
+
+    // Set a new timer
+    followUpTimerRef.current = setTimeout(() => {
+      // Check if the last message was from the user before adding follow-up
+      if (messages.length > 0 && messages[messages.length - 1].role === 'user') {
+         addFollowUpMessage();
+      }
+    }, FOLLOW_UP_DELAY);
+
+    // Cleanup function to clear timer on unmount or when dependencies change
+    return () => {
+      if (followUpTimerRef.current) {
+        clearTimeout(followUpTimerRef.current);
+      }
+    };
+  }, [messages, isLoading, addFollowUpMessage]); // Rerun effect when messages or isLoading changes
 
   // Remove parseMessageContent and related logic for choices
 
@@ -346,8 +400,8 @@ export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
       {/* Optional: Modal or section to display generatedRecipe when available */}
       {/* {generatedRecipe && showRecipe && ( ... display recipe ... )} */}
 
-      {/* Comment out TipsSidebar */}
-      {/* <TipsSidebar ... /> */}
+      {/* Render TipsSidebar */}
+      <TipsSidebar />
     </div>
   );
 }

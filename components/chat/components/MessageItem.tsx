@@ -126,23 +126,62 @@ export const MessageItem = React.memo(({
                 "{message.recipe.description}"
               </p>
             )}
-            <ul className="text-sm space-y-1 list-disc list-inside pl-1">
-              <li>
-                <strong>トップ:</strong>{" "}
-                {message.recipe.topNotes?.length > 0
-                  ? message.recipe.topNotes.map(note => `${note.name} (${note.amount})`).join(", ")
+            <ul className="text-sm space-y-1 list-none pl-1"> {/* Changed list-disc to list-none */}
+              <li className="flex items-center flex-wrap"> {/* Use flex for inline display */}
+                <strong className="mr-1">トップ:</strong>{" "}
+                {message.recipe?.topNotes?.length > 0 // Add optional chaining here
+                  ? message.recipe.topNotes.map((note, index) => (
+                      <React.Fragment key={`top-${index}`}>
+                        <Button
+                          variant="link"
+                          size="sm"
+                          className="p-0 h-auto text-sm md:text-base text-primary hover:underline inline"
+                          onClick={() => onScentClick?.(note.name)}
+                          disabled={isLoading}
+                        >
+                          {note.name}
+                        </Button>
+                        {index < (message.recipe?.topNotes?.length ?? 0) - 1 && <span className="mx-1">,</span>} {/* Add optional chaining and nullish coalescing */}
+                      </React.Fragment>
+                    ))
                   : "なし"}
               </li>
-              <li>
-                <strong>ミドル:</strong>{" "}
-                {message.recipe.middleNotes?.length > 0
-                  ? message.recipe.middleNotes.map(note => `${note.name} (${note.amount})`).join(", ")
+              <li className="flex items-center flex-wrap"> {/* Use flex for inline display */}
+                <strong className="mr-1">ミドル:</strong>{" "}
+                {message.recipe?.middleNotes?.length > 0 // Add optional chaining here
+                  ? message.recipe.middleNotes.map((note, index) => (
+                      <React.Fragment key={`middle-${index}`}>
+                        <Button
+                          variant="link"
+                          size="sm"
+                          className="p-0 h-auto text-sm md:text-base text-primary hover:underline inline"
+                          onClick={() => onScentClick?.(note.name)}
+                          disabled={isLoading}
+                        >
+                          {note.name}
+                        </Button>
+                        {index < (message.recipe?.middleNotes?.length ?? 0) - 1 && <span className="mx-1">,</span>} {/* Add optional chaining and nullish coalescing */}
+                      </React.Fragment>
+                    ))
                   : "なし"}
               </li>
-              <li>
-                <strong>ベース:</strong>{" "}
-                {message.recipe.baseNotes?.length > 0
-                  ? message.recipe.baseNotes.map(note => `${note.name} (${note.amount})`).join(", ")
+              <li className="flex items-center flex-wrap"> {/* Use flex for inline display */}
+                <strong className="mr-1">ベース:</strong>{" "}
+                {message.recipe?.baseNotes?.length > 0 // Add optional chaining here
+                  ? message.recipe.baseNotes.map((note, index) => (
+                      <React.Fragment key={`base-${index}`}>
+                        <Button
+                          variant="link"
+                          size="sm"
+                          className="p-0 h-auto text-sm md:text-base text-primary hover:underline inline"
+                          onClick={() => onScentClick?.(note.name)}
+                          disabled={isLoading}
+                        >
+                          {note.name}
+                        </Button>
+                        {index < (message.recipe?.baseNotes?.length ?? 0) - 1 && <span className="mx-1">,</span>} {/* Add optional chaining and nullish coalescing */}
+                      </React.Fragment>
+                    ))
                   : "なし"}
               </li>
             </ul>

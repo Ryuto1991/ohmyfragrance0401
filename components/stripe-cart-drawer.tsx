@@ -96,10 +96,15 @@ export default function StripeCartDrawer({ open, onOpenChange }: StripeCartDrawe
       // カスタム商品が含まれている場合
       if (orderDetails.length > 0) {
         console.log('Processing custom product checkout');
-        const firstOrder = orderDetails[0];
-        
-        // 必須パラメータの検証
-        if (!firstOrder.n || !firstOrder.bn || !firstOrder.u) {
+        // 最初のカスタムアイテムから詳細情報を取得
+        const firstCustomItem = cartItems.find(item => item.customProductId);
+        if (!firstCustomItem || !firstCustomItem.customDetails) {
+          throw new Error('カスタム商品の詳細情報が見つかりません');
+        }
+        const customDetails = firstCustomItem.customDetails;
+
+        // 必須パラメータの検証 (customDetailsから取得)
+        if (!customDetails.fragranceName || !customDetails.bottleName || !customDetails.labelImageUrl) {
           throw new Error('カスタム商品の必須情報が不足しています');
         }
 
@@ -110,11 +115,16 @@ export default function StripeCartDrawer({ open, onOpenChange }: StripeCartDrawe
           },
           body: JSON.stringify({
             line_items: lineItems,
-            orderDetails: orderDetails,
-            fragranceName: firstOrder.n,
-            bottleType: firstOrder.bn,
-            imageKey: firstOrder.u,
-            finalImageKey: firstOrder.u,
+            orderDetails: orderDetails, // orderDetailsは圧縮された情報
+            // --- APIに渡すトップレベルの情報をcustomDetailsから取得 ---
+            fragranceName: customDetails.fragranceName,
+            bottleType: customDetails.bottleName,
+            imageKey: customDetails.imageKey, // 修正: customDetailsから取得
+            finalImageKey: customDetails.finalImageKey, // 修正: customDetailsから取得
+            originalImageUrl: customDetails.originalImageUrl, // 追加
+            recipe: customDetails.recipe, // 追加
+            mode: customDetails.recipe ? JSON.parse(customDetails.recipe).mode : 'custom', // recipeからmodeを抽出 (なければ'custom')
+            // --- ここまで ---
             userId: userId,
             anonymousId: !userId ? anonymousId : undefined,
             customer_email: 'required',
@@ -314,4 +324,4 @@ export default function StripeCartDrawer({ open, onOpenChange }: StripeCartDrawe
       </SheetContent>
     </Sheet>
   );
-} 
+}

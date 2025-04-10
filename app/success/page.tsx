@@ -49,7 +49,7 @@ export default function SuccessPage() {
               <Link href="/">
                 <Button className="w-full">トップページへ戻る</Button>
               </Link>
-              <Link href="/oh-my-custom-order">
+              <Link href="/custom-order?mode=custom"> {/* リンク修正 */}
                 <Button variant="outline" className="w-full">
                   他の商品を見る
                 </Button>
@@ -72,4 +72,4 @@ export default function SuccessPage() {
       </div>
     </div>
   );
-} 
+}

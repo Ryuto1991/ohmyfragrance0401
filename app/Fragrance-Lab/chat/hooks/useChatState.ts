@@ -15,7 +15,7 @@ import { addErrorInfo } from '@/lib/chat-utils'; // Keep error utility
 
 // Remove initialSelectedScents
 
-// メッセージの初期状態 (No change needed here)
+// メッセージの初期状態 (分割)
 const initialMessageState = (initialMessages: Message[]): Message[] =>
   initialMessages.length > 0
     ? initialMessages
@@ -23,8 +23,14 @@ const initialMessageState = (initialMessages: Message[]): Message[] =>
         {
           id: uuid(),
           role: 'assistant' as const,
-          content: '今日はどんな香りつくる？',
+          content: '今日はどんな香りつくる？💖✨',
           timestamp: Date.now(),
+        },
+        {
+          id: uuid(),
+          role: 'assistant' as const,
+          content: '私と会話して作りたい内容決まったと思ったら、レシピを生成するボタン押してね',
+          timestamp: Date.now() + 1, // Ensure unique timestamp/order
         },
       ];
 
@@ -293,5 +299,6 @@ export function useChatState(options: Partial<ChatFlowOptions> = {}) {
     generateRecipe, // Renamed function
     resetChat,
     // Removed: updatePhase, updateSelectedScents, handleChoiceClick, handleConfirmSelection, handleGoToOrder
+    setMessages, // Expose setMessages for direct manipulation (e.g., follow-up)
   };
 }

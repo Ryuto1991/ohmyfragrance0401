@@ -17,13 +17,12 @@ export function ChatMessage({ isAi, children, avatar }: ChatMessageProps) {
             <Avatar className="h-8 w-8 bg-primary text-white">
               <span className="text-xs">AI</span>
             </Avatar>
-          </div>
-        )}
-        <div className={cn("rounded-lg p-4", isAi ? "bg-white text-secondary-foreground" : "bg-primary text-white")}>
-          {children}
-        </div>
-      </div>
+           </div>
+         )}
+         <div className={cn("rounded-lg p-4", isAi ? "bg-white text-secondary-foreground" : "bg-indigo-500 text-white")}>
+           {children}
+         </div>
+       </div>
     </div>
   )
 }
-
