@@ -151,13 +151,23 @@ export default function StripeCartDrawer({ open, onOpenChange }: StripeCartDrawe
         const stripe = await getStripe();
         
         if (stripe) {
-          const { error } = await stripe.redirectToCheckout({
-            sessionId: checkoutData.sessionId
-          });
-
-          if (error) {
-            console.error('Error redirecting to checkout:', error);
-            throw error;
+          // Check if running inside an iframe
+          if (window.parent !== window) {
+            // Send message to parent window to handle redirection
+            window.parent.postMessage({
+              type: 'stripeRedirect',
+              sessionId: checkoutData.sessionId
+            }, '*'); // Consider specifying a target origin instead of '*' for security
+            console.log('Sent stripeRedirect message to parent window for custom product');
+          } else {
+            // Fallback for non-iframe environments
+            const { error } = await stripe.redirectToCheckout({
+              sessionId: checkoutData.sessionId
+            });
+            if (error) {
+              console.error('Error redirecting to checkout:', error);
+              throw error;
+            }
           }
         }
       } else {
@@ -192,13 +202,23 @@ export default function StripeCartDrawer({ open, onOpenChange }: StripeCartDrawe
         const stripe = await getStripe();
         
         if (stripe) {
-          const { error } = await stripe.redirectToCheckout({
-            sessionId: checkoutData.sessionId
-          });
-
-          if (error) {
-            console.error('Error redirecting to checkout:', error);
-            throw error;
+          // Check if running inside an iframe
+          if (window.parent !== window) {
+            // Send message to parent window to handle redirection
+            window.parent.postMessage({
+              type: 'stripeRedirect',
+              sessionId: checkoutData.sessionId
+            }, '*'); // Consider specifying a target origin instead of '*' for security
+            console.log('Sent stripeRedirect message to parent window for regular product');
+          } else {
+            // Fallback for non-iframe environments
+            const { error } = await stripe.redirectToCheckout({
+              sessionId: checkoutData.sessionId
+            });
+            if (error) {
+              console.error('Error redirecting to checkout:', error);
+              throw error;
+            }
           }
         }
       }

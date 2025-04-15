@@ -2,11 +2,14 @@ import { useState } from "react";
 import { Info, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { cn } from "@/lib/utils"; // Import cn utility
 
-// No props needed for static tips
-type TipsSidebarProps = {};
+// Update props to include className
+type TipsSidebarProps = {
+  className?: string; // Add optional className prop
+};
 
-export function TipsSidebar({}: TipsSidebarProps) {
+export function TipsSidebar({ className }: TipsSidebarProps) { // Destructure className
   const [isOpen, setIsOpen] = useState(true); // State to control visibility
 
   // Static content for tabs
@@ -79,9 +82,12 @@ export function TipsSidebar({}: TipsSidebarProps) {
 
   // Render the sidebar content
   return (
-    // Remove 'hidden' and 'sm:block' to make it always visible initially
+    // Apply className prop using cn()
     <div
-      className="fixed bottom-20 right-4 z-50 w-64 bg-white p-4 rounded-lg shadow-lg border"
+      className={cn(
+        "fixed bottom-20 right-4 z-50 w-64 bg-white p-4 rounded-lg shadow-lg border",
+        className // Merge passed className
+      )}
     >
       <div className="flex justify-between items-center mb-3">
         <h2 className="text-sm font-medium">ヒント</h2>
@@ -89,9 +95,9 @@ export function TipsSidebar({}: TipsSidebarProps) {
       <Button
         variant="outline"
         size="icon"
-        className="fixed bottom-20 right-4 z-50 flex" // Make re-open button always flex
-        onClick={() => setIsOpen(true)}
-        title="ヒントを表示"
+        className="h-6 w-6" // Use simple size classes for the close button itself
+        onClick={() => setIsOpen(false)} // Corrected: Set isOpen to false to close
+        title="ヒントを閉じる" // Updated title
       >
           <X className="h-4 w-4" />
         </Button>

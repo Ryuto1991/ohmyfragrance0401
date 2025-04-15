@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
@@ -400,8 +401,8 @@ export function FragranceAIChat({ initialQuery }: { initialQuery?: string }) {
       {/* Optional: Modal or section to display generatedRecipe when available */}
       {/* {generatedRecipe && showRecipe && ( ... display recipe ... )} */}
 
-      {/* Render TipsSidebar */}
-      <TipsSidebar />
+      {/* Render TipsSidebar - Hide on mobile (default), show on md and up */}
+      <TipsSidebar className="hidden md:block" />
     </div>
   );
 }
