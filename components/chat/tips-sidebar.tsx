@@ -79,18 +79,20 @@ export function TipsSidebar({}: TipsSidebarProps) {
 
   // Render the sidebar content
   return (
+    // Remove 'hidden' and 'sm:block' to make it always visible initially
     <div
-      className="fixed bottom-20 right-4 z-50 w-64 bg-white p-4 rounded-lg shadow-lg border hidden sm:block" // Keep hidden on small screens
+      className="fixed bottom-20 right-4 z-50 w-64 bg-white p-4 rounded-lg shadow-lg border"
     >
       <div className="flex justify-between items-center mb-3">
         <h2 className="text-sm font-medium">ヒント</h2>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-6 w-6 p-0"
-          onClick={() => setIsOpen(false)}
-          title="閉じる"
-        >
+      {/* Also remove responsive classes from the re-open button if needed, or adjust logic */}
+      <Button
+        variant="outline"
+        size="icon"
+        className="fixed bottom-20 right-4 z-50 flex" // Make re-open button always flex
+        onClick={() => setIsOpen(true)}
+        title="ヒントを表示"
+      >
           <X className="h-4 w-4" />
         </Button>
       </div>

@@ -14,7 +14,8 @@ export default function FragranceLabPage() {
   return (
     <div className="min-h-screen bg-secondary flex flex-col">
       <SiteHeader />
-      <main className="flex-1 flex items-center justify-center px-4 py-12">
+      {/* items-center を削除し、pt-28 を追加 */}
+      <main className="flex-1 flex justify-center px-4 py-12 pt-28">
         <div className="w-full max-w-3xl text-center">
           <h1 className="text-3xl font-bold mb-4">香りをつくる</h1>
           {query && (
@@ -60,4 +61,4 @@ export default function FragranceLabPage() {
       <SiteFooter />
     </div>
   )
-} 
+}

@@ -5,8 +5,9 @@ test.describe('フレグランスチャット E2Eテスト', () => {
     // チャットページに移動
     await page.goto('/fragrance-lab/chat');
     
-    // ページが完全に読み込まれるのを待つ
+    // h1が表示され、かつテキストエリアが表示されるのを待つ
     await page.waitForSelector('h1');
+    await page.waitForSelector('textarea');
   });
 
   test('初期ロードと基本UI要素の確認', async ({ page }) => {
@@ -30,17 +31,21 @@ test.describe('フレグランスチャット E2Eテスト', () => {
     
     // 送信ボタンをクリック
     await page.click('button[type="submit"]');
-    
-    // 応答が返ってくるのを待つ
-    await page.waitForTimeout(3000);
-    
+
+    // 応答メッセージが表示されるのを待つ (ユーザーメッセージ + 初期メッセージ + 応答 = 3つ以上)
+    // メッセージ要素の数が3つになるまで待機
+    await page.waitForFunction(() => document.querySelectorAll('[class*="chat-message"]').length === 3);
+
+
     // ユーザーメッセージと応答が表示されていることを確認
-    const messages = await page.$$('[class*="chat-message"]');
-    expect(messages.length).toBeGreaterThan(1);
-    
-    // 最新のメッセージがユーザーメッセージであることを確認
-    const userMessages = await page.$$('[class*="user"]');
-    expect(await userMessages[userMessages.length - 1].textContent()).toContain('こんにちは');
+    const messages = await page.locator('[class*="chat-message"]');
+    await expect(messages).toHaveCount(3); // 初期メッセージ + ユーザー + 応答
+
+    // 最新のメッセージがボットからの応答であることを確認 (例: 'user' クラスがないことを確認)
+    const lastMessage = messages.last();
+    await expect(lastMessage).not.toHaveClass(/user/);
+    // 必要であれば、応答内容の一部を検証
+    // await expect(lastMessage).toContainText('何かお手伝いできることはありますか？'); // 例
   });
 
   test('選択肢をクリックしてフェーズを進める', async ({ page }) => {
@@ -57,29 +62,28 @@ test.describe('フレグランスチャット E2Eテスト', () => {
     // 選択肢をクリック
     const choiceButtons = await page.$$('[class*="choice-button"]');
     await choiceButtons[0].click();
-    
-    // 応答とフェーズの更新を待つ
-    await page.waitForTimeout(3000);
-    
-    // トップノートのフェーズに移行していることを確認
+
+    // トップノートのフェーズに移行し、選択肢が表示されるのを待つ
     await expect(page.locator('.flex.md\\:hidden .text-xs')).toContainText('トップノート');
-    
+    await page.waitForSelector('[class*="choice-button"]', { timeout: 10000 }); // Wait for new choices
+
     // トップノートの選択肢をクリック
-    const topNoteButtons = await page.$$('[class*="choice-button"]');
-    await topNoteButtons[0].click();
-    
-    // 応答とフェーズの更新を待つ
-    await page.waitForTimeout(3000);
-    
-    // ミドルノートのフェーズに移行していることを確認
+    // Note: Re-querying buttons as the DOM might have changed
+    const topNoteButtons = await page.locator('[class*="choice-button"]');
+    await topNoteButtons.first().click();
+
+    // ミドルノートのフェーズに移行し、選択肢が表示されるのを待つ
     await expect(page.locator('.flex.md\\:hidden .text-xs')).toContainText('ミドルノート');
+    await page.waitForSelector('[class*="choice-button"]', { timeout: 10000 }); // Wait for new choices
   });
 
   test('完全なフローで注文ボタンが有効になることを確認', async ({ page }) => {
     // チャットをリセット
     await page.click('button:has-text("リセット")');
-    await page.waitForTimeout(1000);
-    
+    // リセットが完了し、初期メッセージが表示されるのを待つ
+    await page.waitForFunction(() => document.querySelectorAll('[class*="chat-message"]').length === 1); // Assuming 1 initial message
+    await expect(page.locator('.flex.md\\:hidden .text-xs')).toContainText('イメージ入力'); // Check initial phase
+
     // 要件を入力
     await page.fill('textarea', '爽やかなリラックス系の香りが欲しい');
     await page.click('button[type="submit"]');
@@ -103,28 +107,26 @@ test.describe('フレグランスチャット E2Eテスト', () => {
     await page.waitForSelector('[class*="choice-button"]', { timeout: 10000 });
     const baseNoteButtons = await page.$$('[class*="choice-button"]');
     await baseNoteButtons[0].click();
-    
-    // 完了フェーズに移行するのを待つ
-    await page.waitForTimeout(5000);
-    
-    // 注文ボタンが有効になっていることを確認
+
+    // 完了フェーズに移行し、注文ボタンが表示され有効になるのを待つ
+    await expect(page.locator('.flex.md\\:hidden .text-xs')).toContainText('完了');
     const orderButton = await page.locator('button:has-text("注文する")');
+    await expect(orderButton).toBeVisible({ timeout: 10000 }); // Wait for button to appear
     await expect(orderButton).toBeEnabled();
   });
 
   test('おまかせボタンが機能することを確認', async ({ page }) => {
     // チャットをリセット
     await page.click('button:has-text("リセット")');
-    await page.waitForTimeout(1000);
-    
+    // リセットが完了し、初期メッセージが表示されるのを待つ
+    await page.waitForFunction(() => document.querySelectorAll('[class*="chat-message"]').length === 1); // Assuming 1 initial message
+    await expect(page.locator('.flex.md\\:hidden .text-xs')).toContainText('イメージ入力'); // Check initial phase
+
     // おまかせボタンをクリック
     await page.click('button:has-text("おまかせ")');
-    
-    // 完了フェーズに移行するのを待つ
-    await page.waitForTimeout(5000);
-    
-    // 完了フェーズになっていることを確認
-    await expect(page.locator('.flex.md\\:hidden .text-xs')).toContainText('完了');
+
+    // 完了フェーズに移行し、注文ボタンが表示され有効になるのを待つ
+    await expect(page.locator('.flex.md\\:hidden .text-xs')).toContainText('完了', { timeout: 15000 }); // Increased timeout for potentially long operation
     
     // レシピ情報が表示されていることを確認
     const lastMessage = await page.locator('[class*="chat-message"]:last-child');
@@ -132,6 +134,7 @@ test.describe('フレグランスチャット E2Eテスト', () => {
     
     // 注文ボタンが有効になっていることを確認
     const orderButton = await page.locator('button:has-text("注文する")');
+    await expect(orderButton).toBeVisible({ timeout: 10000 }); // Wait for button to appear
     await expect(orderButton).toBeEnabled();
   });
 
@@ -143,19 +146,23 @@ test.describe('フレグランスチャット E2Eテスト', () => {
     // メッセージを送信して会話を進める
     await page.fill('textarea', 'テスト');
     await page.click('button[type="submit"]');
-    await page.waitForTimeout(3000);
-    
+    // 応答メッセージが表示されるのを待つ (メッセージ数が initialCount + 2 になるまで)
+    await page.waitForFunction((initialCount) => document.querySelectorAll('[class*="chat-message"]').length === initialCount + 2, initialCount);
+
+
     // メッセージ数が増えていることを確認
-    const messagesAfterSend = await page.$$('[class*="chat-message"]');
-    expect(messagesAfterSend.length).toBeGreaterThan(initialCount);
-    
+    const messagesAfterSend = await page.locator('[class*="chat-message"]');
+    await expect(messagesAfterSend).toHaveCount(initialCount + 2);
+
     // リセットボタンをクリック
     await page.click('button:has-text("リセット")');
-    await page.waitForTimeout(1000);
-    
+    // リセットが完了し、メッセージ数が初期状態に戻るのを待つ
+    await page.waitForFunction((initialCount) => document.querySelectorAll('[class*="chat-message"]').length === initialCount, initialCount);
+
+
     // メッセージ数が初期状態に戻っていることを確認
-    const messagesAfterReset = await page.$$('[class*="chat-message"]');
-    expect(messagesAfterReset.length).toBe(initialCount);
+    const messagesAfterReset = await page.locator('[class*="chat-message"]');
+    await expect(messagesAfterReset).toHaveCount(initialCount);
   });
 
   test('パフォーマンスチェック: レンダリング速度', async ({ page }) => {

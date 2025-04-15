@@ -71,7 +71,8 @@ export default function AutoScrollShowcase() {
         >
           {displayItems.map((item, index) => (
             <Link href={item.link} key={`${item.id}-${index}`} className="flex-shrink-0">
-              <div className="w-[280px] md:w-[320px] mx-3 overflow-hidden group hover:-translate-y-1 transition-transform duration-300">
+              {/* モバイルでの幅を 240px に変更 */}
+              <div className="w-[240px] md:w-[320px] mx-3 overflow-hidden group hover:-translate-y-1 transition-transform duration-300">
                 <div className="relative aspect-[4/3] overflow-hidden bg-white flex items-center justify-center">
                   <Image
                     src={item.image || "/placeholder.svg"}
@@ -128,4 +129,3 @@ export default function AutoScrollShowcase() {
     </div>
   )
 }
-

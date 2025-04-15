@@ -44,7 +44,7 @@ export const MessageItem = React.memo(({
   // const handleChoiceClick = (choice: ChoiceOption) => { ... };
 
   // Function to parse content and replace scent names with buttons
-  const renderContentWithScentButtons = (content: string) => {
+  const renderContentWithScentButtons = (content: string, role: 'user' | 'assistant' | 'system' | 'function') => {
     if (!scentNames || scentNames.length === 0 || !onScentClick) {
       return <p className="mb-3">{content}</p>; // Return plain text if no scents or handler
     }
@@ -58,6 +58,9 @@ export const MessageItem = React.memo(({
 
     const parts = content.split(regex);
 
+    // Determine the color class based on the message role
+    const textColorClass = role === 'user' ? 'text-blue-600' : 'text-primary-medium';
+
     return (
       <p className="mb-3 leading-relaxed">
         {parts.map((part, index) => {
@@ -70,7 +73,7 @@ export const MessageItem = React.memo(({
                 key={index}
                 variant="link"
                 size="sm"
-                className="p-0 h-auto text-sm md:text-base text-primary hover:underline inline"
+                className={cn("p-0 h-auto text-sm md:text-base hover:underline inline", textColorClass)}
                 onClick={() => onScentClick(matchedScent)}
                 disabled={isLoading}
               >
@@ -112,8 +115,8 @@ export const MessageItem = React.memo(({
             : 'bg-white rounded-tl-none shadow-sm'
         )}
       >
-        {/* Display message text content with scent buttons */}
-        {text && renderContentWithScentButtons(text)}
+        {/* Display message text content with scent buttons, passing the role */}
+        {text && renderContentWithScentButtons(text, message.role)}
 
         {/* Display recipe details if available */}
         {message.recipe && (
@@ -135,7 +138,7 @@ export const MessageItem = React.memo(({
                         <Button
                           variant="link"
                           size="sm"
-                          className="p-0 h-auto text-sm md:text-base text-primary hover:underline inline"
+                          className="p-0 h-auto text-sm md:text-base text-primary-medium hover:underline inline" // Use darker red for AI recipe notes
                           onClick={() => onScentClick?.(note.name)}
                           disabled={isLoading}
                         >
@@ -154,7 +157,7 @@ export const MessageItem = React.memo(({
                         <Button
                           variant="link"
                           size="sm"
-                          className="p-0 h-auto text-sm md:text-base text-primary hover:underline inline"
+                          className="p-0 h-auto text-sm md:text-base text-primary-medium hover:underline inline" // Use darker red for AI recipe notes
                           onClick={() => onScentClick?.(note.name)}
                           disabled={isLoading}
                         >
@@ -173,7 +176,7 @@ export const MessageItem = React.memo(({
                         <Button
                           variant="link"
                           size="sm"
-                          className="p-0 h-auto text-sm md:text-base text-primary hover:underline inline"
+                          className="p-0 h-auto text-sm md:text-base text-primary-medium hover:underline inline" // Use darker red for AI recipe notes
                           onClick={() => onScentClick?.(note.name)}
                           disabled={isLoading}
                         >

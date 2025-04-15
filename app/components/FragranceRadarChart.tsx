@@ -33,7 +33,8 @@ export function FragranceRadarChart({ scores }: FragranceRadarChartProps) {
       <ResponsiveContainer width="100%" height="100%">
         <RadarChart cx="50%" cy="50%" outerRadius="80%" data={data}>
           <PolarGrid />
-          <PolarAngleAxis dataKey="name" />
+          {/* ラベルのフォントサイズを小さく調整 */}
+          <PolarAngleAxis dataKey="name" tick={{ fontSize: 10 }} />
           <PolarRadiusAxis angle={90} domain={[0, 10]} />
           <Radar
             name="香りの特徴"
@@ -46,4 +47,4 @@ export function FragranceRadarChart({ scores }: FragranceRadarChartProps) {
       </ResponsiveContainer>
     </div>
   )
-} 
+}

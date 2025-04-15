@@ -8,7 +8,8 @@ import { Loader2, AlertTriangle, Info } from "lucide-react"
 import Link from 'next/link'; // Add Link import
 import SiteHeader from "@/components/site-header"
 import SiteFooter from "@/components/site-footer"
-import { createClient } from '@supabase/supabase-js'
+// Remove createClient import, import supabase instance instead
+import { supabase } from "@/lib/supabase";
 import { useRouter } from 'next/navigation'
 import { FragranceRadarChart } from "../../components/FragranceRadarChart"
 import { calculateFragranceScore } from "../../lib/fragrance-score"
@@ -23,10 +24,13 @@ interface FragranceRecipe {
   }
 }
 
+// Remove the direct createClient call here
+/*
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
+*/
 
 // 例のリスト
 const EXAMPLE_PHRASES = [
@@ -106,7 +110,17 @@ export default function FragranceGeneratorPage() {
   const [retryCount, setRetryCount] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [hasProcessedInitialQuery, setHasProcessedInitialQuery] = useState(false)
-  const [retryMode, setRetryMode] = useState(false)
+  const [retryMode, setRetryMode] = useState(false);
+  // State for the placeholder, initialized with a default or empty
+  const [displayPlaceholder, setDisplayPlaceholder] = useState("例：大切な人との休日"); // Default placeholder
+  const [isPageMounted, setIsPageMounted] = useState(false); // Add mount state for the page
+
+  // Set random placeholder only on the client-side after mount
+  useEffect(() => {
+    const randomPlaceholder = EXAMPLE_PHRASES[Math.floor(Math.random() * EXAMPLE_PHRASES.length)];
+    setDisplayPlaceholder(`例：${randomPlaceholder}`);
+    setIsPageMounted(true); // Set page as mounted
+  }, []); // Empty dependency array ensures this runs only once on mount
 
   const handleGenerate = async () => {
     if (!query.trim()) return
@@ -225,17 +239,18 @@ export default function FragranceGeneratorPage() {
     }
   }
 
-  // ランダムなプレースホルダーを選択
-  const randomPlaceholder = EXAMPLE_PHRASES[Math.floor(Math.random() * EXAMPLE_PHRASES.length)]
+  // ランダムなプレースホルダーの選択ロジックは useEffect に移動
 
   return (
     <div className="min-h-screen bg-secondary flex flex-col">
       <SiteHeader />
-      <main className="flex-1">
+      {/* Remove flex-1, keep pt-28 */}
+      <main className="pt-28">
         <div className="container mx-auto px-4 py-8">
           {!recipe ? (
             // レシピがない場合は中央に検索バーを表示
-            <div className="flex flex-col items-center justify-center min-h-[70vh]">
+            // Remove justify-center and min-h-[70vh], add mt-8 for top margin
+            <div className="flex flex-col items-center mt-8">
               <div className="max-w-2xl w-full text-center mb-12">
                 <h1 className="text-4xl font-bold mb-4">⚡ クイックモード</h1>
                 <p className="text-xl text-muted-foreground mb-2">
@@ -250,10 +265,11 @@ export default function FragranceGeneratorPage() {
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     onKeyDown={handleKeyDown}
-                    placeholder={query ? "" : `例：${randomPlaceholder}`}
+                    // Use the state variable for the placeholder
+                    placeholder={query ? "" : displayPlaceholder}
                     className="h-14 pl-4 pr-32 text-lg rounded-full shadow-lg"
                   />
-                  <Button 
+                  <Button
                     onClick={handleGenerate} 
                     disabled={isLoading || !query.trim()}
                     className="absolute right-1 top-1 h-12 rounded-full px-6"
@@ -281,7 +297,8 @@ export default function FragranceGeneratorPage() {
 
                 {/* Add the Chat Mode button */}
                 <div className="mt-12 text-center"> {/* text-center を追加 */}
-                  <Link href="/fragrance-lab/chat" passHref legacyBehavior>
+                  {/* Remove legacyBehavior and passHref, wrap Button directly */}
+                  <Link href="/fragrance-lab/chat">
                     <Button
                       variant="outline"
                       className="rounded-full px-6 py-2 text-lg border border-input bg-background hover:bg-accent hover:text-accent-foreground"
@@ -308,7 +325,8 @@ export default function FragranceGeneratorPage() {
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder={query ? "" : `例：${randomPlaceholder}`}
+                  // Use the state variable for the placeholder
+                  placeholder={query ? "" : displayPlaceholder}
                   className="flex-1"
                   disabled={isLoading}
                 />
@@ -392,13 +410,16 @@ export default function FragranceGeneratorPage() {
                   <h2 className="text-xl font-bold mb-6">生成されたレシピ</h2>
                   <div className="space-y-4">
                     <h3 className="text-lg font-semibold">香りの特徴</h3>
-                    <FragranceRadarChart 
-                      scores={calculateFragranceScore([
-                        ...recipe.notes.top,
-                        ...recipe.notes.middle,
-                        ...recipe.notes.base
-                      ])} 
-                    />
+                    {/* Only render chart when page is mounted and recipe exists */}
+                    {isPageMounted && recipe && (
+                      <FragranceRadarChart
+                        scores={calculateFragranceScore([
+                          ...recipe.notes.top,
+                          ...recipe.notes.middle,
+                          ...recipe.notes.base
+                        ])}
+                      />
+                    )}
                   </div>
                 </div>
               </div>

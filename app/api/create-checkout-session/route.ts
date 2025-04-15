@@ -67,6 +67,10 @@ export async function POST(request: Request) {
       ],
       shipping_address_collection: {
         allowed_countries: ['JP'], // 日本のみ許可
+      },
+      billing_address_collection: 'required', // 請求先住所（名前含む）の収集を必須にする
+      phone_number_collection: { // 電話番号の収集を有効にする
+        enabled: true
       }
     };
 

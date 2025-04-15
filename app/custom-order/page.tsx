@@ -455,34 +455,39 @@ export default function PerfumeOrderingPage() {
     { id: "black", name: "マットブラック", image: "/labels/Black_bottle.png", price: 4980 },
   ]
 
+  // Add className for dynamic sizing
   const labelSizes = [
     {
       id: "large",
       name: "大",
       description: "縦5.5cm × 横4.0cm",
       width: 4.0,
-      height: 5.5
+      height: 5.5,
+      className: "w-[23%] h-[37%]" // Halved percentage for Large
     },
     {
       id: "medium",
       name: "中",
       description: "縦5.0cm × 横3.5cm",
       width: 3.5,
-      height: 5.0
+      height: 5.0,
+      className: "w-[20%] h-[34%]" // Halved percentage for Medium
     },
     {
       id: "small",
       name: "小",
       description: "縦4.5cm × 横3.0cm",
       width: 3.0,
-      height: 4.5
+      height: 4.5,
+      className: "w-[17%] h-[30%]" // Halved percentage for Small
     },
     {
       id: "square",
       name: "スクエア",
       description: "縦4.5cm × 横4.5cm",
       width: 4.5,
-      height: 4.5
+      height: 4.5,
+      className: "w-[26%] aspect-square" // Reverted to original size
     }
   ]
 
@@ -1531,22 +1536,15 @@ export default function PerfumeOrderingPage() {
                   )}
 
                   {selectedLabelSize && (
-                    <div 
-                      className="absolute"
-                      style={{
-                        width: `${labelSizes.find((s) => s.id === selectedLabelSize)?.width}cm`,
-                        height: `${labelSizes.find((s) => s.id === selectedLabelSize)?.height}cm`,
-                        left: '50%',
-                        top: '60%',
-                        transform: 'translate(-50%, -50%)',
-                        position: 'absolute',
-                        backgroundColor: 'white',
-                        borderRadius: '4px'
-                      }}
+                    // Apply dynamic className based on selectedLabelSize
+                    <div
+                      className={cn(
+                        "absolute left-1/2 top-[59%] -translate-x-1/2 -translate-y-1/2 border-2 border-gray-300 rounded overflow-hidden bg-white", // Base classes
+                        labelSizes.find((s) => s.id === selectedLabelSize)?.className || "w-[35%] h-[45%]" // Dynamic size class + default
+                      )}
                     >
-                      <div className="absolute inset-0 border-2 border-gray-300 rounded overflow-hidden">
-                        {uploadedImage && (
-                          <div
+                      {uploadedImage && (
+                        <div
                             className={`absolute inset-0 ${isMoving ? 'cursor-move' : ''}`}
                             style={{
                               transform: `translate(${imageTransform.x}px, ${imageTransform.y}px) scale(${imageTransform.scale}) rotate(${imageTransform.rotation}deg)`,
@@ -1572,7 +1570,7 @@ export default function PerfumeOrderingPage() {
                           </div>
                         )}
                       </div>
-                    </div>
+                    // Closing tag for intermediate div removed
                   )}
                 </div>
               </div>

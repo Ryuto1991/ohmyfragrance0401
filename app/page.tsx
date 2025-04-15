@@ -192,9 +192,7 @@ export default function Home() {
                     transition={{ delay: 0.8 }}
                     style={{ willChange: "transform, opacity" }}
                   >
-                    Oh my fragranceは、AIと会話しながら"あなただけの香り"を
-                    <br />
-                    一緒につくるカスタムフレグランスサービスです。
+                    Oh my fragranceは、AIと会話しながら"あなただけの香り"を一緒につくるカスタムフレグランスサービスです。
                   </motion.p>
 
 
@@ -871,4 +869,3 @@ export default function Home() {
     </LazyMotion>
   )
 }
-
