@@ -1,18 +1,18 @@
 import { memo, useMemo } from 'react'
-import { OptimizedImage } from './optimized-image'
+// import { OptimizedImage } from './optimized-image' // Removed import
 import { VirtualizedList } from './virtualized-list'
 
-// メモ化された画像コンポーネント
-export const MemoizedImage = memo(OptimizedImage, (prevProps, nextProps) => {
-  return (
-    prevProps.src === nextProps.src &&
-    prevProps.alt === nextProps.alt &&
-    prevProps.width === nextProps.width &&
-    prevProps.height === nextProps.height &&
-    prevProps.className === nextProps.className &&
-    prevProps.priority === nextProps.priority
-  )
-})
+// メモ化された画像コンポーネント (削除)
+// export const MemoizedImage = memo(OptimizedImage, (prevProps, nextProps) => {
+//   return (
+//     prevProps.src === nextProps.src &&
+//     prevProps.alt === nextProps.alt &&
+//     prevProps.width === nextProps.width &&
+//     prevProps.height === nextProps.height &&
+//     prevProps.className === nextProps.className &&
+//     prevProps.priority === nextProps.priority
+//   )
+// })
 
 // メモ化されたリストコンポーネント
 export const MemoizedList = memo(VirtualizedList, (prevProps, nextProps) => {
@@ -48,4 +48,4 @@ export function useMemoizedSort<T>(
   sortFn: (a: T, b: T) => number
 ) {
   return useMemo(() => [...items].sort(sortFn), [items, sortFn])
-} 
+}
