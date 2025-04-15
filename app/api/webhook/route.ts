@@ -246,6 +246,32 @@ export async function POST(req: NextRequest) {
       }
       // --- スプレッドシート書き込み処理ここまで ---
 
+      // --- メール送信処理 ---
+      try {
+        console.log('📧 注文確認メール送信開始...');
+        const emailResult = await sendOrderConfirmationEmail({
+          customerEmail: session.customer_details?.email || customerEmail || '',
+          customerName: session.customer_details?.name || customerName || '',
+          // TODO: Consider summarizing if multiple items exist in parsedOrderDetails
+          fragranceName: fragranceName || (Array.isArray(parsedOrderDetails) && parsedOrderDetails[0]?.n) || 'ご注文の商品',
+          bottleType: bottleType || (Array.isArray(parsedOrderDetails) && parsedOrderDetails[0]?.bn) || '',
+          imageUrl: metaFinalImageUrl, // Use the final image URL from metadata
+          orderAmount: session.amount_total ? session.amount_total / 100 : 0,
+        });
+
+        if (emailResult.success) {
+          console.log('✅ 注文確認メール送信成功');
+        } else {
+          console.error('❌ 注文確認メール送信失敗:', emailResult.error);
+          // Log the error, but don't block the webhook response
+        }
+      } catch (emailError) {
+        console.error('❌ メール送信処理中に致命的なエラー:', emailError);
+        // Log the error, but don't block the webhook response
+      }
+      // --- メール送信処理ここまで ---
+
+
       // 成功レスポンスを返す
       return NextResponse.json({ received: true });
 

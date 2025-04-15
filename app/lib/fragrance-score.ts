@@ -1,5 +1,13 @@
-import { FragranceScore } from "@/components/FragranceRadarChart"
 import essentialOilsData from "@/components/chat/essential-oils.json"
+
+// Define the structure for the fragrance score based on usage
+interface FragranceScore {
+  sweetness: number;
+  freshness: number;
+  woody: number;
+  exotic: number;
+  cleanliness: number;
+}
 
 interface EssentialOil {
   name: string
@@ -100,4 +108,4 @@ export function calculateFragranceScore(recipe: { name: string; amount: number }
   })
 
   return scores
-} 
+}

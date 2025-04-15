@@ -4,7 +4,7 @@ const defaultMetadata = {
   title: 'Oh My Fragrance',
   description: 'あなただけのオリジナル香水を作成できるカスタムフレグランスサービス',
   keywords: '香水,フレグランス,カスタム,オリジナル,パーソナライズ',
-  authors: [{ name: 'Oh My Fragrance Team' }],
+  authors: [{ name: 'Oh My Fragrance Team' }] as { name: string }[], // Cast authors to mutable array
   creator: 'Oh My Fragrance',
   publisher: 'Oh My Fragrance',
   formatDetection: {
@@ -30,13 +30,13 @@ const defaultMetadata = {
         height: 630,
         alt: 'Oh My Fragrance',
       },
-    ],
+    ] as { url: string; width: number; height: number; alt: string }[], // Cast images to mutable array
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Oh My Fragrance',
     description: 'あなただけのオリジナル香水を作成できるカスタムフレグランスサービス',
-    images: ['/og-image.jpg'],
+    images: ['/og-image.jpg'] as string[], // Cast images to mutable array
     creator: '@ohmyfragrance',
   },
   robots: {
@@ -59,7 +59,7 @@ const defaultMetadata = {
   verification: {
     google: 'google-site-verification-code',
   },
-} as const
+} as const // Re-added 'as const'
 
 export function generateMetadata(
   overrides: Partial<Metadata> = {}
@@ -76,4 +76,4 @@ export function generateMetadata(
       ...overrides.twitter,
     },
   }
-} 
+}

@@ -54,11 +54,15 @@ export async function register() {
     if ('PerformanceObserver' in window) {
       const observer = new PerformanceObserver((list) => {
         for (const entry of list.getEntries()) {
-          reportWebVitals({
-            name: 'FID',
-            value: entry.processingStart - entry.startTime,
-            label: 'web-vital',
-          })
+          // Check entryType and cast to PerformanceEventTiming
+          if (entry.entryType === 'first-input') {
+            const firstInputEntry = entry as PerformanceEventTiming;
+            reportWebVitals({
+              name: 'FID',
+              value: firstInputEntry.processingStart - firstInputEntry.startTime,
+              label: 'web-vital',
+            })
+          }
         }
       })
       observer.observe({ entryTypes: ['first-input'] })
@@ -67,21 +71,25 @@ export async function register() {
     // CLS (Cumulative Layout Shift)
     if ('PerformanceObserver' in window) {
       let clsValue = 0
-      let clsEntries: any[] = []
+      let clsEntries: PerformanceEntry[] = [] // Use a more specific type if possible, or PerformanceEntry
       const observer = new PerformanceObserver((list) => {
         for (const entry of list.getEntries()) {
-          if (!entry.hadRecentInput) {
-            clsEntries.push(entry)
-            clsValue += entry.value
-            reportWebVitals({
-              name: 'CLS',
-              value: clsValue,
-              label: 'web-vital',
-            })
+          // Check entryType, cast to any (since LayoutShift type isn't found), then check hadRecentInput
+          if (entry.entryType === 'layout-shift') {
+            const layoutShiftEntry = entry as any; // Cast to any as LayoutShift is not found
+            if (!layoutShiftEntry.hadRecentInput) {
+              clsEntries.push(layoutShiftEntry);
+              clsValue += layoutShiftEntry.value;
+              reportWebVitals({
+                name: 'CLS',
+                value: clsValue,
+                label: 'web-vital',
+              });
+            } // <-- Added missing closing brace here
           }
         }
       })
       observer.observe({ entryTypes: ['layout-shift'] })
     }
   }
-} 
+}

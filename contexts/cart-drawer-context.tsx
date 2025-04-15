@@ -27,10 +27,10 @@ export const CartDrawerProvider: React.FC<CartDrawerProviderProps> = ({ children
   return (
     <CartDrawerContext.Provider
       value={{
-        isCartOpen,
-        openCartDrawer,
-        closeCartDrawer,
-        toggleCartDrawer,
+        isOpen: isCartOpen, // Rename isCartOpen to isOpen
+        openCart: openCartDrawer, // Rename openCartDrawer to openCart
+        closeCart: closeCartDrawer, // Rename closeCartDrawer to closeCart
+        // toggleCartDrawer removed as it's not in CartDrawerContextType
       }}
     >
       {children}
@@ -45,4 +45,4 @@ export const useCartDrawer = (): CartDrawerContextType => {
     throw new Error('useCartDrawer must be used within a CartDrawerProvider');
   }
   return context;
-}; 
+};

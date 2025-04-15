@@ -1,4 +1,6 @@
-import { type ChoiceOption, type Message, type ChatPhase, type FragranceRecipe } from '@/app/fragrance-lab/chat/types'
+// Import types, using FragranceRecipe from the root types directory
+import { type ChoiceOption, type Message, type ChatPhase } from '@/app/fragrance-lab/chat/types'
+import { type FragranceRecipe } from '@/types/chat-types' // Changed import source for FragranceRecipe
 
 // Add missing types for compatibility
 export type Choice = ChoiceOption;
