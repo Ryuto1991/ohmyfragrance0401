@@ -1,5 +1,5 @@
+import React, { Suspense } from 'react'; // Import React
 import dynamic from 'next/dynamic'
-import { Suspense } from 'react'
 
 // ローディングコンポーネント
 function LoadingSpinner() {
@@ -83,18 +83,18 @@ class ErrorBoundary extends React.Component<
   }
 }
 
-// 使用例
-export const LazyModal = lazyLoad(
-  () => import('@/components/Modal'),
-  { ssr: false }
-)
-
-export const LazyChart = lazyLoad(
-  () => import('@/components/Chart'),
-  { ssr: false }
-)
-
-export const LazyForm = lazyLoad(
-  () => import('@/components/Form'),
-  { ssr: true }
-) 
+// 使用例 (削除)
+// export const LazyModal = lazyLoad(
+//   () => import('@/components/Modal'),
+//   { ssr: false }
+// )
+//
+// export const LazyChart = lazyLoad(
+//   () => import('@/components/Chart'),
+//   { ssr: false }
+// )
+//
+// export const LazyForm = lazyLoad(
+//   () => import('@/components/Form'),
+//   { ssr: true }
+// )
