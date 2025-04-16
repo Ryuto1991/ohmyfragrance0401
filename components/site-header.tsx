@@ -3,18 +3,19 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Menu, Instagram, Twitter, LogOut } from "lucide-react"
+import { Menu, Instagram, Twitter, LogOut } from "lucide-react" // Keep LogOut if used elsewhere, otherwise remove
 import { motion } from "framer-motion"
-import { Button } from "@/components/ui/button"
+// import { Button } from "@/components/ui/button" // Button is now used only in LogoutButton
 import { useAuth } from "@/contexts/auth-context"
 import { NavigationMenu, NavigationMenuList, NavigationMenuItem, NavigationMenuTrigger, NavigationMenuContent, NavigationMenuLink } from "@/components/ui/navigation-menu"
 import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetClose } from "@/components/ui/sheet"
 import StripeCartButton from "@/components/stripe-cart-button"
+import LogoutButton from "./logout-button" // Import the new component
 
 // goToHomePageメソッドを追加
 export default function SiteHeader() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const { user, signOut } = useAuth()
+  const { user } = useAuth() // Remove signOut from here
   const router = useRouter()
   const [isMounted, setIsMounted] = useState(false)
 
@@ -38,13 +39,7 @@ export default function SiteHeader() {
     setMobileMenuOpen(!mobileMenuOpen)
   }
 
-  const handleSignOut = async () => {
-    try {
-      await signOut()
-    } catch (error) {
-      console.error("ログアウトエラー:", error)
-    }
-  }
+  // handleSignOut is now inside LogoutButton component
 
   return (
     <header className="fixed top-0 left-0 right-0 bg-secondary z-50">
@@ -108,14 +103,7 @@ export default function SiteHeader() {
             (user ? (
               <>
                 <span className="text-sm text-secondary-foreground font-zen">{user.email?.split("@")[0]}さん</span>
-                <Button
-                  variant="outline"
-                  className="rounded-full border-secondary-foreground hover:bg-secondary-foreground hover:text-white font-montserrat"
-                  onClick={handleSignOut}
-                >
-                  <LogOut className="h-4 w-4 mr-2" />
-                  ログアウト
-                </Button>
+                <LogoutButton /> {/* Use the new component */}
               </>
             ) : null)}
           <Link href="/instagram" className="text-secondary-foreground hover:opacity-70 transition-opacity">
@@ -215,16 +203,7 @@ export default function SiteHeader() {
                   (user ? (
                     <>
                       <span className="block text-sm text-secondary-foreground font-zen">{user.email?.split("@")[0]}さん</span>
-                      <SheetClose asChild>
-                        <Button
-                          variant="outline"
-                          className="w-full rounded-full border-secondary-foreground hover:bg-secondary-foreground hover:text-white font-montserrat"
-                          onClick={handleSignOut}
-                        >
-                          <LogOut className="h-4 w-4 mr-2" />
-                          ログアウト
-                        </Button>
-                      </SheetClose>
+                      <LogoutButton isMobile={true} /> {/* Use the new component for mobile */}
                     </>
                   ) : null)}
                 <div className="flex justify-center space-x-4 mt-4">
@@ -243,4 +222,3 @@ export default function SiteHeader() {
     </header>
   )
 }
-

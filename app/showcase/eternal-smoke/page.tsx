@@ -10,9 +10,11 @@ import SiteHeader from "@/components/site-header"
 import SiteFooter from "@/components/site-footer"
 import { Button } from "@/components/ui/button"
 import { useStripeCart } from "@/contexts/stripe-cart-context"
+import { useCartDrawer } from "@/contexts/cart-drawer-context"
 
 export default function EternalSmokePage() {
   const { addToCart } = useStripeCart()
+  const { openCart } = useCartDrawer()
 
   // ページトップへのスクロール処理
   useEffect(() => {
@@ -70,6 +72,8 @@ YuruFlexが歩いてきた夜の軌跡を、香りで閉じ込めた一本。
       price: product.priceNumber,
       image: product.image,
     })
+    // カートに追加後、カートドロワーを開く
+    openCart()
   }
 
   return (

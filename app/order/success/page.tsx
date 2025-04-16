@@ -4,7 +4,8 @@ import * as React from 'react';
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/button'; // 非インタラクティブなボタン用
+import ClientButton from '@/components/ui/client-button'; // インタラクティブなボタン用（onClick付き）
 import { toast } from '@/components/ui/use-toast';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -125,14 +126,14 @@ export default function OrderSuccess() {
         </div>
 
         <div className="space-y-4">
-          <Button
+          <ClientButton // Use ClientButton here because it has onClick
             onClick={handleDownload}
             className="w-full bg-primary text-white py-3 rounded-lg hover:bg-primary/90 transition-colors"
           >
             ラベル画像をダウンロード
-          </Button>
+          </ClientButton>
           <Link href="/custom-order?mode=custom" className="block"> {/* リンク修正 */}
-            <Button
+            <Button // Keep original Button here as it has no onClick
               variant="outline"
               className="w-full py-3 rounded-lg"
             >

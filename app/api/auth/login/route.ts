@@ -1,3 +1,7 @@
+// 注: このファイルは現在使用していません。
+// 必要になったら、コメントを外して再度有効化してください。
+
+/*
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
@@ -50,4 +54,10 @@ export async function POST(request: Request) {
       { status: 500 }
     )
   }
-} 
+}
+*/
+
+// ダミーのハンドラーを追加して404を返す
+export async function POST() {
+  return new Response("Not implemented", { status: 404 });
+}

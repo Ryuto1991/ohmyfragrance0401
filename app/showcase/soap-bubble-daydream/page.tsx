@@ -10,9 +10,11 @@ import SiteHeader from "@/components/site-header"
 import SiteFooter from "@/components/site-footer"
 import { Button } from "@/components/ui/button"
 import { useStripeCart } from "@/contexts/stripe-cart-context"
+import { useCartDrawer } from "@/contexts/cart-drawer-context"
 
 export default function SoapBubbleDaydreamPage() {
   const { addToCart } = useStripeCart()
+  const { openCart } = useCartDrawer()
 
   // ページトップへのスクロール処理
   useEffect(() => {
@@ -71,6 +73,8 @@ export default function SoapBubbleDaydreamPage() {
       price: product.priceNumber,
       image: product.image,
     })
+    // カートに追加後、カートドロワーを開く
+    openCart()
   }
 
   return (

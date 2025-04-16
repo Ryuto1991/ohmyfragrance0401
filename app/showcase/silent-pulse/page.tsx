@@ -10,9 +10,11 @@ import SiteHeader from "@/components/site-header"
 import SiteFooter from "@/components/site-footer"
 import { Button } from "@/components/ui/button"
 import { useStripeCart } from "@/contexts/stripe-cart-context"
+import { useCartDrawer } from "@/contexts/cart-drawer-context"
 
 export default function SilentPulsePage() {
   const { addToCart } = useStripeCart()
+  const { openCart } = useCartDrawer()
 
   // ページトップへのスクロール処理
   useEffect(() => {
@@ -70,6 +72,8 @@ Re:Noirが紡ぐ繊細な旋律と感情を香りで再構成。
       price: product.priceNumber,
       image: product.image,
     })
+    // カートに追加後、カートドロワーを開く
+    openCart()
   }
 
   return (

@@ -1,3 +1,5 @@
+'use client'
+
 import { useEffect, useRef, useState } from 'react'
 
 interface LabelSizeGuideProps {
@@ -261,4 +263,4 @@ export default function LabelSizeGuide({ size, bottleImage }: LabelSizeGuideProp
       />
     </div>
   )
-} 
+}

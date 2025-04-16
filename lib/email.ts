@@ -18,8 +18,14 @@ export async function sendOrderConfirmationEmail({
   orderAmount: number;
 }) {
   try {
+    // 環境に基づいて適切なFromアドレスを使用
+    // 開発環境では resend.dev ドメインを使用し、本番環境では ohmyfragrance.com を使用
+    const fromEmail = process.env.NODE_ENV === 'production' && process.env.USE_VERIFIED_DOMAIN === 'true'
+      ? 'Oh my fragrance <noreply@ohmyfragrance.com>'
+      : 'Oh my fragrance <onboarding@resend.dev>'; // Resendの認証済みドメイン
+
     const { data, error } = await resend.emails.send({
-      from: 'Oh my fragrance <noreply@ohmyfragrance.com>',
+      from: fromEmail,
       to: customerEmail,
       subject: 'ご注文ありがとうございます - Oh my fragrance',
       html: `

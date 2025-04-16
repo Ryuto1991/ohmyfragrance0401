@@ -20,12 +20,17 @@ const nextConfig = {
         port: '',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'igpsidgueemtziedebcs.supabase.co',
+        port: '',
+        pathname: '/**',
+      },
     ],
     formats: ['image/avif', 'image/webp'],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
     minimumCacheTTL: 60,
-    domains: ['igpsidgueemtziedebcs.supabase.co'],
   },
   experimental: {
     serverActions: {
@@ -33,10 +38,10 @@ const nextConfig = {
     },
     optimizeCss: true,
     optimizePackageImports: ['@radix-ui/react-icons', '@radix-ui/react-slot'],
-    turbo: {
-      loaders: {
-        '.svg': ['@svgr/webpack'],
-      },
+  },
+  turbopack: {
+    rules: {
+      '*.svg': ['@svgr/webpack'],
     },
   },
   webpack: (config, { dev, isServer }) => {
@@ -101,6 +106,7 @@ const nextConfig = {
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production',
   },
+  staticPageGenerationTimeout: 120, // 120秒に設定
 }
 
-module.exports = withBundleAnalyzer(nextConfig) 
+module.exports = withBundleAnalyzer(nextConfig)

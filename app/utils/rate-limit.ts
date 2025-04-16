@@ -1,61 +1,81 @@
-import { Redis } from '@upstash/redis'
-
 interface RateLimitConfig {
   maxRequests: number
   windowMs: number
 }
 
-const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL!,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
-})
+interface RequestRecord {
+  count: number;
+  timestamp: number;
+}
 
 export class RateLimiter {
-  private static instance: RateLimiter
-  private configs: Map<string, RateLimitConfig>
+  private static instance: RateLimiter;
+  private configs: Map<string, RateLimitConfig>;
+  private requestRecords: Map<string, RequestRecord>;
 
   private constructor() {
     this.configs = new Map([
       ['auth', { maxRequests: 5, windowMs: 60 * 1000 }], // 1分間に5回
       ['api', { maxRequests: 100, windowMs: 60 * 1000 }], // 1分間に100回
       ['upload', { maxRequests: 10, windowMs: 60 * 1000 }], // 1分間に10回
-    ])
+    ]);
+    this.requestRecords = new Map();
   }
 
   public static getInstance(): RateLimiter {
     if (!RateLimiter.instance) {
-      RateLimiter.instance = new RateLimiter()
+      RateLimiter.instance = new RateLimiter();
     }
-    return RateLimiter.instance
+    return RateLimiter.instance;
   }
 
   public async checkRateLimit(
     key: string,
     type: string = 'api'
   ): Promise<{ allowed: boolean; remaining: number }> {
-    const config = this.configs.get(type)
+    const config = this.configs.get(type);
     if (!config) {
-      throw new Error(`Unknown rate limit type: ${type}`)
+      throw new Error(`Unknown rate limit type: ${type}`);
     }
 
-    const now = Date.now()
-    const windowKey = `${key}:${type}:${Math.floor(now / config.windowMs)}`
+    const now = Date.now();
+    const windowKey = `${key}:${type}:${Math.floor(now / config.windowMs)}`;
     
-    const [count] = await redis
-      .multi()
-      .incr(windowKey)
-      .expire(windowKey, Math.ceil(config.windowMs / 1000))
-      .exec()
+    // 古いウィンドウのデータをクリーンアップ
+    this.cleanupOldRecords(now);
 
-    const remaining = Math.max(0, config.maxRequests - count)
-    const allowed = count <= config.maxRequests
+    // 既存のレコードを取得するか、新しいレコードを作成
+    let record = this.requestRecords.get(windowKey);
+    
+    if (!record) {
+      record = { count: 0, timestamp: now };
+      this.requestRecords.set(windowKey, record);
+    }
+    
+    // カウントを増やす
+    record.count++;
+    
+    const remaining = Math.max(0, config.maxRequests - record.count);
+    const allowed = record.count <= config.maxRequests;
 
-    return { allowed, remaining }
+    return { allowed, remaining };
   }
 
   public async resetRateLimit(key: string, type: string = 'api'): Promise<void> {
-    const now = Date.now()
-    const windowKey = `${key}:${type}:${Math.floor(now / this.configs.get(type)!.windowMs / 1000)}`
-    await redis.del(windowKey)
+    const now = Date.now();
+    const windowKey = `${key}:${type}:${Math.floor(now / this.configs.get(type)!.windowMs)}`;
+    this.requestRecords.delete(windowKey);
   }
-} 
+
+  // 期限切れのレコードをクリーンアップ
+  private cleanupOldRecords(now: number): void {
+    for (const [key, record] of this.requestRecords.entries()) {
+      const [_, type, _window] = key.split(':');
+      const config = this.configs.get(type);
+      
+      if (config && (now - record.timestamp) > config.windowMs) {
+        this.requestRecords.delete(key);
+      }
+    }
+  }
+}
