@@ -45,7 +45,8 @@ export default function SoapBubbleDaydreamPage() {
     category: "アーティストコラボ",
     slug: "soap-bubble-daydream",
     price: "5,980",
-    priceId: "price_1R8VwGE0t3PGpOQ5T1qpwmpF",
+    // 環境変数から価格IDを読み込む。テストIDはフォールバックとして残す
+    priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_SOAP_BUBBLE || "price_1R8VwGE0t3PGpOQ5T1qpwmpF",
     priceNumber: 5980,
     notes: {
       top: ["ベルガモット", "ジャスミン"],
@@ -266,4 +267,3 @@ export default function SoapBubbleDaydreamPage() {
     </div>
   )
 }
-

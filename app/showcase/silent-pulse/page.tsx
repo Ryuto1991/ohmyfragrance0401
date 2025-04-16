@@ -44,7 +44,8 @@ Re:Noirが紡ぐ繊細な旋律と感情を香りで再構成。
     category: "コンテンツコラボ",
     slug: "silent-pulse",
     price: "5,980",
-    priceId: "price_1R8VzyE0t3PGpOQ5rmya7Dh0",
+    // 環境変数から価格IDを読み込む。テストIDはフォールバックとして残す
+    priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_SILENT_PULSE || "price_1R8VzyE0t3PGpOQ5rmya7Dh0",
     priceNumber: 5980,
     notes: {
       top: ["ベルガモット"],
@@ -356,4 +357,3 @@ Re:Noirが紡ぐ繊細な旋律と感情を香りで再構成。
     </div>
   )
 }
-

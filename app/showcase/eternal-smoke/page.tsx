@@ -44,7 +44,8 @@ YuruFlexが歩いてきた夜の軌跡を、香りで閉じ込めた一本。
     category: "アーティストコラボ",
     slug: "eternal-smoke",
     price: "5,500",
-    priceId: "price_1R8PfWE0t3PGpOQ56jvdSTKf",
+    // 環境変数から価格IDを読み込む。テストIDはフォールバックとして残す
+    priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_ETERNAL_SMOKE || "price_1R8PfWE0t3PGpOQ56jvdSTKf",
     priceNumber: 5500,
     notes: {
       top: ["ミルラ"],
@@ -349,4 +350,3 @@ YuruFlexが歩いてきた夜の軌跡を、香りで閉じ込めた一本。
     </div>
   )
 }
-

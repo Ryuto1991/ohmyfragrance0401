@@ -45,7 +45,8 @@ Bloom（ブルーム）の"春霞"担当、朝凪りりあ。
     category: "コンテンツコラボ",
     slug: "bloom-whisper",
     price: "5,980",
-    priceId: "price_1R8WSDE0t3PGpOQ5Yuu4Es4q",
+    // 環境変数から価格IDを読み込む。テストIDはフォールバックとして残す
+    priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_BLOOM_WHISPER || "price_1R8WSDE0t3PGpOQ5Yuu4Es4q",
     priceNumber: 5980,
     notes: {
       top: ["ホワイトピーチ", "グリーンアップル"],
@@ -349,4 +350,3 @@ Bloom（ブルーム）の"春霞"担当、朝凪りりあ。
     </div>
   )
 }
-

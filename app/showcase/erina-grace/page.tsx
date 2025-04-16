@@ -44,7 +44,8 @@ export default function ErinaGracePage() {
     category: "アーティストコラボ",
     slug: "erina-grace",
     price: "6,600",
-    priceId: "price_1R8VttE0t3PGpOQ5jLpjDBzp",
+    // 環境変数から価格IDを読み込む。テストIDはフォールバックとして残す
+    priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_ERINA_GRACE || "price_1R8VttE0t3PGpOQ5jLpjDBzp",
     priceNumber: 6600,
     notes: {
       top: ["ホワイトティー", "ペア"],
@@ -356,4 +357,3 @@ export default function ErinaGracePage() {
     </div>
   )
 }
-
