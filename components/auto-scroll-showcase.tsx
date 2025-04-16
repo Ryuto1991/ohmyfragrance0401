@@ -10,7 +10,7 @@ const fragranceShowcases = [
     id: 1,
     name: "好きな香りを選ぶ【4980円～】",
     image: "/images/select-fragrance.png",
-    link: "/select-fragrance",
+    link: "/oh-my-custom",
   },
   {
     id: 4,

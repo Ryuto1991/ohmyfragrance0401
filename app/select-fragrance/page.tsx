@@ -349,10 +349,10 @@ export default function SelectFragrancePage() {
               <p className="text-gray-700 font-zen mb-8 text-lg">
                 10種類の香りから選んで、ボトルとラベルを簡単カスタマイズ。
                 <br />
-                4,400円～ギフトや推し香水がつくれます！
+                4,980円～ギフトや推し香水がつくれます！
               </p>
               <div className="flex justify-center">
-                <Link href="/select-fragrance-order">
+                <Link href="/oh-my-custom">
                   <Button className="bg-primary hover:bg-primary/90 text-white rounded-full px-8 py-4 text-lg font-zen">
                     セレクト香水をつくる
                     <ArrowRight className="ml-2 h-5 w-5" />

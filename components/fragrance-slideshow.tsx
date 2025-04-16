@@ -13,7 +13,7 @@ const fragrances = [
     name: "セレクト香水プラン",
     description: "10種類の香りから選べる",
     image: "/images/select-fragrance.png",
-    link: "/showcase/select-fragrance",
+    link: "/showcase/oh-my-custom",
   },
   {
     id: 1,
