@@ -1,31 +1,10 @@
-import { createClient } from '@supabase/supabase-js'
 import { Database } from '@/types/supabase'
+// メインのシングルトンを使用
+import { supabase, getSupabase } from '@/lib/supabase'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-
-// シングルトンパターンでSupabaseクライアントを管理
-let supabaseInstance: ReturnType<typeof createClient<Database>> | null = null
-
+// 型付きクライアントを取得する関数
 export function getSupabaseClient() {
-  if (!supabaseInstance) {
-    supabaseInstance = createClient<Database>(supabaseUrl, supabaseAnonKey, {
-      auth: {
-        persistSession: true,
-        autoRefreshToken: true,
-        detectSessionInUrl: true,
-      },
-      global: {
-        headers: {
-          'x-application-name': 'oh-my-fragrance',
-        },
-      },
-      db: {
-        schema: 'public',
-      },
-    })
-  }
-  return supabaseInstance
+  return supabase as unknown as ReturnType<typeof import('@supabase/supabase-js').createClient<Database>>;
 }
 
 // キャッシュ用のMap
@@ -63,4 +42,4 @@ setInterval(() => {
       cache.delete(key)
     }
   }
-}, CACHE_DURATION) 
+}, CACHE_DURATION)

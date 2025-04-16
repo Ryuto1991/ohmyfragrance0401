@@ -1,5 +1,3 @@
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
-
 interface CreateCheckoutSessionParams {
   labelId: string;
   scent: string;
@@ -11,8 +9,6 @@ export async function createCheckoutSession({
   scent,
   priceId,
 }: CreateCheckoutSessionParams): Promise<string> {
-  const supabase = createClientComponentClient();
-
   // セッション作成用のAPIを呼び出し
   const response = await fetch('/api/create-checkout-session', {
     method: 'POST',
@@ -32,4 +28,4 @@ export async function createCheckoutSession({
 
   const { url } = await response.json();
   return url;
-} 
+}

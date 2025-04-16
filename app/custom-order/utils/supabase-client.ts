@@ -1,3 +1,5 @@
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+// メインのシングルトンを使用
+import { supabase } from '@/lib/supabase';
 
-export const supabase = createClientComponentClient(); 
+// 既存のファイルとの互換性を保つためにexportを維持
+export { supabase };
