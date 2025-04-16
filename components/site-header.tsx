@@ -106,10 +106,10 @@ export default function SiteHeader() {
                 <LogoutButton /> {/* Use the new component */}
               </>
             ) : null)}
-          <Link href="/instagram" className="text-secondary-foreground hover:opacity-70 transition-opacity">
+          <Link href="https://www.instagram.com/omf_jp/" target="_blank" rel="noopener noreferrer" className="text-secondary-foreground hover:opacity-70 transition-opacity">
             <Instagram className="h-5 w-5" />
           </Link>
-          <Link href="/twitter" className="text-secondary-foreground hover:opacity-70 transition-opacity">
+          <Link href="https://x.com/omf_jp" target="_blank" rel="noopener noreferrer" className="text-secondary-foreground hover:opacity-70 transition-opacity">
             <Twitter className="h-5 w-5" />
           </Link>
         </motion.div>
@@ -207,10 +207,10 @@ export default function SiteHeader() {
                     </>
                   ) : null)}
                 <div className="flex justify-center space-x-4 mt-4">
-                  <Link href="/instagram" className="text-secondary-foreground hover:opacity-70 transition-opacity">
+                  <Link href="https://www.instagram.com/omf_jp/" target="_blank" rel="noopener noreferrer" className="text-secondary-foreground hover:opacity-70 transition-opacity">
                     <Instagram className="h-5 w-5" />
                   </Link>
-                  <Link href="/twitter" className="text-secondary-foreground hover:opacity-70 transition-opacity">
+                  <Link href="https://x.com/omf_jp" target="_blank" rel="noopener noreferrer" className="text-secondary-foreground hover:opacity-70 transition-opacity">
                     <Twitter className="h-5 w-5" />
                   </Link>
                 </div>
