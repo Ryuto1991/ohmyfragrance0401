@@ -208,37 +208,39 @@ export default function PerfumeOrderingPage() {
         return;
       }
 
-      const { error } = await supabase
-        .from('recipes')
-        .insert([
-          {
-            name: recipeData.name || "カスタムルームフレグランス",
-            description: recipeData.description || "あなただけのオリジナルの香り",
-            top_notes: recipeData.top_notes,
-            middle_notes: recipeData.middle_notes,
-            base_notes: recipeData.base_notes,
-            mode: recipeData.mode
-          }
-        ]);
+      try {
+        const { error } = await supabase
+          .from('recipes')
+          .insert([
+            {
+              name: recipeData.name || "カスタムルームフレグランス",
+              description: recipeData.description || "あなただけのオリジナルの香り",
+              top_notes: recipeData.top_notes,
+              middle_notes: recipeData.middle_notes,
+              base_notes: recipeData.base_notes,
+              mode: recipeData.mode
+            }
+          ]);
 
-      if (error) {
-        console.error('Error saving to Supabase:', error);
-        toast({
-          title: "レシピの保存に失敗しました",
-          description: error.message,
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "レシピを保存しました",
-          description: "香りのレシピがデータベースに保存されました",
-        });
+        if (error) {
+          console.warn('Supabaseへの保存中にエラーが発生しました:', error);
+          // エラーがあってもトーストは表示せず、処理を続行する
+        } else {
+          toast({
+            title: "レシピを保存しました",
+            description: "香りのレシピがデータベースに保存されました",
+          });
+        }
+      } catch (supabaseError) {
+        // Supabaseエラーをキャッチしてもユーザーへのメッセージは表示しない
+        console.warn('Supabaseエラー:', supabaseError);
       }
     } catch (error) {
-      console.error('Error saving to Supabase:', error);
+      console.error('Error in saveRecipeToSupabase:', error);
+      // 全体的なエラーの場合のみ通知
       toast({
         title: "エラーが発生しました",
-        description: "レシピの保存中にエラーが発生しました",
+        description: "レシピの処理中にエラーが発生しましたが、購入処理は続行できます",
         variant: "destructive",
       });
     }

@@ -175,33 +175,31 @@ export default function FragranceGeneratorPage() {
     if (!recipe) return
 
     try {
-      console.log('Attempting to save recipe...')
-      
-      // 認証状態の確認（デバッグ用）
-      const { data: authData } = await supabase.auth.getSession()
-      console.log('Auth session:', authData?.session ? 'Active session' : 'No active session')
-      
-      const { data, error } = await supabase
-        .from('recipes')
-        .insert({
-          name: recipe.title,
-          description: recipe.description,
-          top_notes: recipe.notes.top.map(oil => oil.name),
-          middle_notes: recipe.notes.middle.map(oil => oil.name),
-          base_notes: recipe.notes.base.map(oil => oil.name),
-          mode: 'generator'
-        })
-        // .select() を削除
+      // Supabaseにデータを保存を試みる
+      try {
+        const { data, error } = await supabase
+          .from('recipes')
+          .insert({
+            name: recipe.title,
+            description: recipe.description,
+            top_notes: recipe.notes.top.map(oil => oil.name),
+            middle_notes: recipe.notes.middle.map(oil => oil.name),
+            base_notes: recipe.notes.base.map(oil => oil.name),
+            mode: 'generator',
+            // user_idは未指定（匿名ユーザー）
+          })
+          .select()
 
-      if (error) {
-        console.error('Error saving recipe:', error)
-        console.error('Error code:', error.code)
-        console.error('Error message:', error.message)
-        console.error('Error details:', error.details)
-        throw error
+        if (error) {
+          // エラーを記録するだけで、処理は継続する
+          console.warn('レシピのデータベース保存中にエラーが発生しました:', error)
+        }
+      } catch (supabaseError) {
+        // Supabaseエラーをキャッチしても全体のフローを止めない
+        console.warn('Supabaseエラー:', supabaseError)
       }
 
-      // AIが生成した香りのデータを作成
+      // AIが生成した香りのデータを作成（Supabase保存の成否に関わらず実行）
       const fragranceData = {
         id: 'lab-generated',
         name: recipe.title,
@@ -308,7 +306,8 @@ export default function FragranceGeneratorPage() {
                 </div>
 
                 {/* Add the Chat Mode button */}
-                <div className="mt-12 text-center">
+                <div className="mt-12 text-center"> {/* text-center を追加 */}
+                  {/* Remove legacyBehavior and passHref, wrap Button directly */}
                   <Link href="/fragrance-lab/chat">
                     <Button
                       variant="outline"
@@ -359,23 +358,23 @@ export default function FragranceGeneratorPage() {
                     <p className="text-lg">
                       <span className="text-primary">🌸</span>{" "}
                       <strong>香水名：</strong>
-                      {recipe?.title}
+                      {recipe.title}
                     </p>
                     <ul className="pl-4 list-disc space-y-2">
                       <li>
                         <strong>トップノート：</strong>
-                        {recipe?.notes?.top?.length > 0 ? recipe?.notes.top.map(oil => oil.name).join(", ") : "未設定"}
+                        {recipe.notes?.top?.length > 0 ? recipe.notes.top.map(oil => oil.name).join(", ") : "未設定"}
                       </li>
                       <li>
                         <strong>ミドルノート：</strong>
-                        {recipe?.notes?.middle?.length > 0 ? recipe?.notes.middle.map(oil => oil.name).join(", ") : "未設定"}
+                        {recipe.notes?.middle?.length > 0 ? recipe.notes.middle.map(oil => oil.name).join(", ") : "未設定"}
                       </li>
                       <li>
                         <strong>ベースノート：</strong>
-                        {recipe?.notes?.base?.length > 0 ? recipe?.notes.base.map(oil => oil.name).join(", ") : "未設定"}
+                        {recipe.notes?.base?.length > 0 ? recipe.notes.base.map(oil => oil.name).join(", ") : "未設定"}
                       </li>
                     </ul>
-                    <p className="text-muted-foreground">💬 {recipe?.description}</p>
+                    <p className="text-muted-foreground">💬 {recipe.description}</p>
                   </div>
 
                   <div className="flex flex-col gap-3 pt-4">
